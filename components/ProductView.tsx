@@ -2,8 +2,9 @@
 
 import { motion, useScroll, useTransform, useInView } from "framer-motion"
 import { useRef, useState, useEffect } from "react"
-import { Star, Heart, ShoppingBag, Sparkles, Package, Truck, Shield, Check } from "lucide-react"
+import { Star, Heart, ShoppingBag, Sparkles, Package, Truck, Shield, Check, ArrowLeft } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import Link from "next/link"
 
 // Define all your products
 const allProducts = [
@@ -223,6 +224,25 @@ export default function ProductView({ productId }: ProductViewProps) {
       </motion.div>
 
       <div className="container mx-auto max-w-7xl relative z-10">
+        {/* Back Button */}
+        <motion.div
+          initial={{ opacity: 0, x: -30 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.5 }}
+          className="mb-6 sm:mb-8"
+        >
+          <Link href="/products">
+            <motion.button
+              whileHover={{ scale: 1.05, x: -5 }}
+              whileTap={{ scale: 0.95 }}
+              className="inline-flex items-center gap-2 sm:gap-3 px-4 sm:px-6 py-2.5 sm:py-3 bg-white/70 backdrop-blur-xl rounded-full border border-white/40 shadow-lg hover:shadow-xl hover:bg-white/90 transition-all duration-300 group"
+            >
+              <ArrowLeft className="w-4 h-4 sm:w-5 sm:h-5 text-[#222222] group-hover:-translate-x-1 transition-transform duration-300" />
+              {/* <span className="text-sm sm:text-base font-semibold text-[#222222]"></span> */}
+            </motion.button>
+          </Link>
+        </motion.div>
+
         <div className="grid lg:grid-cols-2 gap-8 sm:gap-12 lg:gap-16 items-start">
           {/* Product Images - Left Side */}
           <motion.div
