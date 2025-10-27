@@ -114,117 +114,79 @@ export default function Hero() {
 
         <motion.div
           ref={bottleRef}
-          initial={{ opacity: 0, scale: 0.8 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.8, delay: 0.4 }}
+          initial={{ opacity: 0, scale: 0.9, y: 30 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          transition={{ 
+            duration: 1.2, 
+            delay: 0.3,
+            ease: [0.25, 0.1, 0.25, 1]
+          }}
           className="relative order-1 lg:order-2"
         >
           <div className="relative w-full aspect-square max-w-[280px] sm:max-w-[380px] md:max-w-[420px] lg:max-w-lg mx-auto">
             <div className="absolute inset-0 bg-gradient-to-br from-[#F2F2F2] to-[#DADADA] rounded-[2rem] sm:rounded-[2.5rem] lg:rounded-[3rem] shadow-2xl" />
             <div className="absolute inset-3 sm:inset-4 bg-gradient-to-br from-[#F8F8F8] via-[#FFFFFF] to-[#F2F2F2] rounded-[1.7rem] sm:rounded-[2.2rem] lg:rounded-[2.5rem] flex items-center justify-center overflow-hidden border border-[#DADADA]/30">
-              {/* Perfume bottle illustration */}
-              <div className="relative w-28 h-40 sm:w-36 sm:h-52 md:w-44 md:h-60 lg:w-48 lg:h-64">
-                {/* Bottle body */}
-                <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[70%] h-[62%] bg-gradient-to-b from-[#DADADA]/30 to-[#DADADA]/10 rounded-t-2xl sm:rounded-t-3xl border-2 border-[#DADADA]/40 backdrop-blur-sm">
-                  {/* Liquid */}
-                  <motion.div
-                    animate={{
-                      height: ["60%", "65%", "60%"],
-                    }}
-                    transition={{
-                      duration: 3,
-                      repeat: Infinity,
-                      ease: "easeInOut"
-                    }}
-                    className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-[#DADADA]/40 to-[#DADADA]/20 rounded-t-2xl sm:rounded-t-3xl"
-                  />
-                  {/* Highlight */}
-                  <div className="absolute left-[15%] top-[15%] w-[3%] h-[30%] bg-white/50 rounded-full" />
-                </div>
-                {/* Bottle cap */}
-                <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[40%] h-[25%] bg-gradient-to-b from-[#444444] to-[#222222] rounded-t-xl">
-                  <div className="absolute top-[6%] left-1/2 -translate-x-1/2 w-[70%] h-[65%] bg-[#333333] rounded-t-lg" />
-                  <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[50%] h-[20%] bg-[#222222] rounded-t" />
-                </div>
-                {/* Spray nozzle */}
-                <div className="absolute top-[18%] left-1/2 -translate-x-1/2 w-[28%] h-[6%] bg-[#333333] rounded-full" />
-                
-                {/* Gift Ribbon - Vertical band */}
-                <div className="absolute top-[6%] left-1/2 -translate-x-1/2 w-[20%] h-[75%] bg-gradient-to-r from-[#C4A076] via-[#D4AF7A] to-[#C4A076] z-10">
-                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent" />
-                </div>
-                
-                {/* Ribbon Bow */}
-                <motion.div
-                  animate={{
-                    rotate: [0, 2, -2, 0],
-                  }}
-                  transition={{
-                    duration: 3,
-                    repeat: Infinity,
-                    ease: "easeInOut"
-                  }}
-                  className="absolute top-[3%] left-1/2 -translate-x-1/2 z-20 w-full h-full"
-                >
-                  {/* Left bow loop */}
-                  <div className="absolute left-[20%] top-0 w-[28%] h-[15%] bg-gradient-to-br from-[#D4AF7A] to-[#C4A076] rounded-full transform -rotate-45 shadow-lg">
-                    <div className="absolute inset-[10%] bg-gradient-to-br from-[#E5C89F] to-transparent rounded-full" />
-                  </div>
-                  {/* Right bow loop */}
-                  <div className="absolute right-[20%] top-0 w-[28%] h-[15%] bg-gradient-to-bl from-[#D4AF7A] to-[#C4A076] rounded-full transform rotate-45 shadow-lg">
-                    <div className="absolute inset-[10%] bg-gradient-to-bl from-[#E5C89F] to-transparent rounded-full" />
-                  </div>
-                  {/* Center knot */}
-                  <div className="absolute left-1/2 -translate-x-1/2 top-[3%] w-[18%] h-[8%] bg-gradient-to-br from-[#D4AF7A] to-[#B8956A] rounded-full shadow-md">
-                    <div className="absolute inset-[10%] bg-gradient-to-br from-[#E5C89F] to-transparent rounded-full" />
-                  </div>
-                  {/* Ribbon tails */}
-                  <div className="absolute left-1/2 -translate-x-1/2 top-[9%] w-[7%] h-[12%] bg-gradient-to-b from-[#C4A076] to-[#B8956A] transform -rotate-12 shadow-md rounded-b" />
-                  <div className="absolute left-1/2 -translate-x-1/2 top-[9%] w-[7%] h-[12%] bg-gradient-to-b from-[#C4A076] to-[#B8956A] transform rotate-12 shadow-md rounded-b" />
-                </motion.div>
-              </div>
+              {/* Logo */}
+              <motion.img 
+                src="/logo.png" 
+                alt="The Bottle Stories Logo" 
+                className="w-[70%] h-[70%] object-contain"
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ 
+                  duration: 0.8, 
+                  delay: 0.6,
+                  ease: [0.34, 1.56, 0.64, 1]
+                }}
+              />
               
               {/* Decorative sparkles */}
               <motion.div
+                initial={{ opacity: 0, scale: 0 }}
                 animate={{
-                  scale: [1, 1.2, 1],
-                  opacity: [0.3, 0.6, 0.3],
+                  opacity: [0, 0.6, 0.3, 0.6, 0.3],
+                  scale: [0, 1.2, 1, 1.2, 1],
                 }}
                 transition={{
                   duration: 2,
+                  delay: 1,
+                  times: [0, 0.2, 0.5, 0.7, 1],
                   repeat: Infinity,
                   ease: "easeInOut",
-                  delay: 0
                 }}
                 className="absolute top-[15%] right-[15%]"
               >
                 <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-[#DADADA]" />
               </motion.div>
               <motion.div
+                initial={{ opacity: 0, scale: 0 }}
                 animate={{
-                  scale: [1, 1.2, 1],
-                  opacity: [0.3, 0.6, 0.3],
+                  opacity: [0, 0.6, 0.3, 0.6, 0.3],
+                  scale: [0, 1.2, 1, 1.2, 1],
                 }}
                 transition={{
                   duration: 2,
+                  delay: 1.3,
+                  times: [0, 0.2, 0.5, 0.7, 1],
                   repeat: Infinity,
                   ease: "easeInOut",
-                  delay: 0.5
                 }}
                 className="absolute bottom-[20%] left-[15%]"
               >
                 <Sparkles className="w-3 h-3 sm:w-4 sm:h-4 lg:w-5 lg:h-5 text-[#DADADA]" />
               </motion.div>
               <motion.div
+                initial={{ opacity: 0, scale: 0 }}
                 animate={{
-                  scale: [1, 1.2, 1],
-                  opacity: [0.3, 0.6, 0.3],
+                  opacity: [0, 0.6, 0.3, 0.6, 0.3],
+                  scale: [0, 1.2, 1, 1.2, 1],
                 }}
                 transition={{
                   duration: 2,
+                  delay: 1.6,
+                  times: [0, 0.2, 0.5, 0.7, 1],
                   repeat: Infinity,
                   ease: "easeInOut",
-                  delay: 1
                 }}
                 className="absolute top-[35%] left-[20%]"
               >
@@ -232,12 +194,15 @@ export default function Hero() {
               </motion.div>
             </div>
             <motion.div
+              initial={{ opacity: 0, scale: 0.8 }}
               animate={{
-                scale: [1, 1.2, 1],
-                opacity: [0.3, 0.5, 0.3],
+                opacity: [0, 0.5, 0.3, 0.5, 0.3],
+                scale: [0.8, 1.2, 1, 1.2, 1],
               }}
               transition={{
                 duration: 3,
+                delay: 0.8,
+                times: [0, 0.2, 0.5, 0.7, 1],
                 repeat: Infinity,
                 ease: "easeInOut"
               }}
