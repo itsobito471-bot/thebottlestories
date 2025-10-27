@@ -5,6 +5,7 @@ import { useRef, useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { ShoppingBag, ArrowRight, ChevronLeft, ChevronRight, Sparkles } from "lucide-react"
 import { useRouter } from 'next/navigation'
+// import { useRouter, usePathname } from "next/navigation"
 
 export default function Products() {
   const router = useRouter()
@@ -15,6 +16,7 @@ export default function Products() {
 
   const products = [
     {
+      id:1,
       name: "Elegant Evening",
       description: "A sophisticated collection of evening fragrances with luxury packaging",
       price: "$199",
@@ -22,6 +24,7 @@ export default function Products() {
       tag: "Best Seller"
     },
     {
+      id:2,
       name: "Romance Collection",
       description: "Perfect for anniversaries with rose-infused perfumes and chocolates",
       price: "$249",
@@ -29,6 +32,7 @@ export default function Products() {
       tag: "Premium"
     },
     {
+      id:3,
       name: "Corporate Elite",
       description: "Professional gift hampers with timeless scents for business occasions",
       price: "$299",
@@ -36,6 +40,7 @@ export default function Products() {
       tag: "Corporate"
     },
     {
+      id:4,
       name: "Celebration Special",
       description: "Festive hampers with champagne notes and sparkling accents",
       price: "$349",
@@ -43,6 +48,7 @@ export default function Products() {
       tag: "Limited Edition"
     },
     {
+      id:5,
       name: "Luxury Voyage",
       description: "Travel-sized luxury perfumes in premium leather case",
       price: "$179",
@@ -50,6 +56,7 @@ export default function Products() {
       tag: "Travel Set"
     },
     {
+      id:6,
       name: "Signature Series",
       description: "Our most exclusive collection with rare and exotic fragrances",
       price: "$499",
@@ -57,6 +64,8 @@ export default function Products() {
       tag: "Exclusive"
     }
   ]
+
+  
 
   // Duplicate products for infinite loop effect
   const duplicatedProducts = [...products, ...products, ...products]
@@ -228,6 +237,7 @@ export default function Products() {
                           <Button
                             size="sm"
                             className="bg-white text-[#222222] hover:bg-[#F8F8F8] rounded-full px-6 shadow-lg"
+                            onClick={() => router.push(`/product/${product.id}`)}
                           >
                             Quick View
                           </Button>
@@ -305,6 +315,7 @@ export default function Products() {
           <Button
             size="lg"
             className="bg-[#1C1C1C] text-[#F8F8F8] hover:bg-[#222222] rounded-2xl px-10 py-7 text-lg shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-105"
+            onClick={() => router.push("/products")}
           >
             View All Products
             <ArrowRight className="ml-2 w-5 h-5" />
