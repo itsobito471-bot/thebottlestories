@@ -1,0 +1,56 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --off-white: #F8F8F8;
+  --snow-grey: #F2F2F2;
+  --charcoal: #222222;
+  --graphite: #444444;
+  --mist-grey: #DADADA;
+  --smoky-black: #1C1C1C;
+}
+
+@layer base {
+  :root {
+    --background: 0 0% 97.3%;
+    --foreground: 0 0% 13.3%;
+    --card: 0 0% 94.9%;
+    --card-foreground: 0 0% 13.3%;
+    --popover: 0 0% 94.9%;
+    --popover-foreground: 0 0% 13.3%;
+    --primary: 0 0% 11%;
+    --primary-foreground: 0 0% 97.3%;
+    --secondary: 0 0% 26.7%;
+    --secondary-foreground: 0 0% 97.3%;
+    --muted: 0 0% 85.5%;
+    --muted-foreground: 0 0% 26.7%;
+    --accent: 0 0% 85.5%;
+    --accent-foreground: 0 0% 11%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 0 0% 85.5%;
+    --input: 0 0% 85.5%;
+    --ring: 0 0% 11%;
+    --radius: 1rem;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-[#F8F8F8] text-[#222222] overflow-x-hidden;
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+}
+
+html {
+  scroll-behavior: smooth;
+}
