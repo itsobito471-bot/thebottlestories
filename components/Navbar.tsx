@@ -5,6 +5,7 @@ import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Menu, X, ShoppingBag } from "lucide-react"
 import { useRouter, usePathname } from "next/navigation"
+import Image from "next/image"
 
 export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false)
@@ -28,14 +29,14 @@ export default function Navbar() {
   }, [])
 
   const navLinks = [
-    { name: "Home", href: "#home", section: null },
+    { name: "Home", href: "#", section: null },
     { name: "About", href: "#about", section: "about" },
     { name: "Products", href: "#products", section: "products" },
     { name: "Testimonials", href: "#testimonials", section: "testimonials" },
     { name: "Contact", href: "#contact", section: "contact" }
   ]
 
-  const handleNavClick = (e:any, link:any) => {
+  const handleNavClick = (e: any, link: any) => {
     e.preventDefault()
     setIsOpen(false)
 
@@ -87,11 +88,17 @@ export default function Navbar() {
               transition={{ duration: 0.5 }}
               className="flex items-center gap-2 sm:gap-3 cursor-pointer"
             >
-              <div className="w-9 h-9 sm:w-10 sm:h-10 bg-gradient-to-br from-[#222222] to-[#444444] rounded-xl flex items-center justify-center shadow-md">
-                <span className="text-[#F8F8F8] font-bold text-base sm:text-lg">TBS</span>
+              <div className="relative w-9 h-9 sm:w-10 sm:h-10 rounded-xl overflow-hidden shadow-md">
+                <Image
+                  src="/logo.png"
+                  alt="The Bottle Stories"
+                  fill
+                  className="object-cover"
+                  priority
+                />
               </div>
-              <span className="text-lg sm:text-xl font-bold text-[#222222] hidden xs:inline">The Bottle Stories</span>
-              <span className="text-lg sm:text-xl font-bold text-[#222222] xs:hidden">TBS</span>
+              {/* <span className="text-lg sm:text-xl font-bold text-[#222222] hidden xs:inline">The Bottle Stories</span>
+              <span className="text-lg sm:text-xl font-bold text-[#222222] xs:hidden">TBS</span> */}
             </motion.a>
 
             <div className="hidden lg:flex items-center gap-6 xl:gap-8">
@@ -120,10 +127,11 @@ export default function Navbar() {
                 <Button
                   variant="outline"
                   size="sm"
+                  onClick={() => router.push("/cart")}
                   className="rounded-full border-2 border-white/40 hover:bg-white/60 text-[#222222] backdrop-blur-sm transition-all duration-300 hover:shadow-lg hover:scale-105"
                 >
                   <ShoppingBag className="w-4 h-4 lg:mr-2" />
-                  <span className="hidden lg:inline">Cart (0)</span>
+                  <span className="hidden lg:inline">Cart (2)</span>
                 </Button>
               </motion.div>
               <motion.div
@@ -187,10 +195,11 @@ export default function Navbar() {
           <div className="flex flex-col gap-3 pt-4">
             <Button
               variant="outline"
+              onClick={() => router.push("/cart")}
               className="w-full rounded-full border-2 border-white/40 hover:bg-white/60 text-[#222222] backdrop-blur-sm transition-all duration-300"
             >
               <ShoppingBag className="w-4 h-4 mr-2" />
-              Cart (0)
+              Cart (2)
             </Button>
             <Button
               size="sm"
