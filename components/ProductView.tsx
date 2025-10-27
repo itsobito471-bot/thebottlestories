@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button"
 // Define all your products
 const allProducts = [
   {
-    id: "elegant-evening",
+    id: "1",
     name: "Elegant Evening",
     price: "$199",
     originalPrice: "$249",
@@ -32,7 +32,7 @@ const allProducts = [
     tag: "Best Seller"
   },
   {
-    id: "romance-collection",
+    id: "2",
     name: "Romance Collection",
     price: "$249",
     originalPrice: "$299",
@@ -56,7 +56,7 @@ const allProducts = [
     tag: "Premium"
   },
   {
-    id: "corporate-elite",
+    id: "3",
     name: "Corporate Elite",
     price: "$299",
     originalPrice: "$349",
@@ -80,7 +80,7 @@ const allProducts = [
     tag: "Corporate"
   },
   {
-    id: "celebration-special",
+    id: "4",
     name: "Celebration Special",
     price: "$349",
     originalPrice: "$399",
@@ -104,7 +104,7 @@ const allProducts = [
     tag: "Limited Edition"
   },
   {
-    id: "luxury-voyage",
+    id: "5",
     name: "Luxury Voyage",
     price: "$179",
     originalPrice: "$229",
@@ -128,7 +128,7 @@ const allProducts = [
     tag: "Travel Set"
   },
   {
-    id: "signature-series",
+    id: "6",
     name: "Signature Series",
     price: "$499",
     originalPrice: "$599",
@@ -187,7 +187,7 @@ export default function ProductView({ productId }: ProductViewProps) {
   ]
 
   return (
-    <section ref={ref} className="py-32 px-4 bg-gradient-to-b from-white via-[#F8F8F8] to-white relative overflow-hidden">
+    <section ref={ref} className="pt-28 sm:pt-32 lg:pt-36 pb-16 sm:pb-20 lg:pb-24 px-4 sm:px-6 lg:px-8 bg-gradient-to-b from-white via-[#F8F8F8] to-white relative overflow-hidden">
       {/* Parallax Background Elements */}
       <motion.div
         style={{ y, opacity }}
@@ -222,20 +222,20 @@ export default function ProductView({ productId }: ProductViewProps) {
         <Sparkles className="w-6 h-6" />
       </motion.div>
 
-      <div className="container mx-auto relative z-10">
-        <div className="grid lg:grid-cols-2 gap-16 items-start">
+      <div className="container mx-auto max-w-7xl relative z-10">
+        <div className="grid lg:grid-cols-2 gap-8 sm:gap-12 lg:gap-16 items-start">
           {/* Product Images - Left Side */}
           <motion.div
             initial={{ opacity: 0, x: -50 }}
             animate={isInView ? { opacity: 1, x: 0 } : {}}
             transition={{ duration: 0.8 }}
-            className="sticky top-8"
+            className="lg:sticky lg:top-24"
           >
             {/* Main Image */}
-            <div className="relative mb-6">
+            <div className="relative mb-4 sm:mb-6">
               <motion.div
                 whileHover={{ scale: 1.02 }}
-                className="relative aspect-square rounded-3xl overflow-hidden bg-white border border-[#DADADA] shadow-2xl"
+                className="relative aspect-square rounded-2xl sm:rounded-3xl overflow-hidden bg-white border border-[#DADADA] shadow-2xl"
               >
                 <img 
                   src={product.images[selectedImage]} 
@@ -250,18 +250,17 @@ export default function ProductView({ productId }: ProductViewProps) {
                 <motion.div
                   initial={{ scale: 0, rotate: -45 }}
                   animate={{ scale: 1, rotate: 0 }}
-                  className="absolute top-6 right-6 bg-[#222222] text-white px-4 py-2 rounded-full text-sm font-bold shadow-lg"
+                  className="absolute top-4 sm:top-6 right-4 sm:right-6 bg-[#222222] text-white px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-xs sm:text-sm font-bold shadow-lg"
                 >
                   {product.tag}
                 </motion.div>
 
-                {/* Wishlist Button */}
                 <motion.button
                   whileHover={{ scale: 1.1 }}
                   whileTap={{ scale: 0.9 }}
-                  className="absolute top-6 left-6 w-12 h-12 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center shadow-lg hover:bg-white transition-colors"
+                  className="absolute top-4 sm:top-6 left-4 sm:left-6 w-10 h-10 sm:w-12 sm:h-12 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center shadow-lg hover:bg-white transition-colors"
                 >
-                  <Heart className="w-6 h-6 text-[#222222]" />
+                  <Heart className="w-5 h-5 sm:w-6 sm:h-6 text-[#222222]" />
                 </motion.button>
 
                 {/* Sparkle Effect */}
@@ -274,9 +273,9 @@ export default function ProductView({ productId }: ProductViewProps) {
                     duration: 2,
                     repeat: Infinity,
                   }}
-                  className="absolute bottom-8 right-8"
+                  className="absolute bottom-4 sm:bottom-8 right-4 sm:right-8"
                 >
-                  <Sparkles className="w-8 h-8 text-white drop-shadow-lg" />
+                  <Sparkles className="w-6 h-6 sm:w-8 sm:h-8 text-white drop-shadow-lg" />
                 </motion.div>
               </motion.div>
 
@@ -295,14 +294,14 @@ export default function ProductView({ productId }: ProductViewProps) {
             </div>
 
             {/* Thumbnail Images */}
-            <div className="grid grid-cols-4 gap-4">
+            <div className="grid grid-cols-4 gap-2 sm:gap-4">
               {product.images.map((image, index) => (
                 <motion.button
                   key={index}
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                   onClick={() => setSelectedImage(index)}
-                  className={`aspect-square rounded-2xl overflow-hidden border-2 transition-all duration-300 ${
+                  className={`aspect-square rounded-xl sm:rounded-2xl overflow-hidden border-2 transition-all duration-300 ${
                     selectedImage === index
                       ? 'border-[#222222] shadow-xl'
                       : 'border-[#DADADA] hover:border-[#444444]'
@@ -323,7 +322,7 @@ export default function ProductView({ productId }: ProductViewProps) {
             initial={{ opacity: 0, x: 50 }}
             animate={isInView ? { opacity: 1, x: 0 } : {}}
             transition={{ duration: 0.8, delay: 0.2 }}
-            className="space-y-8"
+            className="space-y-6 sm:space-y-8"
           >
             {/* Breadcrumb */}
             <motion.div
@@ -344,7 +343,7 @@ export default function ProductView({ productId }: ProductViewProps) {
               initial={{ opacity: 0, y: 20 }}
               animate={isInView ? { opacity: 1, y: 0 } : {}}
               transition={{ delay: 0.4 }}
-              className="text-4xl md:text-5xl font-bold text-[#222222] leading-tight"
+              className="text-3xl sm:text-4xl md:text-5xl font-bold text-[#222222] leading-tight"
             >
               {product.name}
             </motion.h1>
@@ -375,11 +374,11 @@ export default function ProductView({ productId }: ProductViewProps) {
               initial={{ opacity: 0, y: 20 }}
               animate={isInView ? { opacity: 1, y: 0 } : {}}
               transition={{ delay: 0.6 }}
-              className="flex items-center gap-4"
+              className="flex flex-wrap items-center gap-3 sm:gap-4"
             >
-              <span className="text-5xl font-bold text-[#222222]">{product.price}</span>
-              <span className="text-2xl text-[#444444] line-through">{product.originalPrice}</span>
-              <span className="px-4 py-2 bg-pink-50 text-[#222222] rounded-full text-sm font-bold">
+              <span className="text-4xl sm:text-5xl font-bold text-[#222222]">{product.price}</span>
+              <span className="text-xl sm:text-2xl text-[#444444] line-through">{product.originalPrice}</span>
+              <span className="px-3 sm:px-4 py-1.5 sm:py-2 bg-pink-50 text-[#222222] rounded-full text-xs sm:text-sm font-bold">
                 Save {Math.round(((parseInt(product.originalPrice.replace('$', '')) - parseInt(product.price.replace('$', ''))) / parseInt(product.originalPrice.replace('$', ''))) * 100)}%
               </span>
             </motion.div>
@@ -417,10 +416,10 @@ export default function ProductView({ productId }: ProductViewProps) {
               initial={{ opacity: 0, y: 20 }}
               animate={isInView ? { opacity: 1, y: 0 } : {}}
               transition={{ delay: 0.9 }}
-              className="bg-gradient-to-br from-pink-50 to-rose-50 rounded-3xl p-8 border border-[#DADADA]"
+              className="bg-gradient-to-br from-pink-50 to-rose-50 rounded-2xl sm:rounded-3xl p-6 sm:p-8 border border-[#DADADA]"
             >
-              <h3 className="text-xl font-bold text-[#222222] mb-6">What's Included:</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <h3 className="text-lg sm:text-xl font-bold text-[#222222] mb-4 sm:mb-6">What&apos;s Included:</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
                 {product.features.map((feature, index) => (
                   <motion.div
                     key={index}
@@ -445,29 +444,27 @@ export default function ProductView({ productId }: ProductViewProps) {
               transition={{ delay: 1.2 }}
               className="flex flex-wrap gap-4"
             >
-              {/* Quantity */}
-              <div className="flex items-center gap-4 px-6 py-4 bg-white border-2 border-[#DADADA] rounded-2xl">
+              <div className="flex items-center gap-3 sm:gap-4 px-4 sm:px-6 py-3 sm:py-4 bg-white border-2 border-[#DADADA] rounded-xl sm:rounded-2xl">
                 <button
                   onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                  className="w-8 h-8 flex items-center justify-center rounded-lg bg-[#F8F8F8] hover:bg-[#DADADA] transition-colors"
+                  className="w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center rounded-lg bg-[#F8F8F8] hover:bg-[#DADADA] transition-colors text-lg font-bold"
                 >
                   -
                 </button>
-                <span className="text-xl font-bold text-[#222222] w-12 text-center">{quantity}</span>
+                <span className="text-lg sm:text-xl font-bold text-[#222222] w-10 sm:w-12 text-center">{quantity}</span>
                 <button
                   onClick={() => setQuantity(quantity + 1)}
-                  className="w-8 h-8 flex items-center justify-center rounded-lg bg-[#F8F8F8] hover:bg-[#DADADA] transition-colors"
+                  className="w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center rounded-lg bg-[#F8F8F8] hover:bg-[#DADADA] transition-colors text-lg font-bold"
                 >
                   +
                 </button>
               </div>
 
-              {/* Add to Cart */}
               <Button
                 size="lg"
-                className="flex-1 bg-[#1C1C1C] text-white hover:bg-[#222222] rounded-2xl px-8 py-7 text-lg shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-105"
+                className="flex-1 bg-[#1C1C1C] text-white hover:bg-[#222222] rounded-xl sm:rounded-2xl px-6 sm:px-8 py-6 sm:py-7 text-base sm:text-lg shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-105"
               >
-                <ShoppingBag className="w-5 h-5 mr-2" />
+                <ShoppingBag className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
                 Add to Cart
               </Button>
             </motion.div>
@@ -480,7 +477,7 @@ export default function ProductView({ productId }: ProductViewProps) {
             >
               <Button
                 size="lg"
-                className="w-full bg-gradient-to-r from-pink-100 to-rose-100 text-[#222222] hover:from-pink-200 hover:to-rose-200 rounded-2xl px-8 py-7 text-lg font-bold border-2 border-[#DADADA] shadow-lg hover:shadow-xl transition-all duration-300"
+                className="w-full bg-gradient-to-r from-pink-100 to-rose-100 text-[#222222] hover:from-pink-200 hover:to-rose-200 rounded-xl sm:rounded-2xl px-6 sm:px-8 py-6 sm:py-7 text-base sm:text-lg font-bold border-2 border-[#DADADA] shadow-lg hover:shadow-xl transition-all duration-300"
               >
                 Buy Now
               </Button>
