@@ -122,7 +122,7 @@ export default function Testimonials() {
   }
 
   return (
-    <section ref={ref} className="py-32 px-4 bg-gradient-to-b from-white via-gray-50 to-white relative overflow-hidden">
+    <section id="testimonials" ref={ref} className="py-32 px-4 bg-gradient-to-b from-white via-gray-50 to-white relative overflow-hidden">
       {/* Parallax Background Elements - Disabled on mobile */}
       {!isMobile && (
         <>

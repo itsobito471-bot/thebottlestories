@@ -4,11 +4,15 @@ import { motion, useScroll, useTransform } from "framer-motion"
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Menu, X, ShoppingBag } from "lucide-react"
+import { useRouter, usePathname } from "next/navigation"
 
 export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false)
   const [isScrolled, setIsScrolled] = useState(false)
   const { scrollY } = useScroll()
+  const router = useRouter()
+  const pathname = usePathname()
+  
   const backgroundColor = useTransform(
     scrollY,
     [0, 100],
@@ -24,12 +28,34 @@ export default function Navbar() {
   }, [])
 
   const navLinks = [
-    { name: "Home", href: "#" },
-    { name: "About", href: "#about" },
-    { name: "Products", href: "#products" },
-    { name: "Testimonials", href: "#testimonials" },
-    { name: "Contact", href: "#contact" }
+    { name: "Home", href: "#home", section: null },
+    { name: "About", href: "#about", section: "about" },
+    { name: "Products", href: "#products", section: "products" },
+    { name: "Testimonials", href: "#testimonials", section: "testimonials" },
+    { name: "Contact", href: "#contact", section: "contact" }
   ]
+
+  const handleNavClick = (e:any, link:any) => {
+    e.preventDefault()
+    setIsOpen(false)
+
+    // Check if we're on the landing page
+    const isOnLandingPage = pathname === "/"
+
+    if (link.section === null) {
+      // Home link - always go to landing page
+      router.push("/")
+    } else if (isOnLandingPage) {
+      // Already on landing page - just scroll to section
+      const element = document.getElementById(link.section)
+      if (element) {
+        element.scrollIntoView({ behavior: "smooth", block: "start" })
+      }
+    } else {
+      // On different page - navigate to landing page with hash
+      router.push(`/${link.href}`)
+    }
+  }
 
   return (
     <div className="fixed top-0 left-0 right-0 z-50 px-4 sm:px-6 lg:px-8 pt-4 sm:pt-6">
@@ -51,11 +77,15 @@ export default function Navbar() {
         <div className="px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16 sm:h-20">
             <motion.a
-              href="#"
+              href="/"
+              onClick={(e) => {
+                e.preventDefault()
+                router.push("/")
+              }}
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.5 }}
-              className="flex items-center gap-2 sm:gap-3"
+              className="flex items-center gap-2 sm:gap-3 cursor-pointer"
             >
               <div className="w-9 h-9 sm:w-10 sm:h-10 bg-gradient-to-br from-[#222222] to-[#444444] rounded-xl flex items-center justify-center shadow-md">
                 <span className="text-[#F8F8F8] font-bold text-base sm:text-lg">TBS</span>
@@ -69,10 +99,11 @@ export default function Navbar() {
                 <motion.a
                   key={index}
                   href={link.href}
+                  onClick={(e) => handleNavClick(e, link)}
                   initial={{ opacity: 0, y: -20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.5, delay: 0.1 * index }}
-                  className="text-[#444444] hover:text-[#222222] font-medium transition-all duration-300 relative group px-2 py-1"
+                  className="text-[#444444] hover:text-[#222222] font-medium transition-all duration-300 relative group px-2 py-1 cursor-pointer"
                 >
                   {link.name}
                   <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-gradient-to-r from-[#222222] to-[#444444] group-hover:w-full transition-all duration-300 rounded-full" />
@@ -103,6 +134,7 @@ export default function Navbar() {
                 <Button
                   size="sm"
                   className="bg-[#1C1C1C] text-[#F8F8F8] hover:bg-[#222222] rounded-full transition-all duration-300 hover:shadow-lg hover:scale-105"
+                  onClick={() => router.push("/products")}
                 >
                   Shop Now
                 </Button>
@@ -126,7 +158,6 @@ export default function Navbar() {
         </div>
       </motion.nav>
 
-
       <motion.div
         initial={{ height: 0, opacity: 0 }}
         animate={{
@@ -144,11 +175,11 @@ export default function Navbar() {
             <motion.a
               key={index}
               href={link.href}
+              onClick={(e) => handleNavClick(e, link)}
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.3, delay: 0.1 * index }}
-              onClick={() => setIsOpen(false)}
-              className="block text-[#444444] hover:text-[#222222] font-medium py-3 px-4 hover:bg-white/60 rounded-xl transition-all duration-300"
+              className="block text-[#444444] hover:text-[#222222] font-medium py-3 px-4 hover:bg-white/60 rounded-xl transition-all duration-300 cursor-pointer"
             >
               {link.name}
             </motion.a>
@@ -162,7 +193,9 @@ export default function Navbar() {
               Cart (0)
             </Button>
             <Button
-              className="w-full bg-[#1C1C1C] text-[#F8F8F8] hover:bg-[#222222] rounded-full transition-all duration-300"
+              size="sm"
+              className="bg-[#1C1C1C] text-[#F8F8F8] hover:bg-[#222222] rounded-full transition-all duration-300 hover:shadow-lg hover:scale-105"
+              onClick={() => router.push("/products")}
             >
               Shop Now
             </Button>

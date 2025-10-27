@@ -2,7 +2,7 @@
 
 import { motion } from "framer-motion"
 import { useState, useMemo } from "react"
-import { Search, X, SlidersHorizontal, Sparkles } from "lucide-react"
+import { Search, X, SlidersHorizontal, Sparkles, ArrowLeft } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
 
@@ -102,6 +102,24 @@ export default function AllProducts() {
       />
 
       <div className="container mx-auto max-w-7xl relative z-10">
+        <motion.div
+          initial={{ opacity: 0, x: -30 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.5 }}
+          className="mb-8 sm:mb-12"
+        >
+          <Link href="/">
+            <motion.button
+              whileHover={{ scale: 1.05, x: -5 }}
+              whileTap={{ scale: 0.95 }}
+              className="inline-flex items-center gap-2 sm:gap-3 px-4 sm:px-6 py-2.5 sm:py-3 bg-white/70 backdrop-blur-xl rounded-full border border-white/40 shadow-lg hover:shadow-xl hover:bg-white/90 transition-all duration-300 group"
+            >
+              <ArrowLeft className="w-4 h-4 sm:w-5 sm:h-5 text-[#222222] group-hover:-translate-x-1 transition-transform duration-300" />
+              <span className="text-sm sm:text-base font-semibold text-[#222222]"></span>
+            </motion.button>
+          </Link>
+        </motion.div>
+
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}

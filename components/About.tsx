@@ -47,7 +47,7 @@ export default function About() {
   ]
 
   return (
-    <section ref={ref} className="py-16 sm:py-24 lg:py-32 px-4 sm:px-6 lg:px-8 bg-gradient-to-b from-white via-[#F8F8F8] to-white relative overflow-hidden">
+    <section id="about" ref={ref} className="py-16 sm:py-24 lg:py-32 px-4 sm:px-6 lg:px-8 bg-gradient-to-b from-white via-[#F8F8F8] to-white relative overflow-hidden">
       {/* Animated Background Elements - Hidden on mobile for performance */}
       <motion.div
         style={{ y, opacity }}

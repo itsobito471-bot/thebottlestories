@@ -34,7 +34,7 @@ export default function Contact() {
   ]
 
   return (
-    <section ref={ref} className="py-24 px-4 bg-[#F8F8F8] relative overflow-hidden">
+    <section id="contact" ref={ref} className="py-24 px-4 bg-[#F8F8F8] relative overflow-hidden">
       <motion.div
         animate={{
           scale: [1, 1.2, 1],
