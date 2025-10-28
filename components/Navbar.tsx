@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Menu, X, ShoppingBag } from "lucide-react"
 import { useRouter, usePathname } from "next/navigation"
 import Image from "next/image"
-
+import Logo from '@/public/logo.png'
 export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false)
   const [isScrolled, setIsScrolled] = useState(false)
@@ -90,7 +90,7 @@ export default function Navbar() {
             >
               <div className="relative w-9 h-9 sm:w-10 sm:h-10 rounded-xl overflow-hidden shadow-md">
                 <Image
-                  src="/logo.png"
+                  src={Logo}
                   alt="The Bottle Stories"
                   fill
                   className="object-cover"
