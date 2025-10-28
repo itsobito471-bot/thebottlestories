@@ -1,8 +1,8 @@
 /** @type {import('next').NextConfig} */
-const isProd = process.env.NODE_ENV === 'production'
+const isProd = process.env.NODE_ENV === 'production';
 
 const nextConfig = {
-  output: 'export', // enable static export
+  output: 'export', // enables static export for GitHub Pages
   eslint: {
     ignoreDuringBuilds: true,
   },
@@ -11,6 +11,6 @@ const nextConfig = {
   },
   basePath: isProd ? '/thebottlestories' : '',
   assetPrefix: isProd ? '/thebottlestories/' : '',
-}
+};
 
-module.exports = nextConfig
+module.exports = nextConfig;
