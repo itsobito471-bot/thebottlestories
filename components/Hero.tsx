@@ -5,6 +5,7 @@ import { useEffect, useRef } from "react"
 import gsap from "gsap"
 import { Button } from "@/components/ui/button"
 import { Sparkles, Gift } from "lucide-react"
+import Logo from '@/public/logo.png'
 
 export default function Hero() {
   const heroRef = useRef<HTMLDivElement>(null)
@@ -128,7 +129,7 @@ export default function Hero() {
             <div className="absolute inset-3 sm:inset-4 bg-gradient-to-br from-[#F8F8F8] via-[#FFFFFF] to-[#F2F2F2] rounded-[1.7rem] sm:rounded-[2.2rem] lg:rounded-[2.5rem] flex items-center justify-center overflow-hidden border border-[#DADADA]/30">
               {/* Logo */}
               <motion.img 
-                src="/logo.png" 
+                src={Logo.src}
                 alt="The Bottle Stories Logo" 
                 className="w-[70%] h-[70%] object-contain"
                 initial={{ opacity: 0, scale: 0.8 }}
