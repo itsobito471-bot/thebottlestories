@@ -4,8 +4,7 @@ import { motion } from "framer-motion"
 import { useEffect, useRef } from "react"
 import gsap from "gsap"
 import { Button } from "@/components/ui/button"
-import { Sparkles, Gift } from "lucide-react"
-import Logo from '@/public/logo.png'
+import { Sparkles, Gift, Package } from "lucide-react"
 
 export default function Hero() {
   const heroRef = useRef<HTMLDivElement>(null)
@@ -127,19 +126,18 @@ export default function Hero() {
           <div className="relative w-full aspect-square max-w-[280px] sm:max-w-[380px] md:max-w-[420px] lg:max-w-lg mx-auto">
             <div className="absolute inset-0 bg-gradient-to-br from-[#F2F2F2] to-[#DADADA] rounded-[2rem] sm:rounded-[2.5rem] lg:rounded-[3rem] shadow-2xl" />
             <div className="absolute inset-3 sm:inset-4 bg-gradient-to-br from-[#F8F8F8] via-[#FFFFFF] to-[#F2F2F2] rounded-[1.7rem] sm:rounded-[2.2rem] lg:rounded-[2.5rem] flex items-center justify-center overflow-hidden border border-[#DADADA]/30">
-              {/* Logo */}
-              <motion.img 
-                src={Logo.src}
-                alt="The Bottle Stories Logo" 
-                className="w-[70%] h-[70%] object-contain"
+              <motion.div
+                className="w-32 h-32 sm:w-40 sm:h-40 lg:w-48 lg:h-48 bg-gradient-to-br from-slate-800 to-slate-900 rounded-3xl flex items-center justify-center shadow-xl"
                 initial={{ opacity: 0, scale: 0.8 }}
                 animate={{ opacity: 1, scale: 1 }}
-                transition={{ 
-                  duration: 0.8, 
+                transition={{
+                  duration: 0.8,
                   delay: 0.6,
                   ease: [0.34, 1.56, 0.64, 1]
                 }}
-              />
+              >
+                <Package className="w-20 h-20 sm:w-24 sm:h-24 lg:w-28 lg:h-28 text-white" />
+              </motion.div>
               
               {/* Decorative sparkles */}
               <motion.div

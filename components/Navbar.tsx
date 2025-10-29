@@ -3,10 +3,8 @@
 import { motion, useScroll, useTransform } from "framer-motion"
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
-import { Menu, X, ShoppingBag } from "lucide-react"
+import { Menu, X, ShoppingBag, Package } from "lucide-react"
 import { useRouter, usePathname } from "next/navigation"
-import Image from "next/image"
-import Logo from '@/public/logo.png'
 export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false)
   const [isScrolled, setIsScrolled] = useState(false)
@@ -88,17 +86,11 @@ export default function Navbar() {
               transition={{ duration: 0.5 }}
               className="flex items-center gap-2 sm:gap-3 cursor-pointer"
             >
-              <div className="relative w-9 h-9 sm:w-10 sm:h-10 rounded-xl overflow-hidden shadow-md">
-                <Image
-                  src={Logo}
-                  alt="The Bottle Stories"
-                  fill
-                  className="object-cover"
-                  priority
-                />
+              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl overflow-hidden shadow-md bg-gradient-to-br from-slate-800 to-slate-900 flex items-center justify-center">
+                <Package className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
               </div>
-              {/* <span className="text-lg sm:text-xl font-bold text-[#222222] hidden xs:inline">The Bottle Stories</span>
-              <span className="text-lg sm:text-xl font-bold text-[#222222] xs:hidden">TBS</span> */}
+              <span className="text-lg sm:text-xl font-bold text-[#222222] hidden xs:inline">The Bottle Stories</span>
+              <span className="text-lg sm:text-xl font-bold text-[#222222] xs:hidden">TBS</span>
             </motion.a>
 
             <div className="hidden lg:flex items-center gap-6 xl:gap-8">
