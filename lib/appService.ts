@@ -1,0 +1,87 @@
+// lib/appService.ts
+
+import { api } from './apiService';
+import { DashboardStats, Product } from './types';
+
+// Define the shape of the login response
+interface LoginResponse {
+  token: string;
+  user: {
+    _id: string;
+    name: string;
+    email: string;
+  };
+}
+
+// --- Auth Endpoints ---
+
+/**
+ * Logs in the admin.
+ * Saves the token to localStorage.
+ * @param data - { email: string, password: string }
+ */
+export const loginAdmin = async (data: any) => {
+  // Tell 'api.post' this is an auth request (so it doesn't send a token)
+  const response = await api.post<LoginResponse>('/auth/login', data, true);
+
+  if (response.token) {
+    localStorage.setItem('token', response.token);
+  }
+  return response.user;
+};
+
+/**
+ * Logs out the admin by clearing localStorage.
+ */
+export const logoutAdmin = () => {
+  localStorage.removeItem('token');
+  return Promise.resolve();
+};
+
+// --- Admin Endpoints (Protected) ---
+// These all use the 'api' object
+
+export const getAdminStats = () => {
+  return api.get<DashboardStats>('/admin/stats');
+};
+
+export const getAdminOrders = () => {
+  return api.get<any[]>('/admin/orders');
+};
+
+export const updateOrderStatus = (orderId: string, status: { status: string }) => {
+  return api.put(`/admin/orders/${orderId}`, status);
+};
+
+// --- Product Endpoints ---
+
+export const getProducts = () => {
+  return api.get('/product');
+};
+
+export const getAdminProducts = () => {
+  return api.get<Product[]>('/admin/products');
+};
+
+export const createAdminProduct = (data: Omit<Product, '_id' | 'created_at' | 'updated_at'>) => {
+  return api.post<Product>('/admin/products', data);
+};
+
+export const updateAdminProduct = (id: string, data: Partial<Product>) => {
+  return api.put<Product>(`/admin/products/${id}`, data);
+};
+
+export const deleteAdminProduct = (id: string) => {
+  return api.delete(`/admin/products/${id}`);
+};
+
+// --- UPDATED: File Upload Endpoint ---
+
+/**
+ * Uploads images to the server using the api.postFormData function.
+ * @param formData - The FormData object containing the files
+ */
+export const uploadAdminImages = (formData: FormData) => {
+  // This endpoint must match the one in your Node.js server
+  return api.postFormData<{ urls: string[] }>('/admin/upload', formData);
+};

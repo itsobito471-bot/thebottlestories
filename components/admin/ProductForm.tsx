@@ -1,7 +1,13 @@
+// components/admin/ProductForm.tsx
+
 'use client';
 
-import { useState } from 'react';
-import { supabase, Product } from '@/lib/supabase';
+import { useState, useEffect } from 'react';
+// --- Updated Imports ---
+import { Product } from '@/lib/types';
+import { createAdminProduct, updateAdminProduct, uploadAdminImages } from '@/lib/appService';
+// --- End Updated Imports ---
+
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -9,6 +15,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Upload, Loader2 } from 'lucide-react';
+import Swal from 'sweetalert2';
 
 interface ProductFormProps {
   product?: Product;
@@ -19,81 +26,107 @@ interface ProductFormProps {
 
 export default function ProductForm({ product, open, onClose, onSuccess }: ProductFormProps) {
   const [formData, setFormData] = useState({
-    name: product?.name || '',
-    description: product?.description || '',
-    price: product?.price || 0,
-    category: product?.category || '',
-    stock_quantity: product?.stock_quantity || 0,
-    is_active: product?.is_active ?? true,
+    name: '',
+    description: '',
+    price: 0,
+    originalPrice: 0,
+    features: '', 
+    tag: '',
+    stock_quantity: 0,
+    is_active: true,
   });
-  const [imageFile, setImageFile] = useState<File | null>(null);
+  
+  // Changed from imageFile (singular)
+  const [imageFiles, setImageFiles] = useState<FileList | null>(null); 
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState('');
 
+  useEffect(() => {
+    if (product) {
+      setFormData({
+        name: product.name || '',
+        description: product.description || '',
+        price: product.price || 0,
+        originalPrice: product.originalPrice || 0,
+        features: product.features?.join('\n') || '',
+        tag: product.tag || '',
+        stock_quantity: product.stock_quantity || 0,
+        is_active: product.is_active ?? true,
+      });
+    } else {
+      setFormData({
+        name: '',
+        description: '',
+        price: 0,
+        originalPrice: 0,
+        features: '',
+        tag: '',
+        stock_quantity: 0,
+        is_active: true,
+      });
+    }
+    // Clear file input and errors when dialog opens/closes
+    setImageFiles(null);
+    setError('');
+  }, [product, open]);
+
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      setImageFile(e.target.files[0]);
+    if (e.target.files) {
+      setImageFiles(e.target.files);
     }
   };
 
-  const uploadImage = async (file: File): Promise<string> => {
-    const fileExt = file.name.split('.').pop();
-    const fileName = `${Math.random().toString(36).substring(2)}.${fileExt}`;
-    const filePath = `${fileName}`;
-
-    const { error: uploadError } = await supabase.storage
-      .from('product-images')
-      .upload(filePath, file);
-
-    if (uploadError) throw uploadError;
-
-    const { data } = supabase.storage
-      .from('product-images')
-      .getPublicUrl(filePath);
-
-    return data.publicUrl;
-  };
-
+  // --- Reworked HandleSubmit (No Supabase) ---
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setUploading(true);
 
     try {
-      let imageUrl = product?.image_url || null;
+      let finalImageUrls: string[] = product?.images || [];
 
-      if (imageFile) {
-        imageUrl = await uploadImage(imageFile);
+      // 1. Upload new images (if any) to your Node.js server
+      if (imageFiles && imageFiles.length > 0) {
+        const uploadFormData = new FormData();
+        Array.from(imageFiles).forEach(file => {
+          uploadFormData.append('images', file); // 'images' must match backend 'upload.array('images')'
+        });
+
+        const uploadResponse = await uploadAdminImages(uploadFormData);
+        finalImageUrls = uploadResponse.urls; // Overwrite old images
       }
 
+      // 2. Prepare product data for MongoDB
       const productData = {
         ...formData,
-        image_url: imageUrl,
+        price: Number(formData.price),
+        originalPrice: Number(formData.originalPrice) || undefined,
+        stock_quantity: Number(formData.stock_quantity),
+        features: formData.features.split('\n').filter(f => f.trim() !== ''),
+        images: finalImageUrls, // Use the URLs from your server
       };
 
+      // 3. Use appService to create or update
       if (product) {
-        const { error: updateError } = await supabase
-          .from('products')
-          .update(productData)
-          .eq('id', product.id);
-
-        if (updateError) throw updateError;
+        await updateAdminProduct(product._id, productData);
       } else {
-        const { error: insertError } = await supabase
-          .from('products')
-          .insert([productData]);
-
-        if (insertError) throw insertError;
+        await createAdminProduct(productData);
       }
-
+      
+      Swal.fire('Success!', `Product ${product ? 'updated' : 'created'} successfully.`, 'success');
       onSuccess();
       onClose();
+
     } catch (err: any) {
-      setError(err.message || 'Failed to save product');
+      console.error('Failed to save product:', err);
+      const errorMessage = err.message || 'Failed to save product. Check server logs.';
+      setError(errorMessage);
+      Swal.fire('Error', errorMessage, 'error');
     } finally {
       setUploading(false);
     }
   };
+  // --- End Reworked HandleSubmit ---
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
@@ -106,6 +139,7 @@ export default function ProductForm({ product, open, onClose, onSuccess }: Produ
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
+          {/* Name */}
           <div className="space-y-2">
             <Label htmlFor="name">Product Name</Label>
             <Input
@@ -117,6 +151,7 @@ export default function ProductForm({ product, open, onClose, onSuccess }: Produ
             />
           </div>
 
+          {/* Description */}
           <div className="space-y-2">
             <Label htmlFor="description">Description</Label>
             <Textarea
@@ -128,7 +163,21 @@ export default function ProductForm({ product, open, onClose, onSuccess }: Produ
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          {/* Features */}
+          <div className="space-y-2">
+            <Label htmlFor="features">Features</Label>
+            <Textarea
+              id="features"
+              placeholder="Enter one feature per line..."
+              value={formData.features}
+              onChange={(e) => setFormData({ ...formData, features: e.target.value })}
+              rows={4}
+              disabled={uploading}
+            />
+          </div>
+
+          {/* Price & Original Price */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="price">Price</Label>
               <Input
@@ -141,53 +190,73 @@ export default function ProductForm({ product, open, onClose, onSuccess }: Produ
                 disabled={uploading}
               />
             </div>
+            <div className="space-y-2">
+              <Label htmlFor="originalPrice">Original Price (Optional)</Label>
+              <Input
+                id="originalPrice"
+                type="number"
+                step="0.01"
+                placeholder="e.g., 299"
+                value={formData.originalPrice}
+                onChange={(e) => setFormData({ ...formData, originalPrice: parseFloat(e.target.value) || 0 })}
+                disabled={uploading}
+              />
+            </div>
+          </div>
 
+          {/* Stock & Tag */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="stock_quantity">Stock Quantity</Label>
               <Input
                 id="stock_quantity"
                 type="number"
                 value={formData.stock_quantity}
-                onChange={(e) => setFormData({ ...formData, stock_quantity: parseInt(e.target.value) })}
+                onChange={(e) => setFormData({ ...formData, stock_quantity: parseInt(e.target.value) || 0 })}
                 required
+                disabled={uploading}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="tag">Tag / Category</Label>
+              <Input
+                id="tag"
+                placeholder="e.g., Premium, On Sale"
+                value={formData.tag}
+                onChange={(e) => setFormData({ ...formData, tag: e.target.value })}
                 disabled={uploading}
               />
             </div>
           </div>
 
+          {/* Image Field */}
           <div className="space-y-2">
-            <Label htmlFor="category">Category</Label>
-            <Input
-              id="category"
-              value={formData.category}
-              onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-              disabled={uploading}
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="image">Product Image</Label>
+            <Label htmlFor="image">Product Images</Label>
             <div className="flex items-center gap-4">
               <Input
                 id="image"
                 type="file"
                 accept="image/*"
+                multiple // Allow multiple files
                 onChange={handleImageChange}
                 disabled={uploading}
                 className="flex-1"
               />
-              {imageFile && (
+              {imageFiles && (
                 <span className="text-sm text-green-600 flex items-center">
                   <Upload className="w-4 h-4 mr-1" />
-                  Selected
+                  {imageFiles.length} file(s) selected
                 </span>
               )}
             </div>
-            {product?.image_url && !imageFile && (
-              <p className="text-sm text-slate-600">Current image will be kept</p>
+            {product?.images && product.images.length > 0 && !imageFiles && (
+              <p className="text-sm text-slate-600">
+                Current images will be kept. Upload new files to replace them.
+              </p>
             )}
           </div>
 
+          {/* Active Switch */}
           <div className="flex items-center space-x-2">
             <Switch
               id="is_active"
@@ -198,12 +267,14 @@ export default function ProductForm({ product, open, onClose, onSuccess }: Produ
             <Label htmlFor="is_active">Active (visible to customers)</Label>
           </div>
 
+          {/* Error Message */}
           {error && (
             <div className="text-sm text-red-600 bg-red-50 p-3 rounded-md">
               {error}
             </div>
           )}
 
+          {/* Submit Buttons */}
           <div className="flex justify-end gap-3 pt-4">
             <Button type="button" variant="outline" onClick={onClose} disabled={uploading}>
               Cancel

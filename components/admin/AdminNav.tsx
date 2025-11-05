@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter, usePathname } from 'next/navigation';
-import { signOutAdmin } from '@/lib/admin-auth';
+// import { signOutAdmin } from '@/lib/admin-auth';
 import { Button } from '@/components/ui/button';
 import { LogOut, Package, ShoppingCart, LayoutDashboard } from 'lucide-react';
 import Link from 'next/link';
@@ -12,7 +12,7 @@ export default function AdminNav() {
 
   const handleSignOut = async () => {
     try {
-      await signOutAdmin();
+      // await signOutAdmin();
       router.push('/admin/login');
     } catch (error) {
       console.error('Sign out error:', error);

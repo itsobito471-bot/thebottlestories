@@ -2,15 +2,18 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { checkAdminAuth } from '@/lib/admin-auth';
-import { supabase } from '@/lib/supabase';
+import { getAdminStats } from '@/lib/appService'; // <-- 1. IMPORT YOUR NEW SERVICE
 import AdminNav from '@/components/admin/AdminNav';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Package, ShoppingCart, Clock, CheckCircle } from 'lucide-react';
+import { DashboardStats } from '@/lib/types';
+
+// Define the type for the stats object we expect from the API
+
 
 export default function AdminDashboard() {
   const [loading, setLoading] = useState(true);
-  const [stats, setStats] = useState({
+  const [stats, setStats] = useState<DashboardStats>({ // <-- Add type
     totalProducts: 0,
     activeProducts: 0,
     totalOrders: 0,
@@ -20,43 +23,31 @@ export default function AdminDashboard() {
   const router = useRouter();
 
   useEffect(() => {
-    checkAuth();
+    // 2. Call the new function to load the dashboard
+    loadDashboard();
   }, []);
 
-  const checkAuth = async () => {
-    const isAdmin = await checkAdminAuth();
-    if (!isAdmin) {
-      router.push('/admin/login');
-      return;
-    }
-    await fetchStats();
-  };
-
-  const fetchStats = async () => {
+  // 3. This one function replaces both checkAuth and fetchStats
+  const loadDashboard = async () => {
     try {
-      const [productsRes, ordersRes] = await Promise.all([
-        supabase.from('products').select('id, is_active', { count: 'exact' }),
-        supabase.from('orders').select('id, status', { count: 'exact' }),
-      ]);
+      // This is a protected route. It will only work if the user
+      // is logged in and the browser sends the auth cookie.
+      const data = await getAdminStats();
+      
+      // The API now returns the data pre-calculated
+      setStats(data);
 
-      const activeProducts = productsRes.data?.filter((p) => p.is_active).length || 0;
-      const pendingOrders = ordersRes.data?.filter((o) => o.status === 'pending').length || 0;
-      const approvedOrders = ordersRes.data?.filter((o) => o.status === 'approved').length || 0;
-
-      setStats({
-        totalProducts: productsRes.count || 0,
-        activeProducts,
-        totalOrders: ordersRes.count || 0,
-        pendingOrders,
-        approvedOrders,
-      });
-    } catch (error) {
-      console.error('Error fetching stats:', error);
+    } catch (error: any) {
+      // 4. If the request fails (401 Unauthorized, 500, etc.),
+      // the user is not authenticated. Redirect to login.
+      console.error('Failed to load dashboard:', error.message);
+      router.push('/admin/login');
     } finally {
       setLoading(false);
     }
   };
 
+  // 5. This loading component remains unchanged
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -65,6 +56,7 @@ export default function AdminDashboard() {
     );
   }
 
+  // 6. Your entire UI (JSX) remains unchanged
   return (
     <div className="min-h-screen bg-slate-50">
       <AdminNav />

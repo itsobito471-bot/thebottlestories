@@ -2,7 +2,8 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { signInAdmin } from '@/lib/admin-auth';
+import { loginAdmin } from '@/lib/appService'; // <-- CLEAN IMPORT!
+import Swal from 'sweetalert2'; // <-- IMPORT SWAL
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -11,23 +12,31 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 export default function AdminLoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
+  // We can now remove the 'error' state, as Swal will handle it
   const [loading, setLoading] = useState(false);
   const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
     setLoading(true);
 
     try {
-      await signInAdmin(email, password);
+      // --- This is now clean, just like your example ---
+      await loginAdmin({ email, password });
+      
+      // On success, go to dashboard
       router.push('/admin/dashboard');
+
     } catch (err: any) {
-      setError(err.message || 'Failed to sign in. Please check your credentials.');
-    } finally {
+      // --- Handle errors with Swal, just like your example ---
       setLoading(false);
+      Swal.fire({
+        icon: 'error',
+        title: 'Login Failed',
+        text: err.message || 'Something went wrong. Please try again.',
+      });
     }
+    // We don't need setLoading(false) on success, as we are navigating away
   };
 
   return (
@@ -40,6 +49,7 @@ export default function AdminLoginPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
+          {/* ... your form ... */}
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
@@ -65,11 +75,7 @@ export default function AdminLoginPage() {
                 disabled={loading}
               />
             </div>
-            {error && (
-              <div className="text-sm text-red-600 bg-red-50 p-3 rounded-md">
-                {error}
-              </div>
-            )}
+            {/* The error state <div> is no longer needed */}
             <Button type="submit" className="w-full" disabled={loading}>
               {loading ? 'Signing in...' : 'Sign In'}
             </Button>
