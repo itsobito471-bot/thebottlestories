@@ -22,3 +22,16 @@ export interface Product {
   created_at: string;
   updated_at: string;
 }
+
+export interface Order {
+  _id: string; // MongoDB uses _id
+  customer_name: string;
+  customer_email: string;
+  customer_phone?: string;
+  customer_address?: string;
+  total_amount: number;
+  status: 'pending' | 'approved' | 'rejected' | 'completed';
+  created_at: string;
+  updated_at: string;
+  // This schema doesn't have items, so we omit them
+}

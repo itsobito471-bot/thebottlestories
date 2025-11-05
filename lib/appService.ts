@@ -1,7 +1,7 @@
 // lib/appService.ts
 
 import { api } from './apiService';
-import { DashboardStats, Product } from './types';
+import { DashboardStats, Product, Order } from './types';
 
 // Define the shape of the login response
 interface LoginResponse {
@@ -46,9 +46,12 @@ export const getAdminStats = () => {
 };
 
 export const getAdminOrders = () => {
-  return api.get<any[]>('/admin/orders');
+  return api.get<Order[]>('/admin/orders'); // <-- Use Order[] type
 };
 
+/**
+ * Updates an order's status.
+ */
 export const updateOrderStatus = (orderId: string, status: { status: string }) => {
   return api.put(`/admin/orders/${orderId}`, status);
 };
@@ -85,3 +88,5 @@ export const uploadAdminImages = (formData: FormData) => {
   // This endpoint must match the one in your Node.js server
   return api.postFormData<{ urls: string[] }>('/admin/upload', formData);
 };
+
+

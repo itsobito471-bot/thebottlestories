@@ -2,8 +2,9 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { checkAdminAuth } from '@/lib/admin-auth';
-import { supabase, Order, OrderWithItems } from '@/lib/supabase';
+// Import the service function
+import { getAdminOrders, updateOrderStatus } from '@/lib/appService';
+import { Order } from '@/lib/types'; 
 import AdminNav from '@/components/admin/AdminNav';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -14,70 +15,39 @@ import { format } from 'date-fns';
 
 export default function AdminOrders() {
   const [loading, setLoading] = useState(true);
-  const [orders, setOrders] = useState<OrderWithItems[]>([]);
-  const [selectedOrder, setSelectedOrder] = useState<OrderWithItems | null>(null);
+  const [orders, setOrders] = useState<Order[]>([]); 
+  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null); 
   const [updating, setUpdating] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
-    checkAuth();
+    fetchOrders();
   }, []);
-
-  const checkAuth = async () => {
-    const isAdmin = await checkAdminAuth();
-    if (!isAdmin) {
-      router.push('/admin/login');
-      return;
-    }
-    await fetchOrders();
-  };
 
   const fetchOrders = async () => {
     try {
-      const { data: ordersData, error: ordersError } = await supabase
-        .from('orders')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (ordersError) throw ordersError;
-
-      const ordersWithItems = await Promise.all(
-        (ordersData || []).map(async (order) => {
-          const { data: itemsData } = await supabase
-            .from('order_items')
-            .select(`
-              *,
-              product:products(*)
-            `)
-            .eq('order_id', order.id);
-
-          return {
-            ...order,
-            items: itemsData || [],
-          };
-        })
-      );
-
-      setOrders(ordersWithItems);
-    } catch (error) {
+      const data = await getAdminOrders(); 
+      setOrders(data || []);
+    } catch (error: any) {
       console.error('Error fetching orders:', error);
+      if (error.message.includes('401')) {
+        router.push('/admin/login');
+      }
     } finally {
       setLoading(false);
     }
   };
 
-  const updateOrderStatus = async (orderId: string, status: string) => {
+  // --- RENAMED THIS FUNCTION ---
+  // This is the local event handler
+  const handleUpdateStatus = async (orderId: string, status: string) => {
     setUpdating(true);
     try {
-      const { error } = await supabase
-        .from('orders')
-        .update({ status })
-        .eq('id', orderId);
+      // This now correctly calls the imported `updateOrderStatus` function
+      await updateOrderStatus(orderId, { status }); 
 
-      if (error) throw error;
-
-      await fetchOrders();
-      setSelectedOrder(null);
+      await fetchOrders(); // Refresh the list
+      setSelectedOrder(null); // Close the modal
     } catch (error) {
       console.error('Error updating order:', error);
     } finally {
@@ -92,10 +62,8 @@ export default function AdminOrders() {
       rejected: { variant: 'destructive', icon: XCircle },
       completed: { variant: 'outline', icon: CheckCircle },
     };
-
     const config = variants[status] || variants.pending;
     const Icon = config.icon;
-
     return (
       <Badge variant={config.variant} className="flex items-center gap-1 w-fit">
         <Icon className="w-3 h-3" />
@@ -131,11 +99,11 @@ export default function AdminOrders() {
         ) : (
           <div className="space-y-4">
             {orders.map((order) => (
-              <Card key={order.id}>
+              <Card key={order._id}> 
                 <CardHeader>
                   <div className="flex justify-between items-start">
                     <div>
-                      <CardTitle className="text-lg">Order #{order.id.slice(0, 8)}</CardTitle>
+                      <CardTitle className="text-lg">Order #{order._id.slice(-8)}</CardTitle>
                       <p className="text-sm text-slate-600 mt-1">
                         {format(new Date(order.created_at), 'PPp')}
                       </p>
@@ -170,9 +138,6 @@ export default function AdminOrders() {
                       <p className="text-2xl font-bold text-slate-900">
                         ${order.total_amount.toFixed(2)}
                       </p>
-                      <p className="text-sm text-slate-600 mt-1">
-                        {order.items.length} item(s)
-                      </p>
                     </div>
                   </div>
                 </CardContent>
@@ -183,7 +148,7 @@ export default function AdminOrders() {
       </main>
 
       <Dialog open={!!selectedOrder} onOpenChange={() => setSelectedOrder(null)}>
-        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Order Details</DialogTitle>
           </DialogHeader>
@@ -193,7 +158,7 @@ export default function AdminOrders() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <p className="text-sm font-medium text-slate-900 mb-1">Order ID</p>
-                  <p className="text-sm text-slate-600">{selectedOrder.id}</p>
+                  <p className="text-sm text-slate-600">{selectedOrder._id}</p>
                 </div>
                 <div>
                   <p className="text-sm font-medium text-slate-900 mb-1">Status</p>
@@ -223,44 +188,13 @@ export default function AdminOrders() {
                 </div>
               </div>
 
-              <div>
-                <p className="text-sm font-medium text-slate-900 mb-2">Order Items</p>
-                <div className="space-y-3">
-                  {selectedOrder.items.map((item: any) => (
-                    <div key={item.id} className="flex items-center gap-4 bg-slate-50 p-3 rounded-lg">
-                      <div className="w-16 h-16 bg-slate-200 rounded flex-shrink-0">
-                        {item.product?.image_url ? (
-                          <img
-                            src={item.product.image_url}
-                            alt={item.product.name}
-                            className="w-full h-full object-cover rounded"
-                          />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center">
-                            <ShoppingCart className="w-6 h-6 text-slate-400" />
-                          </div>
-                        )}
-                      </div>
-                      <div className="flex-1">
-                        <p className="font-medium text-sm">{item.product?.name}</p>
-                        <p className="text-sm text-slate-600">
-                          ${item.price_at_time.toFixed(2)} x {item.quantity}
-                        </p>
-                      </div>
-                      <p className="font-bold text-sm">
-                        ${(item.price_at_time * item.quantity).toFixed(2)}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
               {selectedOrder.status === 'pending' && (
                 <div className="flex gap-3 pt-4 border-t">
                   <Button
                     variant="outline"
                     className="flex-1 text-red-600 hover:text-red-700 hover:bg-red-50"
-                    onClick={() => updateOrderStatus(selectedOrder.id, 'rejected')}
+                    // --- UPDATED onClick ---
+                    onClick={() => handleUpdateStatus(selectedOrder._id, 'rejected')}
                     disabled={updating}
                   >
                     <XCircle className="w-4 h-4 mr-2" />
@@ -268,7 +202,8 @@ export default function AdminOrders() {
                   </Button>
                   <Button
                     className="flex-1 bg-green-600 hover:bg-green-700"
-                    onClick={() => updateOrderStatus(selectedOrder.id, 'approved')}
+                    // --- UPDATED onClick ---
+                    onClick={() => handleUpdateStatus(selectedOrder._id, 'approved')}
                     disabled={updating}
                   >
                     <CheckCircle className="w-4 h-4 mr-2" />
@@ -281,7 +216,8 @@ export default function AdminOrders() {
                 <div className="pt-4 border-t">
                   <Button
                     className="w-full"
-                    onClick={() => updateOrderStatus(selectedOrder.id, 'completed')}
+                    // --- UPDATED onClick ---
+                    onClick={() => handleUpdateStatus(selectedOrder._id, 'completed')}
                     disabled={updating}
                   >
                     <CheckCircle className="w-4 h-4 mr-2" />

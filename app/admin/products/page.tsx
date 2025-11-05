@@ -2,16 +2,25 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-// --- Updated Imports ---
 import { getAdminProducts, deleteAdminProduct } from '@/lib/appService';
 import { Product } from '@/lib/types';
 import AdminNav from '@/components/admin/AdminNav';
 import ProductForm from '@/components/admin/ProductForm';
-// --- End Updated Imports ---
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Edit, Trash2, Package } from 'lucide-react';
+
+// --- 1. Updated Imports ---
+import { Plus, Edit, Trash2, Package, ImageOff } from 'lucide-react'; // Added ImageOff
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  CarouselNext,
+  CarouselPrevious,
+} from '@/components/ui/carousel'; // Added Carousel
+// --- End Updated Imports ---
+
 import {
   AlertDialog,
   AlertDialogAction,
@@ -33,7 +42,6 @@ export default function AdminProducts() {
   const router = useRouter();
 
   useEffect(() => {
-    // Replaced checkAuth with a single fetch function
     fetchProducts();
   }, []);
 
@@ -42,7 +50,6 @@ export default function AdminProducts() {
       const data = await getAdminProducts();
       setProducts(data || []);
     } catch (error: any) {
-      // If fetching fails (e.g., 401 Unauthorized), redirect to login
       console.error('Error fetching products:', error);
       if (error.message.includes('401')) {
         router.push('/admin/login');
@@ -62,13 +69,12 @@ export default function AdminProducts() {
     setShowForm(true);
   };
 
-  // Updated to use the new API service
   const handleDeleteProduct = async () => {
     if (!deleteProduct) return;
 
     try {
-      await deleteAdminProduct(deleteProduct._id); // <-- Use _id
-      await fetchProducts(); // Refresh list
+      await deleteAdminProduct(deleteProduct._id);
+      await fetchProducts();
       setDeleteProduct(null);
       Swal.fire('Deleted!', 'The product has been deleted.', 'success');
     } catch (error: any) {
@@ -102,18 +108,86 @@ export default function AdminProducts() {
 
         {products.length === 0 ? (
           <Card>
-            {/* ... (empty state JSX is unchanged) ... */}
+            <CardContent className="p-12 text-center">
+              <Package className="w-12 h-12 text-slate-400 mx-auto mb-4" />
+              <h3 className="text-xl font-semibold text-slate-700">No Products Yet</h3>
+              <p className="text-slate-500 mt-2 mb-6">Get started by adding your first product.</p>
+              <Button onClick={handleAddProduct}>
+                <Plus className="w-4 h-4 mr-2" />
+                Add Product
+              </Button>
+            </CardContent>
           </Card>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {/* --- JSX Updated to use _id --- */}
             {products.map((product) => (
-              <Card key={product._id} className="overflow-hidden"> 
-                <div className="aspect-video bg-slate-200 relative">
-                  {/* ... (image JSX is unchanged) ... */}
+              <Card key={product._id} className="overflow-hidden shadow-sm">
+                
+                {/* --- 2. Updated JSX for Image/Carousel --- */}
+                <div className="aspect-video bg-slate-100 relative">
+                  {!product.images || product.images.length === 0 ? (
+                    // Case 1: No Images
+                    <div className="w-full h-full flex items-center justify-center text-slate-400">
+                      <ImageOff className="w-12 h-12" />
+                    </div>
+                  ) : product.images.length === 1 ? (
+                    // Case 2: Single Image
+                    <img
+                      src={product.images[0]}
+                      alt={product.name}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    // Case 3: Multiple Images (Carousel)
+                    <Carousel className="w-full h-full">
+                      <CarouselContent>
+                        {product.images.map((url, index) => (
+                          <CarouselItem key={index}>
+                            <img
+                              src={url}
+                              alt={`${product.name} image ${index + 1}`}
+                              className="w-full h-full object-cover"
+                            />
+                          </CarouselItem>
+                        ))}
+                      </CarouselContent>
+                      <CarouselPrevious className="absolute left-2 bg-white/50 hover:bg-white text-black" />
+                      <CarouselNext className="absolute right-2 bg-white/50 hover:bg-white text-black" />
+                    </Carousel>
+                  )}
+                  {/* Show tag */}
+                  {product.tag && (
+                    <Badge variant="default" className="absolute top-3 right-3">
+                      {product.tag}
+                    </Badge>
+                  )}
                 </div>
+                {/* --- End Updated JSX --- */}
+
                 <CardContent className="p-4">
-                  {/* ... (content JSX is unchanged) ... */}
+                  <div className="flex justify-between items-start mb-2">
+                    <h3 className="text-lg font-semibold text-slate-900">{product.name}</h3>
+                    <Badge variant={product.is_active ? 'secondary' : 'destructive'}>
+                      {product.is_active ? 'Active' : 'Inactive'}
+                    </Badge>
+                  </div>
+                  <p className="text-sm text-slate-600 mb-3 truncate">
+                    {product.description || 'No description'}
+                  </p>
+                  <div className="flex items-baseline gap-2 mb-3">
+                    <span className="text-2xl font-bold text-slate-900">
+                      ${product.price.toFixed(2)}
+                    </span>
+                    {product.originalPrice && product.originalPrice > product.price && (
+                      <span className="text-md text-slate-500 line-through">
+                        ${product.originalPrice.toFixed(2)}
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-sm text-slate-500 mb-4">
+                    Stock: <span className="font-medium text-slate-700">{product.stock_quantity}</span>
+                  </p>
+                  
                   <div className="flex gap-2">
                     <Button
                       variant="outline"
@@ -136,7 +210,6 @@ export default function AdminProducts() {
                 </CardContent>
               </Card>
             ))}
-            {/* --- End JSX Update --- */}
           </div>
         )}
       </main>
@@ -146,13 +219,26 @@ export default function AdminProducts() {
         open={showForm}
         onClose={() => setShowForm(false)}
         onSuccess={() => {
-          setShowForm(false); // Close form
-          fetchProducts();    // Refresh list
+          setShowForm(false);
+          fetchProducts();
         }}
       />
 
       <AlertDialog open={!!deleteProduct} onOpenChange={() => setDeleteProduct(null)}>
-        {/* ... (AlertDialog JSX is unchanged) ... */}
+         <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete "{deleteProduct?.name}". This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteProduct} className="bg-red-600 hover:bg-red-700">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
       </AlertDialog>
     </div>
   );
