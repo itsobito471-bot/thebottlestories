@@ -12,8 +12,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-// --- 1. Updated Imports ---
-import { Upload, Loader2, X as XIcon } from 'lucide-react'; // Added XIcon
+import { Upload, Loader2, X as XIcon } from 'lucide-react';
 import Swal from 'sweetalert2';
 
 interface ProductFormProps {
@@ -36,10 +35,7 @@ export default function ProductForm({ product, open, onClose, onSuccess }: Produ
   });
   
   const [imageFiles, setImageFiles] = useState<FileList | null>(null);
-  // --- 2. New State for Image URLs ---
-  // This state holds the list of images to be saved (existing - deletions + new)
   const [currentImageUrls, setCurrentImageUrls] = useState<string[]>([]);
-  // --- End New State ---
 
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState('');
@@ -47,7 +43,6 @@ export default function ProductForm({ product, open, onClose, onSuccess }: Produ
   useEffect(() => {
     if (open) {
       if (product) {
-        // --- 3. Populate Form (including images) ---
         setFormData({
           name: product.name || '',
           description: product.description || '',
@@ -58,11 +53,8 @@ export default function ProductForm({ product, open, onClose, onSuccess }: Produ
           stock_quantity: product.stock_quantity || 0,
           is_active: product.is_active ?? true,
         });
-        // Set the current images for preview
         setCurrentImageUrls(product.images || []);
-        // --- End Populate Form ---
       } else {
-        // Reset form for a new product
         setFormData({
           name: '',
           description: '',
@@ -73,10 +65,8 @@ export default function ProductForm({ product, open, onClose, onSuccess }: Produ
           stock_quantity: 0,
           is_active: true,
         });
-        // Clear images for a new product
         setCurrentImageUrls([]);
       }
-      // Clear file input and errors when dialog opens
       setImageFiles(null);
       setError('');
     }
@@ -88,48 +78,36 @@ export default function ProductForm({ product, open, onClose, onSuccess }: Produ
     }
   };
 
-  // --- 4. New Function to Remove an Image ---
   const handleRemoveImage = (urlToRemove: string) => {
-    // This removes the image from the state. It will be gone when we save.
     setCurrentImageUrls(prevUrls => prevUrls.filter(url => url !== urlToRemove));
   };
-  // --- End New Function ---
 
-  // --- 5. UPDATED HandleSubmit ---
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setUploading(true);
 
     try {
-      // Start with the current list of images (which user may have deleted from)
       let finalImageUrls: string[] = [...currentImageUrls];
 
-      // 1. Upload new images (if any) to your Node.js server
       if (imageFiles && imageFiles.length > 0) {
         const uploadFormData = new FormData();
         Array.from(imageFiles).forEach(file => {
           uploadFormData.append('images', file);
         });
-
         const uploadResponse = await uploadAdminImages(uploadFormData);
-        // --- THIS IS THE PATCH ---
-        // Add new URLs to the existing list, instead of overwriting
         finalImageUrls.push(...uploadResponse.urls);
-        // --- END PATCH ---
       }
 
-      // 2. Prepare product data for MongoDB
       const productData = {
         ...formData,
         price: Number(formData.price),
         originalPrice: Number(formData.originalPrice) || undefined,
         stock_quantity: Number(formData.stock_quantity),
         features: formData.features.split('\n').filter(f => f.trim() !== ''),
-        images: finalImageUrls, // Use the new, complete list
+        images: finalImageUrls,
       };
 
-      // 3. Use appService to create or update
       if (product) {
         await updateAdminProduct(product._id, productData);
       } else {
@@ -149,7 +127,6 @@ export default function ProductForm({ product, open, onClose, onSuccess }: Produ
       setUploading(false);
     }
   };
-  // --- End Updated HandleSubmit ---
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
@@ -195,7 +172,7 @@ export default function ProductForm({ product, open, onClose, onSuccess }: Produ
             />
           </div>
 
-          {/* ... (Price, Original Price, Stock, Tag inputs are unchanged) ... */}
+          {/* This grid is already responsive (stacks on mobile, 2 cols on md) */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="price">Price</Label>
@@ -222,6 +199,7 @@ export default function ProductForm({ product, open, onClose, onSuccess }: Produ
               />
             </div>
           </div>
+          {/* This grid is also already responsive */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="stock_quantity">Stock Quantity</Label>
@@ -246,7 +224,6 @@ export default function ProductForm({ product, open, onClose, onSuccess }: Produ
             </div>
           </div>
 
-          {/* --- 6. UPDATED Image Field & New Previews --- */}
           <div className="space-y-2">
             <Label htmlFor="image">Upload New Images</Label>
             <div className="flex items-center gap-4">
@@ -268,11 +245,14 @@ export default function ProductForm({ product, open, onClose, onSuccess }: Produ
             </div>
           </div>
 
-          {/* --- This is the new Preview Section --- */}
           {currentImageUrls.length > 0 && (
             <div className="space-y-2">
               <Label>Current Images</Label>
-              <div className="grid grid-cols-4 gap-4">
+              {/* --- THIS IS THE RESPONSIVE CHANGE ---
+                Was: grid-cols-4
+                Now: 2 on mobile, 3 on sm, 4 on md
+              */}
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
                 {currentImageUrls.map((url) => (
                   <div key={url} className="relative group">
                     <img
@@ -297,7 +277,7 @@ export default function ProductForm({ product, open, onClose, onSuccess }: Produ
           )}
           {/* --- End Preview Section --- */}
 
-          {/* ... (Active Switch, Error Message, Submit Buttons are unchanged) ... */}
+          {/* ... (Active Switch, Error, Submit Buttons) ... */}
           <div className="flex items-center space-x-2">
             <Switch
               id="is_active"
