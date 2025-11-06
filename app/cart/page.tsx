@@ -5,7 +5,7 @@ import Footer from "@/components/Footer"
 export default function CartPage() {
   return (
     <main className="min-h-screen">
-      <Navbar />
+      {/* <Navbar /> */}
       <CartCheckout />
       <Footer />
     </main>
