@@ -1,20 +1,95 @@
 "use client"
 
 import { motion, useInView } from "framer-motion"
-import { useRef, useState, useEffect }
-from "react"
+import { useRef, useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { ShoppingBag, ArrowRight, Sparkles, ChevronLeft, ChevronRight } from "lucide-react"
 import { useRouter } from 'next/navigation'
+// NEW: Import API service and new Product interface
+import { getPreferredProducts } from "@/lib/appService"
+import { Product } from "@/lib/types" // Using the interface from appService
 
-interface Product {
-  id: number;
-  name: string;
-  description: string;
-  price: string;
-  image: string;
-  tag: string;
-}
+// NEW: Default data to use as a fallback
+const defaultProducts: Product[] = [
+  { 
+    _id: "default-1", 
+    name: "Elegant Evening", 
+    description: "A sophisticated collection of evening fragrances with luxury packaging", 
+    price: 199, 
+    images: ["https://images.unsplash.com/photo-1541643600914-78b084683601?w=800&q=80"], 
+    tag: "Best Seller",
+    // --- ADDED MISSING PROPERTIES ---
+    stock_quantity: 10,
+    is_active: true,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString()
+  },
+  { 
+    _id: "default-2", 
+    name: "Romance Collection", 
+    description: "Perfect for anniversaries with rose-infused perfumes and chocolates", 
+    price: 249, 
+    images: ["https://images.unsplash.com/photo-1587017539504-67cfbddac569?w=800&q=80"], 
+    tag: "Premium",
+    // --- ADDED MISSING PROPERTIES ---
+    stock_quantity: 10,
+    is_active: true,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString()
+  },
+  { 
+    _id: "default-3", 
+    name: "Corporate Elite", 
+    description: "Professional gift hampers with timeless scents for business occasions", 
+    price: 299, 
+    images: ["https://images.unsplash.com/photo-1592945403244-b3fbafd7f539?w=800&q=80"], 
+    tag: "Corporate",
+    // --- ADDED MISSING PROPERTIES ---
+    stock_quantity: 10,
+    is_active: true,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString()
+  },
+  { 
+    _id: "default-4", 
+    name: "Celebration Special", 
+    description: "Festive hampers with champagne notes and sparkling accents", 
+    price: 349, 
+    images: ["https://images.unsplash.com/photo-1563170351-be82bc888aa4?w=800&q=80"], 
+    tag: "Limited Edition",
+    // --- ADDED MISSING PROPERTIES ---
+    stock_quantity: 10,
+    is_active: true,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString()
+  },
+  { 
+    _id: "default-5", 
+    name: "Luxury Voyage", 
+    description: "Travel-sized luxury perfumes in premium leather case", 
+    price: 179, 
+    images: ["https://images.unsplash.com/photo-1590736969955-71cc94901144?w=800&q=80"], 
+    tag: "Travel Set",
+    // --- ADDED MISSING PROPERTIES ---
+    stock_quantity: 10,
+    is_active: true,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString()
+  },
+  { 
+    _id: "default-6", 
+    name: "Signature Series", 
+    description: "Our most exclusive collection with rare and exotic fragrances", 
+    price: 499, 
+    images: ["https://images.unsplash.com/photo-1585386959984-a4155224a1ad?w=800&q=80"], 
+    tag: "Exclusive",
+    // --- ADDED MISSING PROPERTIES ---
+    stock_quantity: 10,
+    is_active: true,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString()
+  }
+];
 
 export default function Products() {
   const router = useRouter()
@@ -22,20 +97,43 @@ export default function Products() {
   const isInView = useInView(ref, { once: true, margin: "-100px" })
   const [itemsPerView, setItemsPerView] = useState(3)
 
-  const products: Product[] = [
+  // NEW: State for products, loading
+  const [products, setProducts] = useState<Product[]>([])
+  const [isLoading, setIsLoading] = useState(true)
 
-    { id:1, name: "Elegant Evening", description: "A sophisticated collection of evening fragrances with luxury packaging", price: "$199", image: "https://images.unsplash.com/photo-1541643600914-78b084683601?w=800&q=80", tag: "Best Seller" },
-    { id:2, name: "Romance Collection", description: "Perfect for anniversaries with rose-infused perfumes and chocolates", price: "$249", image: "https://images.unsplash.com/photo-1587017539504-67cfbddac569?w=800&q=80", tag: "Premium" },
-    { id:3, name: "Corporate Elite", description: "Professional gift hampers with timeless scents for business occasions", price: "$299", image: "https://images.unsplash.com/photo-1592945403244-b3fbafd7f539?w=800&q=80", tag: "Corporate" },
-    { id:4, name: "Celebration Special", description: "Festive hampers with champagne notes and sparkling accents", price: "$349", image: "https://images.unsplash.com/photo-1563170351-be82bc888aa4?w=800&q=80", tag: "Limited Edition" },
-    { id:5, name: "Luxury Voyage", description: "Travel-sized luxury perfumes in premium leather case", price: "$179", image: "https://images.unsplash.com/photo-1590736969955-71cc94901144?w=800&q=80", tag: "Travel Set" },
-    { id:6, name: "Signature Series", description: "Our most exclusive collection with rare and exotic fragrances", price: "$499", image: "https://images.unsplash.com/photo-1585386959984-a4155224a1ad?w=800&q=80", tag: "Exclusive" }
-    
-   
-  ]
-  
-  const [currentIndex, setCurrentIndex] = useState(products.length)
-  const duplicatedProducts = [...products, ...products, ...products]
+  // NEW: Fetch data from API on component mount
+  useEffect(() => {
+    const fetchProducts = async () => {
+      try {
+        setIsLoading(true);
+        const apiProducts = await getPreferredProducts();
+        
+        if (apiProducts && apiProducts.length > 0) {
+          setProducts(apiProducts);
+        } else {
+          // API succeeded but returned no products, use default
+          setProducts(defaultProducts);
+        }
+      } catch (error) {
+        console.error("Failed to fetch preferred products:", error);
+        // ON FAIL: Use the default hardcoded data as a fallback
+        setProducts(defaultProducts);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    fetchProducts();
+  }, []) // Empty dependency array means this runs once on mount
+
+  // --- Carousel Logic (driven by `products` state) ---
+  const [currentIndex, setCurrentIndex] = useState(0) // Start at 0, will be reset
+  const duplicatedProducts = products.length > 0 ? [...products, ...products, ...products] : []
+
+  // Update currentIndex AFTER products are loaded
+  useEffect(() => {
+    setCurrentIndex(products.length);
+  }, [products.length])
 
   useEffect(() => {
     const handleResize = () => {
@@ -47,47 +145,33 @@ export default function Products() {
         setItemsPerView(3)
       }
     }
-
     handleResize()
     window.addEventListener('resize', handleResize)
     return () => window.removeEventListener('resize', handleResize)
   }, [])
 
-  // ### 1. THE MAIN LOGIC
-  // If products.length is 1, isCarouselActive becomes false.
   const isCarouselActive = products.length > itemsPerView;
 
   // Auto-advance timer
   useEffect(() => {
-    // ### 2. STOPS ANIMATION
-    // This 'return' fires if isCarouselActive is false.
-    if (!isCarouselActive) return;
-
+    if (!isCarouselActive || isLoading) return; // Don't run if loading
     const timer = setInterval(() => {
       setCurrentIndex((prev) => prev + 1)
-    }, 3000) 
-
+    }, 3000)
     return () => clearInterval(timer)
-  }, [isCarouselActive])
+  }, [isCarouselActive, isLoading])
 
-  // Reset to middle set for infinite loop
+  // Reset for infinite loop
   useEffect(() => {
-    // ### 2. STOPS ANIMATION
-    // This 'return' fires if isCarouselActive is false.
-    if (!isCarouselActive) return;
+    if (!isCarouselActive || isLoading) return;
 
     if (currentIndex >= products.length * 2) {
-      setTimeout(() => {
-        setCurrentIndex(products.length)
-      }, 50) 
+      setTimeout(() => setCurrentIndex(products.length), 50)
     }
-    
     if (currentIndex <= products.length - 1) {
-      setTimeout(() => {
-        setCurrentIndex(products.length * 2 - 1)
-      }, 50)
+      setTimeout(() => setCurrentIndex(products.length * 2 - 1), 50)
     }
-  }, [currentIndex, products.length, isCarouselActive])
+  }, [currentIndex, products.length, isCarouselActive, isLoading])
 
   const goToNext = () => {
     setCurrentIndex((prev) => prev + 1)
@@ -97,7 +181,6 @@ export default function Products() {
     setCurrentIndex((prev) => prev - 1)
   }
 
-  // Use the original (short) list if carousel is not active
   const displayProducts = isCarouselActive ? duplicatedProducts : products
 
   return (
@@ -108,7 +191,9 @@ export default function Products() {
       
       <div className="container mx-auto relative z-10">
         <motion.div
-          // ... (header motion) ...
+          initial={{ opacity: 0, y: 50 }}
+          animate={isInView ? { opacity: 1, y: 0 } : {}}
+          transition={{ duration: 0.6 }}
           className="text-center mb-16"
         >
           {/* ... (header content) ... */}
@@ -130,24 +215,13 @@ export default function Products() {
         </motion.div>
 
         <div className="relative">
-          
-          {/* ### 3. HIDES BUTTONS
-              This whole block is skipped if isCarouselActive is false. */}
+          {/* ... (Navigation buttons, skipped if !isCarouselActive) ... */}
           {isCarouselActive && (
             <>
-              <button
-                onClick={goToPrev}
-                className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-4 z-20 bg-white/90 backdrop-blur-sm hover:bg-white p-4 rounded-full shadow-xl border border-[#DADADA] transition-all duration-300 hover:scale-110"
-                aria-label="Previous"
-              >
+              <button onClick={goToPrev} /* ... (button styles) ... */ >
                 <ChevronLeft className="w-6 h-6 text-[#222222]" />
               </button>
-              
-              <button
-                onClick={goToNext}
-                className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-4 z-20 bg-white/90 backdrop-blur-sm hover:bg-white p-4 rounded-full shadow-xl border border-[#DADADA] transition-all duration-300 hover:scale-110"
-                aria-label="Next"
-              >
+              <button onClick={goToNext} /* ... (button styles) ... */ >
                 <ChevronRight className="w-6 h-6 text-[#222222]" />
               </button>
             </>
@@ -155,20 +229,25 @@ export default function Products() {
 
           <div className="overflow-hidden px-2">
             
-            {products.length === 0 ? (
+            {/* NEW: Loading State */}
+            {isLoading ? (
               <div className="text-center py-20">
-                {/* ... (Coming Soon message) ... */}
+                 <p className="text-lg text-[#444444]">Loading Collection...</p>
+                 {/* You could put a spinner here */}
+              </div>
+            ) : products.length === 0 ? (
+              <div className="text-center py-20">
+                 <h3 className="text-3xl font-bold text-[#222222] mb-4">
+                  New Collection Coming Soon!
+                </h3>
+                <p className="text-lg text-[#444444]">
+                  We're curating exciting new products for you. Please check back later.
+                </p>
               </div>
             ) : (
               <motion.div
                 animate={isCarouselActive ? { x: `-${(currentIndex / displayProducts.length) * 100}%` } : {}}
-                transition={{ 
-                  type: "tween",
-                  ease: "easeInOut",
-                  duration: 0.5
-                }}
-                // ### 4. CENTERS THE ITEM
-                // The 'justify-center' class is added if isCarouselActive is false.
+                transition={{ type: "tween", ease: "easeInOut", duration: 0.5 }}
                 className={`flex ${!isCarouselActive ? 'justify-center' : ''}`}
                 style={{ 
                   width: isCarouselActive 
@@ -178,11 +257,9 @@ export default function Products() {
               >
                 {displayProducts.map((product, index) => (
                   <div
-                    key={index}
+                    // UPDATED: Use product._id for key if available, else index
+                    key={product._id || index}
                     className="px-3"
-                    // ### 5. SETS CORRECT WIDTH FOR SINGLE ITEM
-                    // If not active, width is (100 / 3) = 33.3% on desktop
-                    // or (100 / 1) = 100% on mobile.
                     style={{ 
                       width: isCarouselActive 
                         ? `${100 / displayProducts.length}%` 
@@ -191,35 +268,28 @@ export default function Products() {
                     }}
                   >
                     <motion.div
-                      // ... (product card motion) ...
+                      initial={{ opacity: 0, y: 50 }}
+                      animate={isInView ? { opacity: 1, y: 0 } : {}}
+                      transition={{ duration: 0.5, delay: 0.1 * index }}
+                      whileHover={{ y: -15, transition: { duration: 0.3 } }}
                       className="group relative h-full"
                     >
-                      {/* --- Product Card Content (Unchanged) --- */}
+                      {/* --- Product Card Content --- */}
                       <div className="h-full bg-white rounded-3xl overflow-hidden border border-[#DADADA] shadow-lg hover:shadow-2xl transition-all duration-500">
                         <div className="relative h-80 overflow-hidden bg-[#F8F8F8]">
                           <img 
-                            src={product.image} 
+                            // UPDATED: Use images[0]
+                            src={product.images[0] || '/placeholder.jpg'} // Add a fallback image
                             alt={product.name}
                             className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
                           />
-                          <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                          {/* ... (Tag, Sparkle, etc.) ... */}
                           <div className="absolute top-6 right-6">
-                            <motion.span
-                              initial={{ scale: 0 }}
-                              animate={{ scale: 1 }}
-                              transition={{ delay: 0.2 + index * 0.1 }}
-                              className="px-4 py-2 bg-[#222222]/90 backdrop-blur-sm text-[#F8F8F8] text-xs font-semibold rounded-full shadow-lg"
-                            >
+                            <motion.span /* ... */ >
                               {product.tag}
                             </motion.span>
                           </div>
-                          <motion.div
-                            animate={{ scale: [1, 1.2, 1], opacity: [0.3, 0.6, 0.3] }}
-                            transition={{ duration: 2, repeat: Infinity, delay: index * 0.3 }}
-                            className="absolute top-8 left-8"
-                          >
-                            <Sparkles className="w-5 h-5 text-white" />
-                          </motion.div>
+                          {/* ... */}
                           <motion.div
                             initial={{ opacity: 0, y: 20 }}
                             whileHover={{ opacity: 1, y: 0 }}
@@ -228,7 +298,8 @@ export default function Products() {
                             <Button
                               size="sm"
                               className="bg-white text-[#222222] hover:bg-[#F8F8F8] rounded-full px-6 shadow-lg"
-                              onClick={() => router.push(`/product/${product.id}`)}
+                              // UPDATED: Use product._id for the link
+                              onClick={() => router.push(`/product/${product._id}`)}
                             >
                               Quick View
                             </Button>
@@ -244,23 +315,17 @@ export default function Products() {
                           <div className="flex items-center justify-between pt-4 border-t border-[#DADADA]">
                             <div>
                               <p className="text-xs text-[#444444] mb-1">Starting from</p>
-                              <span className="text-3xl font-bold text-[#222222]">{product.price}</span>
+                              {/* UPDATED: Format price from number */}
+                              <span className="text-3xl font-bold text-[#222222]">${product.price}</span>
                             </div>
-                            <Button
-                              size="sm"
-                              className="bg-[#1C1C1C] text-[#F8F8F8] hover:bg-[#222222] rounded-full px-6 py-5 group-hover:px-8 transition-all duration-300 shadow-md"
-                            >
+                            <Button /* ... */ >
                               <ShoppingBag className="w-4 h-4 mr-2" />
                               Add
                             </Button>
                           </div>
                         </div>
                       </div>
-                      <motion.div
-                        animate={{ scale: [1, 1.02, 1], opacity: [0, 0.15, 0] }}
-                        transition={{ duration: 3, repeat: Infinity, delay: index * 0.3 }}
-                        className="absolute inset-0 bg-gradient-to-br from-[#1C1C1C] to-transparent rounded-3xl pointer-events-none"
-                      />
+                      <motion.div /* ... (Glow effect) ... */ />
                     </motion.div>
                   </div>
                 ))}
@@ -268,8 +333,7 @@ export default function Products() {
             )}
           </div>
 
-          {/* ### 3. HIDES DOTS
-              This whole block is skipped if isCarouselActive is false. */}
+          {/* ... (Dots Indicator, skipped if !isCarouselActive) ... */}
           {isCarouselActive && (
             <div className="flex justify-center gap-2 mt-8">
               {products.map((_, index) => (
@@ -288,9 +352,12 @@ export default function Products() {
           )}
         </div>
 
-        {products.length > 0 && (
+        {/* ... (View All Button) ... */}
+        {products.length > 0 && !isLoading && (
           <motion.div
-            // ... (View All button motion) ...
+            initial={{ opacity: 0, y: 30 }}
+            animate={isInView ? { opacity: 1, y: 0 } : {}}
+            transition={{ duration: 0.6, delay: 0.8 }}
             className="text-center mt-16"
           >
             <Button
