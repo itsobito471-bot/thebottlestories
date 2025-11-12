@@ -90,3 +90,23 @@ export const uploadAdminImages = (formData: FormData) => {
 };
 
 
+
+// --- Product Endpoints ---
+
+// export const getProducts = () => {
+//   return api.get('/product'); // Note: Your route file has /products. Might be a typo?
+// };
+
+// ... (getAdminProducts, createAdminProduct, etc. stay the same)
+
+// --- NEW PUBLIC ENDPOINT ---
+
+/**
+ * Gets the top-rated "Most Preferred" products.
+ * This is a public endpoint.
+ */
+export const getPreferredProducts = () => {
+  // This endpoint must match the one in your Node.js server
+  return api.get<Product[]>('/products/preferred');
+};
+
