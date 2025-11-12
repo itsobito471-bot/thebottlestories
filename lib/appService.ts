@@ -110,3 +110,46 @@ export const getPreferredProducts = () => {
   return api.get<Product[]>('/products/preferred');
 };
 
+
+
+interface FilterParams {
+  search?: string;
+  tag?: string;
+  minPrice?: number;
+  maxPrice?: number;
+  minRating?: number;
+  sort?: string;
+  page?: number;
+  limit?: number;
+}
+
+/**
+ * Defines the shape of the paginated response from the API
+ */
+interface FilterResponse {
+  products: Product[];
+  currentPage: number;
+  totalPages: number;
+  totalProducts: number;
+}
+
+/**
+ * Fetches products with filtering, sorting, and pagination.
+ * This is a public endpoint.
+ */
+export const filterProducts = (params: FilterParams) => {
+  // Create query parameters from the params object
+  const queryParams = new URLSearchParams();
+  
+  if (params.search) queryParams.append('search', params.search);
+  if (params.tag) queryParams.append('tag', params.tag);
+  if (params.minPrice) queryParams.append('minPrice', String(params.minPrice));
+  if (params.maxPrice) queryParams.append('maxPrice', String(params.maxPrice));
+  if (params.minRating) queryParams.append('minRating', String(params.minRating));
+  if (params.sort) queryParams.append('sort', params.sort);
+  if (params.page) queryParams.append('page', String(params.page));
+  if (params.limit) queryParams.append('limit', String(params.limit));
+
+  // Call the API with the generated query string
+  return api.get<FilterResponse>(`/products/filter?${queryParams.toString()}`);
+};
