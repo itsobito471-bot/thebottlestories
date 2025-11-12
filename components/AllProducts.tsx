@@ -335,11 +335,11 @@ export default function AllProducts() {
                       <div className="flex items-center justify-between mt-auto">
                         <div className="flex items-center gap-2 sm:gap-3">
                           <span className="text-2xl sm:text-3xl font-bold text-[#222222]">
-                            ${product.price} {/* Format number as currency */}
+                            ₹{product.price} {/* Format number as currency */}
                           </span>
                           {product.originalPrice && (
                             <span className="text-sm sm:text-base text-[#444444] line-through">
-                              ${product.originalPrice}
+                              ₹{product.originalPrice}
                             </span>
                           )}
                         </div>
