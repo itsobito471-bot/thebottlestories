@@ -3,13 +3,12 @@
 import { motion, useInView } from "framer-motion"
 import { useRef, useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
-import { ShoppingBag, ArrowRight, Sparkles, ChevronLeft, ChevronRight } from "lucide-react"
+// --- 1. IMPORT Loader2 ---
+import { ShoppingBag, ArrowRight, Sparkles, ChevronLeft, ChevronRight, Loader2 } from "lucide-react"
 import { useRouter } from 'next/navigation'
-// NEW: Import API service and new Product interface
 import { getPreferredProducts } from "@/lib/appService"
-import { Product } from "@/lib/types" // Using the interface from appService
+import { Product } from "@/lib/types"
 
-// NEW: Default data to use as a fallback
 const defaultProducts: Product[] = [
   { 
     _id: "default-1", 
@@ -93,6 +92,8 @@ export default function Products() {
 
   const [products, setProducts] = useState<Product[]>([])
   const [isLoading, setIsLoading] = useState(true)
+  // --- 2. ADD NEW STATE FOR ROUTING ---
+  const [isRouting, setIsRouting] = useState(false)
 
   useEffect(() => {
     const fetchProducts = async () => {
@@ -203,7 +204,6 @@ export default function Products() {
         </motion.div>
 
         <div className="relative">
-          {/* --- FIX 2: STYLED NAVIGATION BUTTONS --- */}
           {isCarouselActive && (
             <>
               <button 
@@ -222,16 +222,12 @@ export default function Products() {
               </button>
             </>
           )}
-          {/* --- END FIX 2 --- */}
-
-          {/* --- FIX 1: ADDED PADDING (py-8) --- */}
+          
           <div className="overflow-hidden px-2 py-8">
-          {/* --- END FIX 1 --- */}
             
             {isLoading ? (
               <div className="text-center py-20">
                  <p className="text-lg text-[#444444]">Loading Collection...</p>
-                 {/* You could put a spinner here */}
               </div>
             ) : products.length === 0 ? (
               <div className="text-center py-20">
@@ -271,11 +267,10 @@ export default function Products() {
                       whileHover={{ y: -15, transition: { duration: 0.3 } }}
                       className="group relative h-full"
                     >
-                      {/* --- Product Card Content --- */}
                       <div className="h-full bg-white rounded-3xl overflow-hidden border border-[#DADADA] shadow-lg hover:shadow-2xl transition-all duration-500">
                         <div className="relative h-80 overflow-hidden bg-[#F8F8F8]">
                           <img 
-                            src={product.images[0] || '/placeholder.jpg'} // Add a fallback image
+                            src={product.images[0] || '/placeholder.jpg'} 
                             alt={product.name}
                             className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
                           />
@@ -368,14 +363,29 @@ export default function Products() {
             transition={{ duration: 0.6, delay: 0.8 }}
             className="text-center mt-16"
           >
+            {/* --- 3. UPDATED BUTTON --- */}
             <Button
               size="lg"
               className="bg-[#1C1C1C] text-[#F8F8F8] hover:bg-[#222222] rounded-2xl px-10 py-7 text-lg shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-105"
-              onClick={() => router.push("/products")}
+              onClick={() => {
+                setIsRouting(true); // Set loading state
+                router.push("/products");
+              }}
+              disabled={isRouting} // Disable button when routing
             >
-              View All Products
-              <ArrowRight className="ml-2 w-5 h-5" />
+              {isRouting ? (
+                <>
+                  <Loader2 className="mr-2 w-5 h-5 animate-spin" />
+                  Loading...
+                </>
+              ) : (
+                <>
+                  View All Products
+                  <ArrowRight className="ml-2 w-5 h-5" />
+                </>
+              )}
             </Button>
+            {/* --- END UPDATED BUTTON --- */}
           </motion.div>
         )}
       </div>
