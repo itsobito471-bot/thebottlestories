@@ -22,7 +22,7 @@ interface LoginResponse {
  */
 export const loginAdmin = async (data: any) => {
   // Tell 'api.post' this is an auth request (so it doesn't send a token)
-  const response = await api.post<LoginResponse>('/auth/login', data, true);
+  const response = await api.post<LoginResponse>('/auth/admin-login', data, true);
 
   if (response.token) {
     localStorage.setItem('token', response.token);
