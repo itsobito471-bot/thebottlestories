@@ -33,6 +33,11 @@ async function apiRequest<T>(
       ...defaultHeaders,
       ...options.headers,
     },
+    // --- THIS IS THE UPDATE ---
+    // This tells Next.js to cache all GET requests for 10 seconds.
+    // This fixes your stale data problem on the product page.
+    next: { revalidate: 10 },
+    // --------------------------
   };
 
   if (!isAuthRequest) {
@@ -55,6 +60,7 @@ async function apiRequest<T>(
 }
 
 // --- NEW: Core, private function for FormData requests ---
+// (This one doesn't need the revalidate flag, as it's for POST/uploads)
 async function apiFormRequest<T>(
   endpoint: string,
   formData: FormData
@@ -63,8 +69,6 @@ async function apiFormRequest<T>(
     method: 'POST',
     body: formData,
     headers: {
-      // DO NOT set 'Content-Type'. The browser will set it
-      // automatically with the correct 'boundary' for FormData.
       'X-Requested-With': 'XMLHttpRequest',
     },
   };
@@ -124,5 +128,5 @@ export const api = {
   post,
   put,
   delete: del,
-  postFormData, // <-- Now includes the new upload function
+  postFormData,
 };
