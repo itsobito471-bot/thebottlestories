@@ -5,7 +5,8 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FcGoogle } from "react-icons/fc";
+import Swal from 'sweetalert2'; // <-- Import SweetAlert
+
 // --- Shadcn/ui Components ---
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -15,8 +16,8 @@ import { Checkbox } from '@/components/ui/checkbox';
 // --- Icons ---
 import { Loader2, Chrome, Facebook, Sparkles } from 'lucide-react';
 
-// --- API Functions (Uncomment when ready) ---
-// import { loginAdmin, registerUser } from '@/lib/appService';
+// --- 1. Import your new API functions ---
+import { registerUser, loginUser } from '@/lib/appService';
 
 export default function AuthPage() {
   const [view, setView] = useState<'login' | 'register'>('login');
@@ -27,7 +28,6 @@ export default function AuthPage() {
   const [password, setPassword] = useState('');
   const [rememberMe, setRememberMe] = useState(false);
   
-  // Loading State
   const [isLoading, setIsLoading] = useState(false);
   const [isSocialLoading, setIsSocialLoading] = useState<null | 'google' | 'facebook'>(null);
   
@@ -42,31 +42,68 @@ export default function AuthPage() {
     setIsSocialLoading(null);
   };
 
+  // --- 2. UPDATED handleSubmit FUNCTION ---
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
 
     if (view === 'login') {
+      // --- LOGIN LOGIC ---
       try {
-        console.log('Login attempt:', { email, password, rememberMe });
-        await new Promise(resolve => setTimeout(resolve, 1500));
-        router.push('/');
-      } catch (error) {
+        const data = await loginUser({ email, password });
+        
+        // Save session logic
+        const storage = rememberMe ? localStorage : sessionStorage;
+        storage.setItem('token', data.token);
+        storage.setItem('user', JSON.stringify(data.user)); // Save user object
+
+        // Show success and redirect
+        await Swal.fire({
+          icon: 'success',
+          title: 'Login Successful!',
+          text: `Welcome back, ${data.user.name}!`,
+          timer: 1500,
+          showConfirmButton: false,
+        });
+        
+        router.push('/'); // Redirect to home page
+        router.refresh(); // Force a refresh of the navbar to show user state
+
+      } catch (error: any) {
         console.error('Login error:', error);
+        Swal.fire({
+          icon: 'error',
+          title: 'Login Failed',
+          text: error.message || 'Invalid credentials. Please try again.',
+        });
         setIsLoading(false);
       }
     } else {
+      // --- REGISTER LOGIC ---
       try {
-        console.log('Register attempt:', { name, email, password });
-        await new Promise(resolve => setTimeout(resolve, 1500));
-        toggleView(); 
-      } catch (error) {
+        await registerUser({ name, email, password });
+
+        // Show success, then toggle view
+        await Swal.fire({
+          icon: 'success',
+          title: 'Account Created!',
+          text: 'You can now log in with your new account.',
+        });
+        toggleView(); // Switch to login view after success
+
+      } catch (error: any) {
         console.error('Register error:', error);
+        Swal.fire({
+          icon: 'error',
+          title: 'Registration Failed',
+          text: error.message || 'Please check your details and try again.',
+        });
         setIsLoading(false);
       }
     }
   };
 
+  // ... (Social login handlers are unchanged, they are just placeholders)
   const handleGoogleLogin = () => {
     setIsSocialLoading('google');
     console.log('Redirecting to Google...');
@@ -79,31 +116,31 @@ export default function AuthPage() {
     // window.location.href = `${process.env.NEXT_PUBLIC_API_URL}/auth/facebook`;
   };
 
-  // --- Animation variants with `as const` fix ---
+  // ... (Animation variants are unchanged)
   const containerVariants = {
     hidden: { opacity: 0 },
     visible: {
       opacity: 1,
       transition: { staggerChildren: 0.1, delayChildren: 0.2 },
     },
-  } as const; // <-- FIX
+  } as const;
 
   const itemVariants = {
     hidden: { opacity: 0, y: 20, height: 0 },
     visible: { opacity: 1, y: 0, height: 'auto' },
     exit: { opacity: 0, y: -10, height: 0, transition: { duration: 0.2 } }
-  } as const; // <-- FIX
-
+  } as const;
+  
   const formItemVariants = {
     hidden: { opacity: 0, y: 20 },
     visible: { opacity: 1, y: 0 },
-  } as const; // <-- FIX
+  } as const;
 
   const imageVariants = {
     hidden: { opacity: 0, x: 100 },
     visible: { opacity: 1, x: 0, transition: { duration: 0.8, ease: 'easeOut' } },
-  } as const; // <-- FIX
-  // --- End Animation variants ---
+  } as const;
+
 
   return (
     <div className="min-h-screen flex flex-col lg:flex-row bg-white text-[#1C1C1C]">
@@ -252,7 +289,7 @@ export default function AuthPage() {
               </div>
             </motion.div>
 
-            <motion.div variants={formItemVariants} className="grid grid-cols-1 sm:grid-cols-1 gap-4">
+            <motion.div variants={formItemVariants} className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <Button
                 type="button"
                 variant="outline"
@@ -264,8 +301,24 @@ export default function AuthPage() {
                   <Loader2 className="w-5 h-5 animate-spin" />
                 ) : (
                   <>
-                    <FcGoogle className="w-5 h-5 mr-2" />
+                    <Chrome className="w-5 h-5 mr-2" />
                     Google
+                  </>
+                )}
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handleFacebookLogin}
+                disabled={isLoading || !!isSocialLoading}
+                className="w-full flex items-center justify-center px-4 py-3 h-12 text-base border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                {isSocialLoading === 'facebook' ? (
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                ) : (
+                  <>
+                    <Facebook className="w-5 h-5 mr-2" fill="#1877F2" />
+                    Facebook
                   </>
                 )}
               </Button>
