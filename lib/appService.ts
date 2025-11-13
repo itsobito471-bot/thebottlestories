@@ -153,3 +153,20 @@ export const filterProducts = (params: FilterParams) => {
   // Call the API with the generated query string
   return api.get<FilterResponse>(`/products/filter?${queryParams.toString()}`);
 };
+
+/**
+ * Gets a single product by its ID.
+ * This is a public endpoint.
+ */
+export const getProductById = (id: string) => {
+  // This matches your controller route: router.get('/:id', getProductById);
+  return api.get<Product>(`/products/${id}`);
+};
+
+/**
+ * Gets all product IDs for static generation.
+ * This is a public endpoint.
+ */
+export const getAllProductIds = () => {
+  return api.get<string[]>(`/products/all/ids`);
+};
