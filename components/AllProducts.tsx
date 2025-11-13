@@ -131,20 +131,29 @@ export default function AllProducts() {
   
   return (
     <section className="pt-28 sm:pt-32 lg:pt-36 pb-16 sm:pb-20 lg:pb-24 px-4 sm:px-6 lg:px-8 bg-gradient-to-b from-[#F8F8F8] via-white to-[#F8F8F8] relative overflow-hidden min-h-screen">
-      {/* ... (decorative elements) ... */}
-      <motion.div /* ... */ />
+
+      <motion.div  />
 
       <div className="container mx-auto max-w-7xl relative z-10">
-        {/* ... (Back button) ... */}
-        <motion.div /* ... */ >
+        
+        <motion.div
+          initial={{ opacity: 0, x: -30 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.5 }}
+          className="mb-6 sm:mb-8"
+        >
           <Link href="/">
-            <motion.button /* ... */ >
+            <motion.button
+              whileHover={{ scale: 1.05, x: -5 }}
+              whileTap={{ scale: 0.95 }}
+              className="inline-flex items-center gap-2 sm:gap-3 px-4 sm:px-6 py-2.5 sm:py-3 bg-white/70 backdrop-blur-xl rounded-full border border-white/40 shadow-lg hover:shadow-xl hover:bg-white/90 transition-all duration-300 group"
+            >
               <ArrowLeft className="w-4 h-4 sm:w-5 sm:h-5 text-[#222222] group-hover:-translate-x-1 transition-transform duration-300" />
             </motion.button>
           </Link>
         </motion.div>
 
-        {/* ... (Header text) ... */}
+
         <motion.div /* ... */ className="text-center mb-12 sm:mb-16">
           <motion.div /* ... */ >
             <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 text-[#444444]" />
@@ -158,7 +167,7 @@ export default function AllProducts() {
           </p>
         </motion.div>
 
-        {/* --- Filter & Search Section (Unchanged logic, just state-driven) --- */}
+        
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -239,7 +248,7 @@ export default function AllProducts() {
           )}
         </motion.div>
 
-        {/* --- NEW: Loading, Error, and Product Grid Logic --- */}
+
         {isLoading ? (
           // Initial Loading State (Skeleton)
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8 lg:gap-10">
