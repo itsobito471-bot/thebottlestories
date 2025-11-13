@@ -35,3 +35,34 @@ export interface Order {
   updated_at: string;
   // This schema doesn't have items, so we omit them
 }
+
+/**
+ * Represents a User object from your MongoDB database
+ */
+export interface User {
+  _id: string; // MongoDB's ID
+  name: string;
+  email: string;
+}
+
+/**
+ * The expected response from your /api/auth/login endpoint
+ */
+export interface LoginResponse {
+  token: string;
+  user: {
+    id: string; // The backend controller sends 'id', not '_id'
+    name: string;
+    email: string;
+  };
+}
+
+// Define the shape of the login response
+export interface AdminLoginResponse {
+  token: string;
+  user: {
+    _id: string;
+    name: string;
+    email: string;
+  };
+}

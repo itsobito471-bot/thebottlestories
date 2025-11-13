@@ -1,17 +1,8 @@
 // lib/appService.ts
 
 import { api } from './apiService';
-import { DashboardStats, Product, Order } from './types';
+import { DashboardStats, Product, Order, LoginResponse, AdminLoginResponse } from './types';
 
-// Define the shape of the login response
-interface LoginResponse {
-  token: string;
-  user: {
-    _id: string;
-    name: string;
-    email: string;
-  };
-}
 
 // --- Auth Endpoints ---
 
@@ -22,7 +13,7 @@ interface LoginResponse {
  */
 export const loginAdmin = async (data: any) => {
   // Tell 'api.post' this is an auth request (so it doesn't send a token)
-  const response = await api.post<LoginResponse>('/auth/admin-login', data, true);
+  const response = await api.post<AdminLoginResponse>('/admin-auth/admin-login', data, true);
 
   if (response.token) {
     localStorage.setItem('token', response.token);
@@ -169,4 +160,21 @@ export const getProductById = (id: string) => {
  */
 export const getAllProductIds = () => {
   return api.get<string[]>(`/products/all/ids`);
+};
+
+
+/**
+ * Registers a new user.
+ */
+export const registerUser = (data: any) => {
+  // Pass 'true' because this is an auth request and shouldn't send a token
+  return api.post('/auth/register', data, true);
+};
+
+/**
+ * Logs in a user and returns a token and user object.
+ */
+export const loginUser = (data: any) => {
+  // Pass 'true' because this is an auth request
+  return api.post<LoginResponse>('/auth/login', data, true);
 };
