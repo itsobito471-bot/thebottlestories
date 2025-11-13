@@ -5,7 +5,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-
+import { FcGoogle } from "react-icons/fc";
 // --- Shadcn/ui Components ---
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -252,7 +252,7 @@ export default function AuthPage() {
               </div>
             </motion.div>
 
-            <motion.div variants={formItemVariants} className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <motion.div variants={formItemVariants} className="grid grid-cols-1 sm:grid-cols-1 gap-4">
               <Button
                 type="button"
                 variant="outline"
@@ -264,24 +264,8 @@ export default function AuthPage() {
                   <Loader2 className="w-5 h-5 animate-spin" />
                 ) : (
                   <>
-                    <Chrome className="w-5 h-5 mr-2" />
+                    <FcGoogle className="w-5 h-5 mr-2" />
                     Google
-                  </>
-                )}
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={handleFacebookLogin}
-                disabled={isLoading || !!isSocialLoading}
-                className="w-full flex items-center justify-center px-4 py-3 h-12 text-base border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-              >
-                {isSocialLoading === 'facebook' ? (
-                  <Loader2 className="w-5 h-5 animate-spin" />
-                ) : (
-                  <>
-                    <Facebook className="w-5 h-5 mr-2" fill="#1877F2" />
-                    Facebook
                   </>
                 )}
               </Button>
