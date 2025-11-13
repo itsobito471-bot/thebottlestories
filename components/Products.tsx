@@ -18,7 +18,6 @@ const defaultProducts: Product[] = [
     price: 199, 
     images: ["https://images.unsplash.com/photo-1541643600914-78b084683601?w=800&q=80"], 
     tag: "Best Seller",
-    // --- ADDED MISSING PROPERTIES ---
     stock_quantity: 10,
     is_active: true,
     created_at: new Date().toISOString(),
@@ -31,7 +30,6 @@ const defaultProducts: Product[] = [
     price: 249, 
     images: ["https://images.unsplash.com/photo-1587017539504-67cfbddac569?w=800&q=80"], 
     tag: "Premium",
-    // --- ADDED MISSING PROPERTIES ---
     stock_quantity: 10,
     is_active: true,
     created_at: new Date().toISOString(),
@@ -44,7 +42,6 @@ const defaultProducts: Product[] = [
     price: 299, 
     images: ["https://images.unsplash.com/photo-1592945403244-b3fbafd7f539?w=800&q=80"], 
     tag: "Corporate",
-    // --- ADDED MISSING PROPERTIES ---
     stock_quantity: 10,
     is_active: true,
     created_at: new Date().toISOString(),
@@ -57,7 +54,6 @@ const defaultProducts: Product[] = [
     price: 349, 
     images: ["https://images.unsplash.com/photo-1563170351-be82bc888aa4?w=800&q=80"], 
     tag: "Limited Edition",
-    // --- ADDED MISSING PROPERTIES ---
     stock_quantity: 10,
     is_active: true,
     created_at: new Date().toISOString(),
@@ -70,7 +66,6 @@ const defaultProducts: Product[] = [
     price: 179, 
     images: ["https://images.unsplash.com/photo-1590736969955-71cc94901144?w=800&q=80"], 
     tag: "Travel Set",
-    // --- ADDED MISSING PROPERTIES ---
     stock_quantity: 10,
     is_active: true,
     created_at: new Date().toISOString(),
@@ -83,7 +78,6 @@ const defaultProducts: Product[] = [
     price: 499, 
     images: ["https://images.unsplash.com/photo-1585386959984-a4155224a1ad?w=800&q=80"], 
     tag: "Exclusive",
-    // --- ADDED MISSING PROPERTIES ---
     stock_quantity: 10,
     is_active: true,
     created_at: new Date().toISOString(),
@@ -97,11 +91,9 @@ export default function Products() {
   const isInView = useInView(ref, { once: true, margin: "-100px" })
   const [itemsPerView, setItemsPerView] = useState(3)
 
-  // NEW: State for products, loading
   const [products, setProducts] = useState<Product[]>([])
   const [isLoading, setIsLoading] = useState(true)
 
-  // NEW: Fetch data from API on component mount
   useEffect(() => {
     const fetchProducts = async () => {
       try {
@@ -111,12 +103,10 @@ export default function Products() {
         if (apiProducts && apiProducts.length > 0) {
           setProducts(apiProducts);
         } else {
-          // API succeeded but returned no products, use default
           setProducts(defaultProducts);
         }
       } catch (error) {
         console.error("Failed to fetch preferred products:", error);
-        // ON FAIL: Use the default hardcoded data as a fallback
         setProducts(defaultProducts);
       } finally {
         setIsLoading(false);
@@ -124,15 +114,15 @@ export default function Products() {
     }
 
     fetchProducts();
-  }, []) // Empty dependency array means this runs once on mount
+  }, []) 
 
-  // --- Carousel Logic (driven by `products` state) ---
-  const [currentIndex, setCurrentIndex] = useState(0) // Start at 0, will be reset
+  const [currentIndex, setCurrentIndex] = useState(0)
   const duplicatedProducts = products.length > 0 ? [...products, ...products, ...products] : []
 
-  // Update currentIndex AFTER products are loaded
   useEffect(() => {
-    setCurrentIndex(products.length);
+    if (products.length > 0) {
+      setCurrentIndex(products.length);
+    }
   }, [products.length])
 
   useEffect(() => {
@@ -152,16 +142,14 @@ export default function Products() {
 
   const isCarouselActive = products.length > itemsPerView;
 
-  // Auto-advance timer
   useEffect(() => {
-    if (!isCarouselActive || isLoading) return; // Don't run if loading
+    if (!isCarouselActive || isLoading) return; 
     const timer = setInterval(() => {
       setCurrentIndex((prev) => prev + 1)
     }, 3000)
     return () => clearInterval(timer)
   }, [isCarouselActive, isLoading])
 
-  // Reset for infinite loop
   useEffect(() => {
     if (!isCarouselActive || isLoading) return;
 
@@ -215,21 +203,31 @@ export default function Products() {
         </motion.div>
 
         <div className="relative">
-          {/* ... (Navigation buttons, skipped if !isCarouselActive) ... */}
+          {/* --- FIX 2: STYLED NAVIGATION BUTTONS --- */}
           {isCarouselActive && (
             <>
-              <button onClick={goToPrev} /* ... (button styles) ... */ >
+              <button 
+                onClick={goToPrev} 
+                className="absolute top-1/2 -translate-y-1/2 -left-4 z-20 w-12 h-12 bg-white/70 backdrop-blur-sm border border-[#DADADA] rounded-full flex items-center justify-center shadow-lg hover:bg-white transition-all duration-300"
+                aria-label="Previous slide"
+              >
                 <ChevronLeft className="w-6 h-6 text-[#222222]" />
               </button>
-              <button onClick={goToNext} /* ... (button styles) ... */ >
+              <button 
+                onClick={goToNext} 
+                className="absolute top-1/2 -translate-y-1/2 -right-4 z-20 w-12 h-12 bg-white/70 backdrop-blur-sm border border-[#DADADA] rounded-full flex items-center justify-center shadow-lg hover:bg-white transition-all duration-300"
+                aria-label="Next slide"
+              >
                 <ChevronRight className="w-6 h-6 text-[#222222]" />
               </button>
             </>
           )}
+          {/* --- END FIX 2 --- */}
 
-          <div className="overflow-hidden px-2">
+          {/* --- FIX 1: ADDED PADDING (py-8) --- */}
+          <div className="overflow-hidden px-2 py-8">
+          {/* --- END FIX 1 --- */}
             
-            {/* NEW: Loading State */}
             {isLoading ? (
               <div className="text-center py-20">
                  <p className="text-lg text-[#444444]">Loading Collection...</p>
@@ -257,7 +255,6 @@ export default function Products() {
               >
                 {displayProducts.map((product, index) => (
                   <div
-                    // UPDATED: Use product._id for key if available, else index
                     key={product._id || index}
                     className="px-3"
                     style={{ 
@@ -278,18 +275,20 @@ export default function Products() {
                       <div className="h-full bg-white rounded-3xl overflow-hidden border border-[#DADADA] shadow-lg hover:shadow-2xl transition-all duration-500">
                         <div className="relative h-80 overflow-hidden bg-[#F8F8F8]">
                           <img 
-                            // UPDATED: Use images[0]
                             src={product.images[0] || '/placeholder.jpg'} // Add a fallback image
                             alt={product.name}
                             className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
                           />
-                          {/* ... (Tag, Sparkle, etc.) ... */}
                           <div className="absolute top-6 right-6">
-                            <motion.span /* ... */ >
+                            <motion.span 
+                              initial={{ opacity: 0, y: 10 }}
+                              animate={isInView ? { opacity: 1, y: 0 } : {}}
+                              transition={{ duration: 0.5, delay: 0.3 + index * 0.1 }}
+                              className="px-4 py-2 bg-white/70 backdrop-blur-sm rounded-full text-sm font-semibold text-[#222222] shadow-md"
+                            >
                               {product.tag}
                             </motion.span>
                           </div>
-                          {/* ... */}
                           <motion.div
                             initial={{ opacity: 0, y: 20 }}
                             whileHover={{ opacity: 1, y: 0 }}
@@ -298,7 +297,6 @@ export default function Products() {
                             <Button
                               size="sm"
                               className="bg-white text-[#222222] hover:bg-[#F8F8F8] rounded-full px-6 shadow-lg"
-                              // UPDATED: Use product._id for the link
                               onClick={() => router.push(`/product/${product._id}`)}
                             >
                               Quick View
@@ -315,17 +313,29 @@ export default function Products() {
                           <div className="flex items-center justify-between pt-4 border-t border-[#DADADA]">
                             <div>
                               <p className="text-xs text-[#444444] mb-1">Starting from</p>
-                              {/* UPDATED: Format price from number */}
-                              <span className="text-3xl font-bold text-[#222222]">${product.price}</span>
+                              <span className="text-3xl font-bold text-[#222222]">${product.price.toFixed(2)}</span>
                             </div>
-                            <Button /* ... */ >
-                              <ShoppingBag className="w-4 h-4 mr-2" />
-                              Add
+                            <Button 
+                              size="icon" 
+                              className="w-12 h-12 bg-[#1C1C1C] text-white hover:bg-[#222222] rounded-full shadow-lg group-hover:scale-110 transition-transform"
+                            >
+                              <ShoppingBag className="w-5 h-5" />
                             </Button>
                           </div>
                         </div>
                       </div>
-                      <motion.div /* ... (Glow effect) ... */ />
+                      <motion.div 
+                        animate={{
+                          scale: [1, 1.03, 1],
+                          opacity: [0, 0.15, 0],
+                        }}
+                        transition={{
+                          duration: 2,
+                          repeat: Infinity,
+                          delay: 0.5 + index * 0.2
+                        }}
+                        className="absolute inset-0 bg-gradient-to-br from-pink-100 to-rose-100 rounded-3xl -z-10 blur-xl pointer-events-none" 
+                      />
                     </motion.div>
                   </div>
                 ))}
@@ -333,7 +343,6 @@ export default function Products() {
             )}
           </div>
 
-          {/* ... (Dots Indicator, skipped if !isCarouselActive) ... */}
           {isCarouselActive && (
             <div className="flex justify-center gap-2 mt-8">
               {products.map((_, index) => (
@@ -352,7 +361,6 @@ export default function Products() {
           )}
         </div>
 
-        {/* ... (View All Button) ... */}
         {products.length > 0 && !isLoading && (
           <motion.div
             initial={{ opacity: 0, y: 30 }}
