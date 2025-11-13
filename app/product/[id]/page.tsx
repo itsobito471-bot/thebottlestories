@@ -32,6 +32,7 @@ export default async function ProductPage({ params }: { params: { id: string } }
   try {
     // This now runs AT BUILD TIME for each ID
     product = await getProductById(productId);
+    console.log("Fetched product for ID:", productId, product);
   } catch (error) {
     console.error("Failed to fetch product:", error);
     notFound();

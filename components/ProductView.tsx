@@ -15,6 +15,7 @@ interface ProductViewProps {
 }
 
 export default function ProductView({ product }: ProductViewProps) {
+  console.log("Rendering ProductView for product:", product)
   const ref = useRef(null)
   const isInView = useInView(ref, { once: true, margin: "-100px" })
   const [selectedImage, setSelectedImage] = useState(0)
