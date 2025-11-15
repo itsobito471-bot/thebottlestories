@@ -308,7 +308,7 @@ export default function Products() {
                           <div className="flex items-center justify-between pt-4 border-t border-[#DADADA]">
                             <div>
                               <p className="text-xs text-[#444444] mb-1">Starting from</p>
-                              <span className="text-3xl font-bold text-[#222222]">${product.price.toFixed(2)}</span>
+                              <span className="text-3xl font-bold text-[#222222]">₹{product.price.toFixed(2)}</span>
                             </div>
                             <Button 
                               size="icon" 
