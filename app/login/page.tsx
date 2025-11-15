@@ -107,7 +107,7 @@ export default function AuthPage() {
   const handleGoogleLogin = () => {
     setIsSocialLoading('google');
     console.log('Redirecting to Google...');
-    // window.location.href = `${process.env.NEXT_PUBLIC_API_URL}/auth/google`;
+    window.location.href = `${process.env.NEXT_PUBLIC_API_URL}/auth/google`;
   };
 
   const handleFacebookLogin = () => {

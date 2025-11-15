@@ -15,7 +15,7 @@ interface ProductViewProps {
 }
 
 export default function ProductView({ product }: ProductViewProps) {
-  console.log("Rendering ProductView for product:", product)
+  // console.log("Rendering ProductView for product:", product)
   const ref = useRef(null)
   const isInView = useInView(ref, { once: true, margin: "-100px" })
   const [selectedImage, setSelectedImage] = useState(0)
@@ -227,10 +227,10 @@ export default function ProductView({ product }: ProductViewProps) {
               transition={{ delay: 0.6 }}
               className="flex flex-wrap items-center gap-3 sm:gap-4"
             >
-              <span className="text-4xl sm:text-5xl font-bold text-[#222222]">${product.price.toFixed(2)}</span>
+              <span className="text-4xl sm:text-5xl font-bold text-[#222222]">₹{product.price.toFixed(2)}</span>
               {product.originalPrice && product.originalPrice > product.price && (
                 <>
-                  <span className="text-xl sm:text-2xl text-[#444444] line-through">${product.originalPrice.toFixed(2)}</span>
+                  <span className="text-xl sm:text-2xl text-[#444444] line-through">₹{product.originalPrice.toFixed(2)}</span>
                   <span className="px-3 sm:px-4 py-1.5 sm:py-2 bg-pink-50 text-[#222222] rounded-full text-xs sm:text-sm font-bold">
                     Save {Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)}%
                   </span>
