@@ -16,8 +16,13 @@ export interface Tag {
 export interface Fragrance {
   _id: string;
   name: string;
-  in_stock: boolean; // Added this per your request
-  description?: string;
+  // Updated structure
+  notes: {
+    top: string[];
+    middle: string[];
+    base: string[];
+  };
+  in_stock: boolean;
 }
 
 export interface Product {
