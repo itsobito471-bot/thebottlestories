@@ -1,7 +1,7 @@
 // lib/appService.ts
 
 import { api } from './apiService';
-import { DashboardStats, Product, Order, LoginResponse, AdminLoginResponse, Fragrance, Tag, PaginatedResponse } from './types';
+import { DashboardStats, Product, Order, LoginResponse, AdminLoginResponse, Fragrance, Tag, PaginatedResponse, PaginatedProductResponse } from './types';
 
 
 // --- Auth Endpoints ---
@@ -53,10 +53,9 @@ export const getProducts = () => {
   return api.get('/product');
 };
 
-export const getAdminProducts = () => {
-  return api.get<Product[]>('/admin/products');
+export const getAdminProducts = (page = 1, limit = 10) => {
+  return api.get<PaginatedProductResponse>(`/admin/products?page=${page}&limit=${limit}`);
 };
-
 export const createAdminProduct = (data: Omit<Product, '_id' | 'created_at' | 'updated_at'>) => {
   return api.post<Product>('/admin/products', data);
 };
@@ -219,3 +218,4 @@ export const deleteFragrance = (id: string) => {
 export const updateFragranceStock = (id: string, in_stock: boolean) => {
   return api.put<Fragrance>(`/admin/fragrances/${id}`, { in_stock });
 };
+

@@ -13,6 +13,14 @@ export interface Tag {
   
 }
 
+
+export interface PaginatedProductResponse {
+  data: Product[];
+  hasMore: boolean;
+  page: number;
+  total: number;
+}
+
 export interface Fragrance {
   _id: string;
   name: string;
