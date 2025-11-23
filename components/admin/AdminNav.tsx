@@ -11,13 +11,25 @@ import {
   SheetTrigger,
   SheetFooter,
 } from '@/components/ui/sheet';
-import { LogOut, Package, ShoppingCart, LayoutDashboard, Menu } from 'lucide-react';
+// --- 1. Updated Imports (Added Tag and Wind icons) ---
+import { 
+  LogOut, 
+  Package, 
+  ShoppingCart, 
+  LayoutDashboard, 
+  Menu, 
+  Tag, 
+  Wind 
+} from 'lucide-react';
 import Link from 'next/link';
 
+// --- 2. Updated Navigation Items ---
 const navItems = [
   { href: '/admin/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/admin/products', label: 'Products', icon: Package },
   { href: '/admin/orders', label: 'Orders', icon: ShoppingCart },
+  { href: '/admin/tags', label: 'Tags', icon: Tag },           // Added
+  { href: '/admin/fragrances', label: 'Fragrances', icon: Wind }, // Added
 ];
 
 export default function AdminNav() {

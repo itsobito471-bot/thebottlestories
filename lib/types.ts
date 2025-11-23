@@ -6,23 +6,43 @@ export interface DashboardStats {
   approvedOrders: number;
 }
 
+export interface Tag {
+  _id: string;
+  name: string;
+  description?: string;
+  
+}
+
+export interface Fragrance {
+  _id: string;
+  name: string;
+  in_stock: boolean; // Added this per your request
+  description?: string;
+}
+
 export interface Product {
-  _id: string; // MongoDB uses _id
+  _id: string;
   name: string;
   description: string;
   price: number;
   originalPrice?: number;
   rating?: number;
   reviews?: number;
-  images: string[];       // Changed from string | null
+  images: string[];
   features?: string[];
-  tag?: string;
+  
+  // --- NEW FIELDS ---
+  tags?: string[]; // Array of Tag IDs
+  available_fragrances?: string[]; // Array of Fragrance IDs
+  allow_custom_message?: boolean;
+  tag?: string; // Keep this for backward compatibility if needed, or remove
+  // ------------------
+
   stock_quantity: number;
   is_active: boolean;
   created_at: string;
   updated_at: string;
 }
-
 export interface Order {
   _id: string; // MongoDB uses _id
   customer_name: string;
@@ -65,4 +85,13 @@ export interface AdminLoginResponse {
     name: string;
     email: string;
   };
+}
+
+
+
+export interface PaginatedResponse<T> {
+  data: T[];
+  hasMore: boolean;
+  page: number;
+  total: number;
 }

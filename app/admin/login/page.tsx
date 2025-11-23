@@ -1,377 +1,271 @@
 'use client';
 
 import { useState } from 'react';
-import Link from 'next/link';
-import Image from 'next/image';
 import { useRouter } from 'next/navigation';
-import { motion, AnimatePresence } from 'framer-motion';
+import { loginAdmin } from '@/lib/appService';
 import Swal from 'sweetalert2';
-import { FcGoogle } from "react-icons/fc"; // Using FcGoogle as you imported
-
-// --- Shadcn/ui Components ---
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Checkbox } from '@/components/ui/checkbox';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 
-// --- Icons ---
-import { Loader2, Facebook, Sparkles } from 'lucide-react'; // Removed Chrome, as FcGoogle is used
-
-// --- API Functions ---
-import { registerUser, loginUser } from '@/lib/appService';
-
-export default function AuthPage() {
-  const [view, setView] = useState<'login' | 'register'>('login');
-
-  // Form State
-  const [name, setName] = useState('');
+export default function AdminLoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [rememberMe, setRememberMe] = useState(false);
-  
-  const [isLoading, setIsLoading] = useState(false);
-  const [isSocialLoading, setIsSocialLoading] = useState<null | 'google' | 'facebook'>(null);
-  
+  const [loading, setLoading] = useState(false);
   const router = useRouter();
-
-  const toggleView = () => {
-    setView((prev) => (prev === 'login' ? 'register' : 'login'));
-    setName('');
-    setEmail('');
-    setPassword('');
-    setIsLoading(false);
-    setIsSocialLoading(null);
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
+    setLoading(true);
 
-    if (view === 'login') {
-      // --- LOGIN LOGIC ---
-      try {
-        const data = await loginUser({ email, password });
-        
-        const storage = rememberMe ? localStorage : sessionStorage;
-        storage.setItem('token', data.token);
-        storage.setItem('user', JSON.stringify(data.user)); 
-
-        await Swal.fire({
-          icon: 'success',
-          title: 'Login Successful!',
-          text: `Welcome back, ${data.user.name}!`,
-          timer: 1500,
-          showConfirmButton: false,
-        });
-        
-        router.push('/'); 
-        router.refresh(); 
-
-      } catch (error: any) {
-        console.error('Login error:', error);
-        Swal.fire({
-          icon: 'error',
-          title: 'Login Failed',
-          text: error.message || 'Invalid credentials. Please try again.',
-        });
-        setIsLoading(false);
-      }
-    } else {
-      // --- REGISTER LOGIC ---
-      try {
-        await registerUser({ name, email, password });
-
-        await Swal.fire({
-          icon: 'success',
-          title: 'Account Created!',
-          text: 'You can now log in with your new account.',
-        });
-        toggleView(); 
-
-      } catch (error: any) {
-        console.error('Register error:', error);
-        Swal.fire({
-          icon: 'error',
-          title: 'Registration Failed',
-          text: error.message || 'Please check your details and try again.',
-        });
-        setIsLoading(false);
-      }
+    try {
+      await loginAdmin({ email, password });
+      router.push('/admin/dashboard');
+    } catch (err: any) {
+      setLoading(false);
+      Swal.fire({
+        icon: 'error',
+        title: 'Login Failed',
+        text: err.message || 'Something went wrong. Please try again.',
+      });
     }
   };
 
-  // --- THIS FUNCTION IS NOW FIXED ---
-  const handleGoogleLogin = () => {
-    setIsSocialLoading('google');
-    // This redirects the user to your backend's Google auth route
-    window.location.href = `${process.env.NEXT_PUBLIC_API_URL}/auth/google`;
-  };
-  // --- END OF FIX ---
-
-  const handleFacebookLogin = () => {
-    setIsSocialLoading('facebook');
-    console.log('Redirecting to Facebook...');
-    // window.location.href = `${process.env.NEXT_PUBLIC_API_URL}/auth/facebook`;
-  };
-
-  // --- Animation variants with `as const` fix ---
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    visible: {
-      opacity: 1,
-      transition: { staggerChildren: 0.1, delayChildren: 0.2 },
-    },
-  } as const; 
-
-  const itemVariants = {
-    hidden: { opacity: 0, y: 20, height: 0 },
-    visible: { opacity: 1, y: 0, height: 'auto' },
-    exit: { opacity: 0, y: -10, height: 0, transition: { duration: 0.2 } }
-  } as const; 
-
-  const formItemVariants = {
-    hidden: { opacity: 0, y: 20 },
-    visible: { opacity: 1, y: 0 },
-  } as const; 
-
-  const imageVariants = {
-    hidden: { opacity: 0, x: 100 },
-    visible: { opacity: 1, x: 0, transition: { duration: 0.8, ease: 'easeOut' } },
-  } as const; 
-
   return (
-    <div className="min-h-screen flex flex-col lg:flex-row bg-white text-[#1C1C1C]">
-      {/* --- Left Side - Login/Register Form --- */}
-      <div className="w-full lg:w-1/2 flex items-center justify-center p-6 sm:p-12 overflow-y-auto">
-        <motion.div
-          className="w-full max-w-md"
-          key={view} 
-          variants={containerVariants}
-          initial="hidden"
-          animate="visible"
-        >
-          {/* Logo */}
-          <motion.div variants={formItemVariants}>
-            <Image
-              src="/logo.png" 
-              alt="The Bottle Stories Logo"
-              width={80}
-              height={80}
-              className="mb-6 rounded-full"
-            />
-          </motion.div>
-
-          {/* Header */}
-          <motion.div variants={formItemVariants} className="mb-8">
-            <h1 className="text-4xl font-serif font-bold text-gray-800 mb-2">
-              {view === 'login' ? 'Welcome Back' : 'Create an Account'}
-            </h1>
-            <p className="text-gray-600 text-lg">
-              {view === 'login'
-                ? 'Please login to your account.'
-                : 'Get started by creating your account.'}
-            </p>
-          </motion.div>
-
-          {/* Form */}
-          <form onSubmit={handleSubmit} className="space-y-6">
-            
-            <AnimatePresence>
-              {view === 'register' && (
-                <motion.div
-                  variants={itemVariants}
-                  initial="hidden"
-                  animate="visible"
-                  exit="exit"
-                  className="space-y-2 overflow-hidden"
-                >
-                  <Label htmlFor="name" className="text-sm font-medium text-gray-700">
-                    Full Name
-                  </Label>
-                  <Input
-                    id="name"
-                    type="text"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    required
-                    className="w-full px-4 py-3 h-12 text-base border-gray-300 rounded-lg focus:ring-2 focus:ring-[#222222] focus:border-transparent outline-none transition-all"
-                    placeholder="Enter your full name"
-                    disabled={isLoading}
-                  />
-                </motion.div>
-              )}
-            </AnimatePresence>
-
-            <motion.div variants={formItemVariants} className="space-y-2">
-              <Label htmlFor="email" className="text-sm font-medium text-gray-700">
-                Email Address
-              </Label>
-              <Input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                className="w-full px-4 py-3 h-12 text-base border-gray-300 rounded-lg focus:ring-2 focus:ring-[#222222] focus:border-transparent outline-none transition-all"
-                placeholder="Enter your email"
-                disabled={isLoading}
-              />
-            </motion.div>
-
-            <motion.div variants={formItemVariants} className="space-y-2">
-              <Label htmlFor="password" className="text-sm font-medium text-gray-700">
-                Password
-              </Label>
-              <Input
-                id="password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                className="w-full px-4 py-3 h-12 text-base border-gray-300 rounded-lg focus:ring-2 focus:ring-[#222222] focus:border-transparent outline-none transition-all"
-                placeholder="Enter your password"
-                disabled={isLoading}
-              />
-            </motion.div>
-
-            <AnimatePresence>
-              {view === 'login' && (
-                <motion.div
-                  variants={itemVariants}
-                  initial="hidden"
-                  animate="visible"
-                  exit="exit"
-                  className="flex items-center justify-between overflow-hidden"
-                >
-                  <div className="flex items-center space-x-2">
-                    <Checkbox
-                      id="remember"
-                      onCheckedChange={(checked) => setRememberMe(!!checked)}
-                      disabled={isLoading}
-                      className="h-4 w-4 data-[state=checked]:bg-[#1C1C1C] data-[state=checked]:border-[#1C1C1C]"
-                    />
-                    <Label htmlFor="remember" className="text-sm text-gray-700 font-normal">
-                      Remember me
-                    </Label>
-                  </div>
-                  <Link href="/forgot-password" className="text-sm text-[#1C1C1C] hover:underline font-medium transition-colors">
-                    Forgot password?
-                  </Link>
-                </motion.div>
-              )}
-            </AnimatePresence>
-
-            <motion.div variants={formItemVariants}>
-              <Button
-                type="submit"
-                disabled={isLoading || !!isSocialLoading}
-                className="w-full bg-[#1C1C1C] text-white py-3 h-12 text-base rounded-lg font-medium hover:bg-gray-800 transition-colors disabled:opacity-50"
-              >
-                {isLoading ? (
-                  <Loader2 className="w-5 h-5 animate-spin" />
-                ) : (
-                  view === 'login' ? 'Sign In' : 'Create Account'
-                )}
-              </Button>
-            </motion.div>
-
-            <motion.div variants={formItemVariants} className="relative my-6">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-gray-300"></div>
-              </div>
-              <div className="relative flex justify-center text-sm">
-                <span className="px-4 bg-white text-gray-500">
-                  Or {view === 'login' ? 'continue' : 'sign up'} with
-                </span>
-              </div>
-            </motion.div>
-
-            <motion.div variants={formItemVariants} className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={handleGoogleLogin}
-                disabled={isLoading || !!isSocialLoading}
-                className="w-full flex items-center justify-center px-4 py-3 h-12 text-base border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-              >
-                {isSocialLoading === 'google' ? (
-                  <Loader2 className="w-5 h-5 animate-spin" />
-                ) : (
-                  <>
-                    <FcGoogle className="w-5 h-5 mr-2" />
-                    Google
-                  </>
-                )}
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={handleFacebookLogin}
-                disabled={isLoading || !!isSocialLoading}
-                className="w-full flex items-center justify-center px-4 py-3 h-12 text-base border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-              >
-                {isSocialLoading === 'facebook' ? (
-                  <Loader2 className="w-5 h-5 animate-spin" />
-                ) : (
-                  <>
-                    <Facebook className="w-5 h-5 mr-2" fill="#1877F2" />
-                    Facebook
-                  </>
-                )}
-              </Button>
-            </motion.div>
-
-            <motion.p variants={formItemVariants} className="text-center text-sm text-gray-600 pt-4">
-              {view === 'login' ? "Don't have an account?" : "Already have an account?"}{' '}
-              <button
-                type="button"
-                onClick={toggleView}
-                className="text-[#1C1C1C] hover:underline font-bold transition-colors"
-              >
-                {view === 'login' ? 'Sign Up' : 'Sign In'}
-              </button>
-            </motion.p>
-          </form>
-        </motion.div>
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-4 relative overflow-hidden">
+      {/* Animated background grid */}
+      <div className="absolute inset-0 bg-grid-pattern opacity-10"></div>
+      
+      {/* Animated glow effects */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-slate-500 rounded-full mix-blend-screen filter blur-3xl opacity-20 animate-pulse-slow"></div>
+        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-slate-400 rounded-full mix-blend-screen filter blur-3xl opacity-20 animate-pulse-slower"></div>
       </div>
 
-      {/* --- Right Side - Image/Branding (Unchanged) --- */}
-      <motion.div 
-        className="hidden lg:flex flex-1 items-center justify-center p-12 relative overflow-hidden"
-        variants={imageVariants}
-        initial="hidden"
-        animate="visible"
-      >
-        <Image
-          src="https://images.unsplash.com/photo-1585386959984-a4155224a1ad?w=800&q=80"
-          alt="Luxury perfume bottles"
-          fill
-          className="object-cover z-0"
-        />
-        <div className="absolute inset-0 bg-gradient-to-br from-black/30 to-black/60 z-10" />
-        <motion.div 
-          className="relative z-20 text-center max-w-md text-white"
-          variants={containerVariants}
-          initial="hidden"
-          animate="visible"
-        >
-          <motion.div variants={formItemVariants} className="mb-8">
-            <Image
-              src="/logo.png" 
-              alt="The Bottle Stories Logo"
-              width={120}
-              height={120}
-              className="mx-auto rounded-full shadow-2xl"
-            />
-          </motion.div>
-          <motion.h2 variants={formItemVariants} className="text-4xl font-serif font-bold mb-4">
-            Every bottle tells a story
-          </motion.h2>
-          <motion.p variants={formItemVariants} className="text-lg text-gray-200">
-            Discover luxury perfume gift hampers that create unforgettable moments and lasting memories.
-          </motion.p>
-        </motion.div>
-      </motion.div>
+      <style jsx>{`
+        @keyframes popIn {
+          0% {
+            opacity: 0;
+            transform: scale(0.8) translateY(40px);
+          }
+          50% {
+            transform: scale(1.05) translateY(-5px);
+          }
+          100% {
+            opacity: 1;
+            transform: scale(1) translateY(0);
+          }
+        }
+        
+        @keyframes float {
+          0%, 100% {
+            transform: translateY(0px);
+          }
+          50% {
+            transform: translateY(-10px);
+          }
+        }
+        
+        @keyframes shimmer {
+          0% {
+            background-position: -1000px 0;
+          }
+          100% {
+            background-position: 1000px 0;
+          }
+        }
+        
+        .animate-pop-in {
+          animation: popIn 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        
+        .animate-float {
+          animation: float 3s ease-in-out infinite;
+        }
+        
+        .animate-pulse-slow {
+          animation: pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+        
+        .animate-pulse-slower {
+          animation: pulse 6s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+        
+        .bg-grid-pattern {
+          background-image: 
+            linear-gradient(to right, rgba(148, 163, 184, 0.1) 1px, transparent 1px),
+            linear-gradient(to bottom, rgba(148, 163, 184, 0.1) 1px, transparent 1px);
+          background-size: 40px 40px;
+        }
+        
+        .shadow-premium {
+          box-shadow: 
+            0 0 0 1px rgba(148, 163, 184, 0.1),
+            0 20px 25px -5px rgba(0, 0, 0, 0.3),
+            0 10px 10px -5px rgba(0, 0, 0, 0.2),
+            0 0 60px -15px rgba(148, 163, 184, 0.4),
+            inset 0 1px 0 0 rgba(255, 255, 255, 0.05);
+        }
+        
+        .input-glow:focus {
+          box-shadow: 
+            0 0 0 2px rgba(148, 163, 184, 0.2),
+            0 0 20px rgba(148, 163, 184, 0.15);
+        }
+        
+        .shimmer-effect {
+          background: linear-gradient(
+            90deg,
+            transparent,
+            rgba(255, 255, 255, 0.1),
+            transparent
+          );
+          background-size: 1000px 100%;
+          animation: shimmer 3s infinite;
+        }
+      `}</style>
+
+      <Card className="w-full max-w-md shadow-premium relative z-10 bg-white border-slate-200/50 animate-pop-in overflow-hidden">
+        {/* Subtle shimmer overlay */}
+        <div className="absolute inset-0 shimmer-effect pointer-events-none"></div>
+        
+        <CardHeader className="space-y-4 pb-6 pt-8 relative">
+          <div className="mx-auto w-20 h-20 bg-gradient-to-br from-slate-700 via-slate-800 to-slate-900 rounded-3xl flex items-center justify-center shadow-2xl transform hover:scale-110 transition-all duration-500 animate-float border border-slate-600/20">
+            <svg
+              className="w-10 h-10 text-white drop-shadow-lg"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+              />
+            </svg>
+            <div className="absolute inset-0 rounded-3xl bg-gradient-to-t from-slate-900/50 to-transparent"></div>
+          </div>
+          
+          <div className="space-y-2">
+            <CardTitle className="text-4xl font-bold text-center bg-gradient-to-br from-slate-800 via-slate-700 to-slate-900 bg-clip-text text-transparent tracking-tight">
+              Admin Portal
+            </CardTitle>
+            <div className="h-1 w-16 bg-gradient-to-r from-slate-400 to-slate-600 mx-auto rounded-full"></div>
+          </div>
+          
+          <CardDescription className="text-center text-slate-600 text-base font-medium">
+            Welcome back, authenticate to continue
+          </CardDescription>
+        </CardHeader>
+        
+        <CardContent className="pb-8 px-8 relative">
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div className="space-y-2.5">
+              <Label htmlFor="email" className="text-slate-700 font-semibold text-sm uppercase tracking-wide">
+                Email Address
+              </Label>
+              <div className="relative group">
+                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                  <svg className="h-5 w-5 text-slate-400 group-focus-within:text-slate-600 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.207" />
+                  </svg>
+                </div>
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="admin@example.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                  disabled={loading}
+                  className="h-14 pl-12 border-slate-300 bg-slate-50/50 focus:bg-white focus:border-slate-500 focus:ring-slate-500 transition-all duration-300 group-hover:border-slate-400 input-glow text-base shadow-sm"
+                />
+              </div>
+            </div>
+            
+            <div className="space-y-2.5">
+              <Label htmlFor="password" className="text-slate-700 font-semibold text-sm uppercase tracking-wide">
+                Password
+              </Label>
+              <div className="relative group">
+                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                  <svg className="h-5 w-5 text-slate-400 group-focus-within:text-slate-600 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                  </svg>
+                </div>
+                <Input
+                  id="password"
+                  type="password"
+                  placeholder="••••••••••"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  disabled={loading}
+                  className="h-14 pl-12 border-slate-300 bg-slate-50/50 focus:bg-white focus:border-slate-500 focus:ring-slate-500 transition-all duration-300 group-hover:border-slate-400 input-glow text-base shadow-sm"
+                />
+              </div>
+            </div>
+            
+            <Button
+              type="submit"
+              className="w-full h-14 bg-gradient-to-r from-slate-700 via-slate-800 to-slate-900 hover:from-slate-800 hover:via-slate-900 hover:to-slate-950 text-white font-bold shadow-xl hover:shadow-2xl transform hover:scale-[1.02] active:scale-[0.98] transition-all duration-300 mt-8 text-base tracking-wide relative overflow-hidden group"
+              disabled={loading}
+            >
+              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000"></div>
+              {loading ? (
+                <div className="flex items-center justify-center gap-3">
+                  <svg
+                    className="animate-spin h-6 w-6"
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                  >
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                    ></circle>
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                    ></path>
+                  </svg>
+                  <span>Authenticating...</span>
+                </div>
+              ) : (
+                <span className="flex items-center justify-center gap-2 relative z-10">
+                  Access Dashboard
+                  <svg
+                    className="w-5 h-5 group-hover:translate-x-1 transition-transform"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M13 7l5 5m0 0l-5 5m5-5H6"
+                    />
+                  </svg>
+                </span>
+              )}
+            </Button>
+          </form>
+          
+          <div className="mt-6 text-center">
+            <p className="text-xs text-slate-500 font-medium">
+              Secure authentication powered by encryption
+            </p>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }

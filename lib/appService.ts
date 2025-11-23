@@ -1,7 +1,7 @@
 // lib/appService.ts
 
 import { api } from './apiService';
-import { DashboardStats, Product, Order, LoginResponse, AdminLoginResponse } from './types';
+import { DashboardStats, Product, Order, LoginResponse, AdminLoginResponse, Fragrance, Tag, PaginatedResponse } from './types';
 
 
 // --- Auth Endpoints ---
@@ -177,4 +177,45 @@ export const registerUser = (data: any) => {
 export const loginUser = (data: any) => {
   // Pass 'true' because this is an auth request
   return api.post<LoginResponse>('/auth/login', data, true);
+};
+
+export const getTags = (page = 1, limit = 10) => {
+  return api.get<PaginatedResponse<Tag>>(`/admin/tags?page=${page}&limit=${limit}`);
+};
+
+/**
+ * Fetches paginated fragrances.
+ * Default limit is 10.
+ */
+export const getFragrances = (page = 1, limit = 10) => {
+  return api.get<PaginatedResponse<Fragrance>>(`/admin/fragrances?page=${page}&limit=${limit}`);
+};
+
+
+
+
+// ... (keep existing imports and functions) ...
+
+// --- TAGS ---
+
+export const createTag = (data: { name: string }) => {
+  return api.post<Tag>('/admin/tags', data);
+};
+
+export const deleteTag = (id: string) => {
+  return api.delete(`/admin/tags/${id}`);
+};
+
+// --- FRAGRANCES ---
+
+export const createFragrance = (data: { name: string; description: string; in_stock: boolean }) => {
+  return api.post<Fragrance>('/admin/fragrances', data);
+};
+
+export const deleteFragrance = (id: string) => {
+  return api.delete(`/admin/fragrances/${id}`);
+};
+
+export const updateFragranceStock = (id: string, in_stock: boolean) => {
+  return api.put<Fragrance>(`/admin/fragrances/${id}`, { in_stock });
 };
