@@ -1,19 +1,20 @@
 "use client"
 
 import { motion } from "framer-motion"
-import { useState, useMemo, useEffect, useRef, useCallback } from "react"
-import { Search, X, SlidersHorizontal, Sparkles, ArrowLeft, Loader2 } from "lucide-react"
+import { useState, useEffect, useRef, useCallback } from "react"
+import { Search, X, SlidersHorizontal, Sparkles, ArrowLeft, Loader2, ShoppingBag } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
-// NEW: Import API function and Product interface
-import { filterProducts } from "@/lib/appService"
-import { Product } from "@/lib/types" // Using the interface from appService
+import { useRouter } from "next/navigation" 
+import Swal from "sweetalert2" 
 
-// --- REMOVED STATIC allProducts ARRAY ---
+// --- Imports from your project ---
+import { filterProducts } from "@/lib/appService"
+import { Product } from "@/lib/types"
+import { useCart } from "../app/context/CartContext" 
 
 const categories = ["All", "Evening", "Romance", "Business", "Celebration", "Travel", "Luxury"]
 
-// NEW: Skeleton loader component
 const ProductSkeleton = () => (
   <div className="bg-white/70 backdrop-blur-xl rounded-2xl sm:rounded-3xl border border-white/40 shadow-xl overflow-hidden">
     <div className="relative aspect-square bg-[#F0F0F0] animate-pulse" />
@@ -30,42 +31,35 @@ const ProductSkeleton = () => (
 )
 
 export default function AllProducts() {
+  const { addToCart } = useCart(); 
+  const router = useRouter();
+
   const [searchQuery, setSearchQuery] = useState("")
-  // NEW: Debounced search query for API
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("")
   const [selectedCategory, setSelectedCategory] = useState("All")
   const [isFilterOpen, setIsFilterOpen] = useState(false)
-
-  // NEW: State for API data
   const [products, setProducts] = useState<Product[]>([])
   const [page, setPage] = useState(1)
-  const [hasMore, setHasMore] = useState(true) // Are there more pages to load?
-  const [isLoading, setIsLoading] = useState(true) // Initial page load
-  const [isLoadingMore, setIsLoadingMore] = useState(false) // Subsequent page loads
+  const [hasMore, setHasMore] = useState(true)
+  const [isLoading, setIsLoading] = useState(true)
+  const [isLoadingMore, setIsLoadingMore] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  // --- NEW: Debounce search query ---
   useEffect(() => {
     const handler = setTimeout(() => {
       setDebouncedSearchQuery(searchQuery)
-    }, 500) // 500ms delay
-
-    return () => {
-      clearTimeout(handler)
-    }
+    }, 500)
+    return () => clearTimeout(handler)
   }, [searchQuery])
 
-  // --- NEW: Reset products when filters change ---
   useEffect(() => {
-    setProducts([]) // Clear products
-    setPage(1)       // Reset to page 1
-    setHasMore(true) // Assume there is more data
+    setProducts([])
+    setPage(1)
+    setHasMore(true)
     setError(null)
-  }, [debouncedSearchQuery, selectedCategory]) // Trigger on debounced search
+  }, [debouncedSearchQuery, selectedCategory])
 
-  // --- NEW: Fetch data from API ---
   useEffect(() => {
-    // Don't fetch if there are no more pages
     if (!hasMore) {
       setIsLoading(false)
       setIsLoadingMore(false)
@@ -73,11 +67,8 @@ export default function AllProducts() {
     }
 
     const fetchApiData = async () => {
-      if (page === 1) {
-        setIsLoading(true)
-      } else {
-        setIsLoadingMore(true)
-      }
+      if (page === 1) setIsLoading(true)
+      else setIsLoadingMore(true)
       setError(null)
 
       try {
@@ -86,18 +77,13 @@ export default function AllProducts() {
           search: debouncedSearchQuery,
           tag: apiTag,
           page: page,
-          limit: 10 // Fetch 10 products per page
+          limit: 10
         })
 
-        if (page === 1) {
-          setProducts(data.products) // Set new list
-        } else {
-          setProducts((prev) => [...prev, ...data.products]) // Append to list
-        }
+        if (page === 1) setProducts(data.products)
+        else setProducts((prev) => [...prev, ...data.products])
         
-        // Update pagination status
         setHasMore(data.currentPage < data.totalPages)
-
       } catch (err) {
         console.error("Failed to fetch products:", err)
         setError("Failed to load products. Please try again later.")
@@ -108,34 +94,61 @@ export default function AllProducts() {
     }
 
     fetchApiData()
-  }, [debouncedSearchQuery, selectedCategory, page, hasMore]) // Re-run on filter or page change
+  }, [debouncedSearchQuery, selectedCategory, page, hasMore])
 
-  // --- NEW: Infinite Scroll Logic ---
   const observer = useRef<IntersectionObserver>()
   const lastProductElementRef = useCallback((node: HTMLDivElement) => {
     if (isLoading || isLoadingMore) return
-    if (observer.current) observer.current.disconnect() // Disconnect old observer
+    if (observer.current) observer.current.disconnect()
 
     observer.current = new IntersectionObserver(entries => {
-      // If the last element is visible and we have more pages
       if (entries[0].isIntersecting && hasMore) {
-        setPage(prevPage => prevPage + 1) // Load next page
+        setPage(prevPage => prevPage + 1)
       }
     })
 
-    if (node) observer.current.observe(node) // Observe new last element
+    if (node) observer.current.observe(node)
   }, [isLoading, isLoadingMore, hasMore])
   
-  // --- REMOVED useMemo ---
-  // The API now handles filtering
-  
+  // --- Add to Cart Handler ---
+  const handleAddToCart = (e: React.MouseEvent, product: Product) => {
+    e.preventDefault(); // Prevent Link navigation
+    e.stopPropagation(); // Stop bubbling
+    
+    addToCart(product); 
+
+    const Toast = Swal.mixin({
+      toast: true,
+      position: 'top-end',
+      showConfirmButton: false,
+      timer: 1500,
+      timerProgressBar: true,
+      didOpen: (toast) => {
+        toast.addEventListener('mouseenter', Swal.stopTimer)
+        toast.addEventListener('mouseleave', Swal.resumeTimer)
+      }
+    })
+
+    Toast.fire({
+      icon: 'success',
+      title: 'Added to Cart'
+    })
+  };
+
+  // --- Quick View Handler ---
+  const handleQuickView = (e: React.MouseEvent, productId: string) => {
+    e.preventDefault(); // Prevent default Link behavior
+    e.stopPropagation();
+    router.push(`/product/${productId}`);
+  };
+
   return (
     <section className="pt-28 sm:pt-32 lg:pt-36 pb-16 sm:pb-20 lg:pb-24 px-4 sm:px-6 lg:px-8 bg-gradient-to-b from-[#F8F8F8] via-white to-[#F8F8F8] relative overflow-hidden min-h-screen">
-
-      <motion.div  />
+      <motion.div className="absolute top-20 -left-40 w-[600px] h-[600px] bg-gradient-to-br from-pink-100/30 to-transparent rounded-full blur-3xl pointer-events-none" />
 
       <div className="container mx-auto max-w-7xl relative z-10">
         
+        {/* Back Button */}
         <motion.div
           initial={{ opacity: 0, x: -30 }}
           animate={{ opacity: 1, x: 0 }}
@@ -144,18 +157,28 @@ export default function AllProducts() {
         >
           <Link href="/">
             <motion.button
-              whileHover={{ scale: 1.05, x: -5 }}
-              whileTap={{ scale: 0.95 }}
-              className="inline-flex items-center gap-2 sm:gap-3 px-4 sm:px-6 py-2.5 sm:py-3 bg-white/70 backdrop-blur-xl rounded-full border border-white/40 shadow-lg hover:shadow-xl hover:bg-white/90 transition-all duration-300 group"
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.9 }}
+              className="inline-flex items-center justify-center w-10 h-10 sm:w-12 sm:h-12 bg-white/70 backdrop-blur-xl rounded-full border border-[#DADADA] shadow-lg hover:shadow-xl hover:bg-white/90 transition-all duration-300 group"
             >
               <ArrowLeft className="w-4 h-4 sm:w-5 sm:h-5 text-[#222222] group-hover:-translate-x-1 transition-transform duration-300" />
             </motion.button>
           </Link>
         </motion.div>
 
-
-        <motion.div /* ... */ className="text-center mb-12 sm:mb-16">
-          <motion.div /* ... */ >
+        {/* Header */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6 }}
+          className="text-center mb-12 sm:mb-16"
+        >
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.1 }}
+            className="flex items-center justify-center gap-2 sm:gap-3 mb-3 sm:mb-4"
+          >
             <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 text-[#444444]" />
             <span className="text-sm sm:text-base text-[#444444] font-medium">Discover Our Collection</span>
           </motion.div>
@@ -167,7 +190,7 @@ export default function AllProducts() {
           </p>
         </motion.div>
 
-        
+        {/* Filter & Search */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -248,14 +271,12 @@ export default function AllProducts() {
           )}
         </motion.div>
 
-
+        {/* Product Grid */}
         {isLoading ? (
-          // Initial Loading State (Skeleton)
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8 lg:gap-10">
             {[...Array(6)].map((_, i) => <ProductSkeleton key={i} />)}
           </div>
         ) : error ? (
-          // Error State
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -267,7 +288,6 @@ export default function AllProducts() {
             </div>
           </motion.div>
         ) : products.length === 0 ? (
-          // No Products Found State
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -292,16 +312,14 @@ export default function AllProducts() {
             </div>
           </motion.div>
         ) : (
-          // Products Grid
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8 lg:gap-10">
             {products.map((product, index) => (
               <motion.div
-                // NEW: Attach ref to the last element for infinite scroll
                 ref={products.length === index + 1 ? lastProductElementRef : null}
-                key={product._id} // Use _id from MongoDB
+                key={product._id} 
                 initial={{ opacity: 0, y: 50 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, delay: (index % 10) * 0.05 }} // Stagger new items
+                transition={{ duration: 0.5, delay: (index % 10) * 0.05 }}
               >
                 <Link href={`/product/${product._id}`}>
                   <motion.div
@@ -312,11 +330,10 @@ export default function AllProducts() {
                       <motion.img
                         whileHover={{ scale: 1.1 }}
                         transition={{ duration: 0.6 }}
-                        src={product.images[0] || '/placeholder.jpg'} // Use first image
+                        src={product.images[0] || '/placeholder.jpg'}
                         alt={product.name}
                         className="w-full h-full object-cover"
                       />
-                      {/* ... (Gradient overlay) ... */}
                       <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
                       
                       {product.tag && (
@@ -329,7 +346,23 @@ export default function AllProducts() {
                           {product.tag}
                         </motion.div>
                       )}
-                      {/* ... (Sparkles effect) ... */}
+
+                      {/* --- RESTORED: QUICK VIEW BUTTON --- */}
+                      <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        whileHover={{ opacity: 1, y: 0 }}
+                        className="absolute bottom-6 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-all duration-300 z-10"
+                      >
+                        <Button
+                          size="sm"
+                          className="bg-white text-[#222222] hover:bg-[#F8F8F8] rounded-full px-6 shadow-lg font-semibold"
+                          onClick={(e) => handleQuickView(e, product._id)}
+                        >
+                          Quick View
+                        </Button>
+                      </motion.div>
+                      {/* --- END RESTORED BUTTON --- */}
+
                     </div>
 
                     <div className="p-5 sm:p-6 lg:p-8 flex-grow flex flex-col">
@@ -344,7 +377,7 @@ export default function AllProducts() {
                       <div className="flex items-center justify-between mt-auto">
                         <div className="flex items-center gap-2 sm:gap-3">
                           <span className="text-2xl sm:text-3xl font-bold text-[#222222]">
-                            ₹{product.price} {/* Format number as currency */}
+                            ₹{product.price}
                           </span>
                           {product.originalPrice && (
                             <span className="text-sm sm:text-base text-[#444444] line-through">
@@ -353,13 +386,16 @@ export default function AllProducts() {
                           )}
                         </div>
 
-                        <motion.div
+                        {/* Add to Cart Button */}
+                        <motion.button
                           whileHover={{ scale: 1.1 }}
                           whileTap={{ scale: 0.9 }}
-                          className="w-10 h-10 sm:w-12 sm:h-12 bg-[#1C1C1C] rounded-full flex items-center justify-center group-hover:bg-[#222222] transition-colors duration-300 shadow-lg"
+                          onClick={(e) => handleAddToCart(e, product)} 
+                          className="w-10 h-10 sm:w-12 sm:h-12 bg-[#1C1C1C] rounded-full flex items-center justify-center group-hover:bg-[#222222] transition-colors duration-300 shadow-lg z-20 relative"
                         >
-                          <span className="text-white text-lg sm:text-xl font-bold">→</span>
-                        </motion.div>
+                          <ShoppingBag className="text-white w-5 h-5" />
+                        </motion.button>
+                        
                       </div>
                     </div>
                   </motion.div>
@@ -369,7 +405,6 @@ export default function AllProducts() {
           </div>
         )}
 
-        {/* --- NEW: Loading More Spinner --- */}
         {isLoadingMore && (
           <div className="flex justify-center items-center py-10">
             <Loader2 className="w-8 h-8 text-[#444444] animate-spin" />
@@ -377,7 +412,6 @@ export default function AllProducts() {
           </div>
         )}
 
-        {/* --- NEW: End of List Message --- */}
         {!hasMore && !isLoading && products.length > 0 && (
           <div className="text-center py-10 text-[#444444]">
             You've reached the end of the collection.

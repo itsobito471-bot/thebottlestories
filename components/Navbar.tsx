@@ -7,6 +7,8 @@ import { Menu, X, ShoppingBag } from "lucide-react"
 import { useRouter, usePathname } from "next/navigation"
 import Image from "next/image"
 import Logo from '@/public/logo.png'
+import { useCart } from "../app/context/CartContext" // <-- 1. Import Cart Hook
+
 export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false)
   const [isScrolled, setIsScrolled] = useState(false)
@@ -14,6 +16,9 @@ export default function Navbar() {
   const router = useRouter()
   const pathname = usePathname()
   
+  // --- 2. Get cartCount from Context ---
+  const { cartCount } = useCart(); 
+
   const backgroundColor = useTransform(
     scrollY,
     [0, 100],
@@ -40,20 +45,16 @@ export default function Navbar() {
     e.preventDefault()
     setIsOpen(false)
 
-    // Check if we're on the landing page
     const isOnLandingPage = pathname === "/"
 
     if (link.section === null) {
-      // Home link - always go to landing page
       router.push("/")
     } else if (isOnLandingPage) {
-      // Already on landing page - just scroll to section
       const element = document.getElementById(link.section)
       if (element) {
         element.scrollIntoView({ behavior: "smooth", block: "start" })
       }
     } else {
-      // On different page - navigate to landing page with hash
       router.push(`/${link.href}`)
     }
   }
@@ -97,8 +98,6 @@ export default function Navbar() {
                   priority
                 />
               </div>
-              {/* <span className="text-lg sm:text-xl font-bold text-[#222222] hidden xs:inline">The Bottle Stories</span>
-              <span className="text-lg sm:text-xl font-bold text-[#222222] xs:hidden">TBS</span> */}
             </motion.a>
 
             <div className="hidden lg:flex items-center gap-6 xl:gap-8">
@@ -131,7 +130,10 @@ export default function Navbar() {
                   className="rounded-full border-2 border-white/40 hover:bg-white/60 text-[#222222] backdrop-blur-sm transition-all duration-300 hover:shadow-lg hover:scale-105"
                 >
                   <ShoppingBag className="w-4 h-4 lg:mr-2" />
-                  <span className="hidden lg:inline">Cart (2)</span>
+                  {/* --- 3. Use dynamic cartCount --- */}
+                  <span className="hidden lg:inline">
+                    Cart ({cartCount})
+                  </span>
                 </Button>
               </motion.div>
               <motion.div
@@ -199,7 +201,8 @@ export default function Navbar() {
               className="w-full rounded-full border-2 border-white/40 hover:bg-white/60 text-[#222222] backdrop-blur-sm transition-all duration-300"
             >
               <ShoppingBag className="w-4 h-4 mr-2" />
-              Cart (2)
+              {/* --- 4. Use dynamic cartCount on Mobile too --- */}
+              Cart ({cartCount})
             </Button>
             <Button
               size="sm"
