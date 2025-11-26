@@ -7,17 +7,27 @@ import { Order } from '@/lib/types';
 import AdminNav from '@/components/admin/AdminNav';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { 
-  Search, Eye, CheckCircle, XCircle, Clock, Truck, Filter, RefreshCcw, 
-  MapPin, Package, Loader2, ChevronDown, Calendar, Mail, Phone, ArrowUpRight, User
+  Search, Eye, CheckCircle, XCircle, Clock, Truck, RefreshCcw, 
+  MapPin, Package, Loader2, ChevronDown, Calendar, Mail, Phone, ArrowUpRight, User,
+  Filter
 } from 'lucide-react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { 
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { format } from 'date-fns';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Skeleton } from '@/components/ui/skeleton';
-import Swal from 'sweetalert2';
 
 // --- UI Helper Components ---
 
@@ -40,8 +50,6 @@ const OrdersSkeleton = () => (
   </div>
 );
 
-// Helper to safely format date
-// FIX: Added formatStr parameter to fix the TypeScript error
 const formatDate = (dateString: string | undefined, formatStr: string = 'PPp') => {
   if (!dateString) return 'N/A';
   try {
@@ -89,30 +97,29 @@ const getStatusBadge = (status: string) => {
 export default function AdminOrders() {
   const router = useRouter();
   
-  // --- Data State ---
   const [orders, setOrders] = useState<Order[]>([]);
   const [stats, setStats] = useState({ revenue: 0, total: 0, pending: 0 });
   
-  // --- UI State ---
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [updating, setUpdating] = useState(false);
 
-  // --- Filter/Pagination State ---
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
 
-  // Debounce Search
+  // --- Confirmation State ---
+  const [pendingAction, setPendingAction] = useState<{ id: string, status: string } | null>(null);
+  // --------------------------
+
   useEffect(() => {
     const handler = setTimeout(() => setDebouncedSearch(searchQuery), 500);
     return () => clearTimeout(handler);
   }, [searchQuery]);
 
-  // 1. Fetch Orders (Reset list on filter change)
   useEffect(() => {
     loadOrders(1, true);
   }, [debouncedSearch, statusFilter]);
@@ -143,49 +150,61 @@ export default function AdminOrders() {
     }
   };
 
-  // 2. Load More Handler
   const handleLoadMore = () => {
     if (!loadingMore && hasMore) {
       loadOrders(page + 1, false);
     }
   };
 
-  // 3. Update Status Handler
-  const handleUpdateStatus = async (orderId: string, status: string) => {
+  // --- INITIATE UPDATE (Opens Confirm Dialog if needed) ---
+  const initiateStatusUpdate = (orderId: string, status: string) => {
+    // 1. Guard: Prevent updating if already terminal
+    const currentOrder = orders.find(o => o._id === orderId);
+    if (currentOrder && ['cancelled', 'rejected'].includes(currentOrder.status)) {
+       // You can use a simple native alert or a small toast here if you like
+       alert('Action Blocked: This order has been closed and cannot be modified further.');
+       return;
+    }
+
+    // 2. Require Confirmation for Destructive Actions
+    if (['cancelled', 'rejected'].includes(status)) {
+      setPendingAction({ id: orderId, status });
+    } else {
+      // For regular updates, just do it immediately
+      executeStatusUpdate(orderId, status);
+    }
+  };
+
+  // --- EXECUTE UPDATE (Actual API Call) ---
+  const executeStatusUpdate = async (orderId: string, status: string) => {
     setUpdating(true);
     try {
-      await updateOrderStatus(orderId, status);
+      const updatedOrder = await updateOrderStatus(orderId, status);
       
-      // Optimistic Update
-      const updatedOrders = orders.map(o => o._id === orderId ? { ...o, status: status as any } : o);
-      setOrders(updatedOrders);
+      // Update local state
+      setOrders(prev => prev.map(o => o._id === orderId ? updatedOrder : o));
       
       if (selectedOrder?._id === orderId) {
-        setSelectedOrder({ ...selectedOrder, status: status as any });
+        setSelectedOrder(updatedOrder);
       }
 
-      Swal.fire({
-        icon: 'success',
-        title: `Order marked as ${status}`,
-        timer: 1500,
-        showConfirmButton: false,
-        toast: true,
-        position: 'top-end'
-      });
-
-      // Refresh to sync revenue/stats if needed
+      // Refresh if status is terminal to update stats
       if (['completed', 'cancelled', 'rejected'].includes(status)) {
          loadOrders(1, true);
       }
 
     } catch (error) {
-      Swal.fire('Error', 'Failed to update status', 'error');
+      console.error("Failed to update status", error);
+      alert('Failed to update order status.');
     } finally {
       setUpdating(false);
+      setPendingAction(null); // Close dialog if open
     }
   };
 
   if (loading && page === 1) return <OrdersSkeleton />;
+
+  const isOrderLocked = selectedOrder && ['cancelled', 'rejected'].includes(selectedOrder.status);
 
   return (
     <div className="min-h-screen bg-slate-50/50">
@@ -235,39 +254,30 @@ export default function AdminOrders() {
         </div>
 
         {/* --- Filters & Search --- */}
-        <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-8 gap-4">
-           <h2 className="text-2xl font-bold text-slate-900">Orders</h2>
-           
-           <div className="flex flex-col sm:flex-row gap-4 w-full lg:w-auto">
-              <div className="relative flex-1 sm:w-80">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                <Input 
-                  placeholder="Search orders..." 
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10 bg-white border-slate-200 rounded-full shadow-sm focus:ring-slate-900 focus:border-slate-900"
-                />
-              </div>
-              <Button variant="outline" onClick={() => loadOrders(1, true)} className="rounded-full border-slate-200 hover:bg-white shadow-sm">
-                <RefreshCcw className="w-4 h-4 mr-2" /> Sync
-              </Button>
-           </div>
-        </div>
-
-        <div className="flex gap-2 overflow-x-auto pb-4 mb-2 no-scrollbar">
-           {['all', 'pending', 'approved', 'crafting', 'shipped', 'delivered', 'completed', 'cancelled'].map((status) => (
-              <button
+        <div className="flex flex-col md:flex-row gap-4 mb-6 sticky top-20 z-10 bg-slate-50/95 backdrop-blur py-2">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+            <Input 
+              placeholder="Search by Order ID, Name, or Email..." 
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-10 bg-white shadow-sm border-slate-200 focus:ring-slate-900"
+            />
+          </div>
+          <div className="flex gap-2 overflow-x-auto pb-2 md:pb-0 no-scrollbar">
+            {['all', 'pending', 'approved', 'completed', 'rejected', 'cancelled'].map((status) => (
+              <Button
                 key={status}
+                variant={statusFilter === status ? "default" : "outline"}
                 onClick={() => setStatusFilter(status)}
-                className={`whitespace-nowrap px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 ${
-                   statusFilter === status 
-                    ? 'bg-slate-900 text-white shadow-md' 
-                    : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
+                className={`capitalize rounded-full px-4 whitespace-nowrap ${
+                  statusFilter === status ? 'bg-slate-900' : 'bg-white text-slate-600 hover:bg-slate-100 border-slate-200'
                 }`}
               >
-                {status.charAt(0).toUpperCase() + status.slice(1)}
-              </button>
-           ))}
+                {status}
+              </Button>
+            ))}
+          </div>
         </div>
 
         {/* --- Order List --- */}
@@ -307,7 +317,7 @@ export default function AdminOrders() {
                     <div className="p-5 flex-1 grid grid-cols-1 sm:grid-cols-2 gap-6 items-center">
                        <div>
                           <div className="flex items-center gap-3 mb-1">
-                             <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-600">
+                             <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center font-bold text-slate-600">
                                 <User className="w-4 h-4" />
                              </div>
                              <div>
@@ -371,7 +381,10 @@ export default function AdminOrders() {
       {/* --- Detail Modal --- */}
       <Dialog open={!!selectedOrder} onOpenChange={() => setSelectedOrder(null)}>
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto p-0 rounded-2xl gap-0">
-          
+          <DialogDescription className="sr-only">
+            Detailed view of order {selectedOrder?._id}
+          </DialogDescription>
+
           {/* Modal Header */}
           <div className="bg-slate-50/80 backdrop-blur p-6 border-b border-slate-100 sticky top-0 z-10 flex justify-between items-start">
              <div>
@@ -389,37 +402,53 @@ export default function AdminOrders() {
           {selectedOrder && (
             <div className="p-6 space-y-8">
               
-              {/* Status Actions */}
-              <div className="bg-white border border-slate-100 rounded-xl p-4 shadow-sm">
-                 <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Update Order Status</p>
-                 <div className="flex flex-wrap gap-2">
-                    {['approved', 'crafting', 'shipped', 'delivered', 'completed'].map(status => (
+              {/* Status Actions (Disabled if locked) */}
+              {!isOrderLocked ? (
+                <div className="bg-white border border-slate-100 rounded-xl p-4 shadow-sm">
+                   <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Update Order Status</p>
+                   <div className="flex flex-wrap gap-2">
+                      {['approved', 'crafting', 'packaging', 'shipped', 'delivered', 'completed'].map(status => (
+                        <Button 
+                          key={status}
+                          variant="outline" 
+                          size="sm"
+                          className={`capitalize h-8 text-xs ${selectedOrder.status === status ? 'bg-slate-900 text-white border-slate-900' : 'text-slate-600'}`}
+                          onClick={() => initiateStatusUpdate(selectedOrder._id, status)}
+                          disabled={updating}
+                        >
+                          {status}
+                        </Button>
+                      ))}
+                      <div className="flex-1"></div>
                       <Button 
-                        key={status}
-                        variant="outline" 
+                        variant="destructive" 
                         size="sm"
-                        className={`capitalize h-8 text-xs ${selectedOrder.status === status ? 'bg-slate-900 text-white border-slate-900' : 'text-slate-600'}`}
-                        onClick={() => handleUpdateStatus(selectedOrder._id, status)}
+                        className="h-8 text-xs"
+                        onClick={() => initiateStatusUpdate(selectedOrder._id, 'cancelled')}
                         disabled={updating}
                       >
-                        {status}
+                        Cancel Order
                       </Button>
-                    ))}
-                    <div className="flex-1"></div>
-                    <Button 
-                      variant="destructive" 
-                      size="sm"
-                      className="h-8 text-xs"
-                      onClick={() => handleUpdateStatus(selectedOrder._id, 'cancelled')}
-                      disabled={updating}
-                    >
-                      Cancel Order
-                    </Button>
-                 </div>
-              </div>
+                      <Button 
+                        variant="destructive" 
+                        size="sm"
+                        className="h-8 text-xs"
+                        onClick={() => initiateStatusUpdate(selectedOrder._id, 'rejected')}
+                        disabled={updating}
+                      >
+                        Reject
+                      </Button>
+                   </div>
+                </div>
+              ) : (
+                <div className="bg-red-50 border border-red-100 rounded-xl p-4 text-red-800 text-sm font-medium text-center">
+                   This order has been {selectedOrder.status}. No further actions are allowed.
+                </div>
+              )}
 
+              {/* ... Details (Customer, Items, etc.) ... */}
+              {/* (This section remains the same as before for brevity, include the same grid/sections) */}
               <div className="grid md:grid-cols-2 gap-8">
-                 {/* Left Column */}
                  <div className="space-y-6">
                     <section>
                       <h4 className="text-sm font-bold text-slate-900 mb-3 flex items-center gap-2">
@@ -437,7 +466,6 @@ export default function AdminOrders() {
                         )}
                       </div>
                     </section>
-
                     <section>
                       <h4 className="text-sm font-bold text-slate-900 mb-3 flex items-center gap-2">
                         <MapPin className="w-4 h-4 text-slate-400" /> Shipping Address
@@ -455,7 +483,6 @@ export default function AdminOrders() {
                     </section>
                  </div>
 
-                 {/* Right Column */}
                  <section>
                     <h4 className="text-sm font-bold text-slate-900 mb-3">Items ({selectedOrder.items?.length})</h4>
                     <div className="space-y-3">
@@ -470,8 +497,6 @@ export default function AdminOrders() {
                                  <p className="font-semibold text-slate-900 text-sm">₹{(item.price_at_purchase * item.quantity).toLocaleString()}</p>
                               </div>
                               <p className="text-xs text-slate-500 mb-2">Qty: {item.quantity} × ₹{item.price_at_purchase}</p>
-                              
-                              {/* Badges for customization */}
                               <div className="flex flex-wrap gap-1.5">
                                 {item.selected_fragrances?.map((f: any, i: number) => (
                                   <span key={i} className="inline-flex text-[10px] bg-slate-100 px-1.5 py-0.5 rounded text-slate-600">
@@ -491,7 +516,6 @@ export default function AdminOrders() {
                  </section>
               </div>
 
-              {/* Summary Footer */}
               <div className="bg-slate-50 rounded-xl p-5 border border-slate-100 flex justify-between items-center">
                   <span className="font-medium text-slate-600">Total Amount</span>
                   <span className="text-2xl font-bold text-slate-900">₹{selectedOrder.total_amount.toLocaleString()}</span>
@@ -501,6 +525,29 @@ export default function AdminOrders() {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* --- ALERT DIALOG FOR CONFIRMATION --- */}
+      <AlertDialog open={!!pendingAction} onOpenChange={(open) => !open && setPendingAction(null)}>
+        <AlertDialogContent className="z-[9999]"> {/* High Z-index to sit on top of Dialog */}
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will mark the order as <strong>{pendingAction?.status.toUpperCase()}</strong>.
+              This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={() => pendingAction && executeStatusUpdate(pendingAction.id, pendingAction.status)}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              Yes, {pendingAction?.status} it
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
     </div>
   );
 }
