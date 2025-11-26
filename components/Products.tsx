@@ -126,7 +126,7 @@ export default function Products() {
     e.preventDefault(); // Prevent navigation if inside a Link
     e.stopPropagation(); // Stop event bubbling
     
-    addToCart(product); // Add to cart
+    addToCart(product); // Add 1 item
 
     const Toast = Swal.mixin({
       toast: true,
