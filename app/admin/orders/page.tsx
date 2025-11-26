@@ -1,17 +1,17 @@
 'use client';
 
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { getAdminOrders, updateOrderStatus } from '@/lib/appService';
 import { Order } from '@/lib/types';
 import AdminNav from '@/components/admin/AdminNav';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
+import { Card, CardContent } from '@/components/ui/card';
 import { 
-  Search, Eye, CheckCircle, XCircle, Clock, Truck, RefreshCcw, 
+  Search, CheckCircle, XCircle, Clock, Truck, 
   MapPin, Package, Loader2, ChevronDown, Calendar, Mail, Phone, ArrowUpRight, User,
+  AlertTriangle, Ban,
   Filter
 } from 'lucide-react';
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
@@ -97,23 +97,39 @@ const getStatusBadge = (status: string) => {
 export default function AdminOrders() {
   const router = useRouter();
   
+  // --- Data State ---
   const [orders, setOrders] = useState<Order[]>([]);
   const [stats, setStats] = useState({ revenue: 0, total: 0, pending: 0 });
   
+  // --- UI State ---
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [updating, setUpdating] = useState(false);
 
+  // --- Filter/Pagination State ---
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
 
-  // --- Confirmation State ---
-  const [pendingAction, setPendingAction] = useState<{ id: string, status: string } | null>(null);
-  // --------------------------
+  // --- Dialog States for Shadcn AlertDialog ---
+  const [confirmDialog, setConfirmDialog] = useState<{
+    open: boolean;
+    title: string;
+    description: string;
+    actionLabel: string;
+    actionClass?: string;
+    onConfirm: () => void;
+  }>({ open: false, title: '', description: '', actionLabel: '', onConfirm: () => {} });
+
+  const [infoDialog, setInfoDialog] = useState<{
+    open: boolean;
+    title: string;
+    description: string;
+  }>({ open: false, title: '', description: '' });
+
 
   useEffect(() => {
     const handler = setTimeout(() => setDebouncedSearch(searchQuery), 500);
@@ -156,55 +172,74 @@ export default function AdminOrders() {
     }
   };
 
-  // --- INITIATE UPDATE (Opens Confirm Dialog if needed) ---
+  // --- STATUS UPDATE LOGIC ---
+  
+  // 1. Initiate Action (Guards & Confirmation)
   const initiateStatusUpdate = (orderId: string, status: string) => {
-    // 1. Guard: Prevent updating if already terminal
     const currentOrder = orders.find(o => o._id === orderId);
-    if (currentOrder && ['cancelled', 'rejected'].includes(currentOrder.status)) {
-       // You can use a simple native alert or a small toast here if you like
-       alert('Action Blocked: This order has been closed and cannot be modified further.');
+    
+    // Block modification if order is already terminal
+    if (currentOrder && ['cancelled', 'rejected', 'completed'].includes(currentOrder.status)) {
+       setInfoDialog({
+         open: true,
+         title: "Action Blocked",
+         description: `This order has been marked as ${currentOrder.status.toUpperCase()}. It cannot be modified further.`
+       });
        return;
     }
 
-    // 2. Require Confirmation for Destructive Actions
-    if (['cancelled', 'rejected'].includes(status)) {
-      setPendingAction({ id: orderId, status });
+    // Require confirmation for destructive/terminal actions
+    if (['cancelled', 'rejected', 'completed'].includes(status)) {
+      const isDestructive = ['cancelled', 'rejected'].includes(status);
+      setConfirmDialog({
+        open: true,
+        title: `Mark as ${status.charAt(0).toUpperCase() + status.slice(1)}?`,
+        description: "This action is permanent and cannot be undone. Are you sure you want to proceed?",
+        actionLabel: `Yes, ${status} it`,
+        actionClass: isDestructive ? "bg-red-600 hover:bg-red-700" : "bg-green-600 hover:bg-green-700",
+        onConfirm: () => executeStatusUpdate(orderId, status)
+      });
     } else {
-      // For regular updates, just do it immediately
+      // Immediate update for workflow steps (crafting, shipping, etc)
       executeStatusUpdate(orderId, status);
     }
   };
 
-  // --- EXECUTE UPDATE (Actual API Call) ---
+  // 2. Execute API Call
   const executeStatusUpdate = async (orderId: string, status: string) => {
     setUpdating(true);
+    // Close confirm dialog immediately
+    setConfirmDialog(prev => ({ ...prev, open: false }));
+
     try {
       const updatedOrder = await updateOrderStatus(orderId, status);
       
-      // Update local state
+      // Optimistic Update
       setOrders(prev => prev.map(o => o._id === orderId ? updatedOrder : o));
       
+      // If detail view is open, update it too
       if (selectedOrder?._id === orderId) {
         setSelectedOrder(updatedOrder);
       }
 
-      // Refresh if status is terminal to update stats
+      // Reload if it affects revenue stats (completed/cancelled)
       if (['completed', 'cancelled', 'rejected'].includes(status)) {
          loadOrders(1, true);
       }
-
     } catch (error) {
-      console.error("Failed to update status", error);
-      alert('Failed to update order status.');
+      setInfoDialog({
+        open: true,
+        title: "Error",
+        description: "Failed to update order status. Please try again."
+      });
     } finally {
       setUpdating(false);
-      setPendingAction(null); // Close dialog if open
     }
   };
 
   if (loading && page === 1) return <OrdersSkeleton />;
 
-  const isOrderLocked = selectedOrder && ['cancelled', 'rejected'].includes(selectedOrder.status);
+  const isOrderLocked = selectedOrder && ['cancelled', 'rejected', 'completed'].includes(selectedOrder.status);
 
   return (
     <div className="min-h-screen bg-slate-50/50">
@@ -380,7 +415,7 @@ export default function AdminOrders() {
 
       {/* --- Detail Modal --- */}
       <Dialog open={!!selectedOrder} onOpenChange={() => setSelectedOrder(null)}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto p-0 rounded-2xl gap-0">
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto p-0 rounded-2xl gap-0 z-50">
           <DialogDescription className="sr-only">
             Detailed view of order {selectedOrder?._id}
           </DialogDescription>
@@ -402,7 +437,7 @@ export default function AdminOrders() {
           {selectedOrder && (
             <div className="p-6 space-y-8">
               
-              {/* Status Actions (Disabled if locked) */}
+              {/* Status Actions */}
               {!isOrderLocked ? (
                 <div className="bg-white border border-slate-100 rounded-xl p-4 shadow-sm">
                    <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Update Order Status</p>
@@ -441,13 +476,12 @@ export default function AdminOrders() {
                    </div>
                 </div>
               ) : (
-                <div className="bg-red-50 border border-red-100 rounded-xl p-4 text-red-800 text-sm font-medium text-center">
-                   This order has been {selectedOrder.status}. No further actions are allowed.
+                <div className="bg-red-50 border border-red-100 rounded-xl p-4 text-red-800 text-sm font-medium text-center flex items-center justify-center gap-2">
+                   <Ban className="w-4 h-4" /> This order has been {selectedOrder.status}. No further actions are allowed.
                 </div>
               )}
 
-              {/* ... Details (Customer, Items, etc.) ... */}
-              {/* (This section remains the same as before for brevity, include the same grid/sections) */}
+              {/* Info Grid */}
               <div className="grid md:grid-cols-2 gap-8">
                  <div className="space-y-6">
                     <section>
@@ -466,6 +500,7 @@ export default function AdminOrders() {
                         )}
                       </div>
                     </section>
+
                     <section>
                       <h4 className="text-sm font-bold text-slate-900 mb-3 flex items-center gap-2">
                         <MapPin className="w-4 h-4 text-slate-400" /> Shipping Address
@@ -488,15 +523,35 @@ export default function AdminOrders() {
                     <div className="space-y-3">
                       {selectedOrder.items?.map((item: any, idx: number) => (
                         <div key={idx} className="flex gap-4 p-3 rounded-xl border border-slate-100 bg-white hover:border-slate-200 transition-colors">
-                           <div className="w-14 h-14 bg-slate-100 rounded-lg overflow-hidden flex-shrink-0">
-                              <img src={item.product?.images?.[0]} className="w-full h-full object-cover" alt="" />
+                           
+                           {/* --- FIX START: ROBUST IMAGE HANDLING --- */}
+                           <div className="w-14 h-14 bg-slate-100 rounded-lg overflow-hidden flex-shrink-0 flex items-center justify-center border border-slate-200">
+                              {item.product?.images?.[0] ? (
+                                <img 
+                                  src={item.product.images[0]} 
+                                  className="w-full h-full object-cover" 
+                                  alt={item.product?.name || "Product Image"}
+                                  onError={(e) => {
+                                    // Fallback to placeholder on error
+                                    const target = e.target as HTMLImageElement;
+                                    target.onerror = null;
+                                    target.src = "https://placehold.co/100x100?text=No+Img";
+                                  }}
+                                />
+                              ) : (
+                                // Fallback icon if no image data exists
+                                <Package className="w-6 h-6 text-slate-300" />
+                              )}
                            </div>
+                           {/* --- FIX END --- */}
+
                            <div className="flex-1 min-w-0">
                               <div className="flex justify-between items-start mb-1">
                                  <p className="font-medium text-slate-900 text-sm truncate pr-2">{item.product?.name}</p>
                                  <p className="font-semibold text-slate-900 text-sm">₹{(item.price_at_purchase * item.quantity).toLocaleString()}</p>
                               </div>
                               <p className="text-xs text-slate-500 mb-2">Qty: {item.quantity} × ₹{item.price_at_purchase}</p>
+                              
                               <div className="flex flex-wrap gap-1.5">
                                 {item.selected_fragrances?.map((f: any, i: number) => (
                                   <span key={i} className="inline-flex text-[10px] bg-slate-100 px-1.5 py-0.5 rounded text-slate-600">
@@ -516,6 +571,7 @@ export default function AdminOrders() {
                  </section>
               </div>
 
+              {/* Summary */}
               <div className="bg-slate-50 rounded-xl p-5 border border-slate-100 flex justify-between items-center">
                   <span className="font-medium text-slate-600">Total Amount</span>
                   <span className="text-2xl font-bold text-slate-900">₹{selectedOrder.total_amount.toLocaleString()}</span>
@@ -526,23 +582,38 @@ export default function AdminOrders() {
         </DialogContent>
       </Dialog>
 
-      {/* --- ALERT DIALOG FOR CONFIRMATION --- */}
-      <AlertDialog open={!!pendingAction} onOpenChange={(open) => !open && setPendingAction(null)}>
-        <AlertDialogContent className="z-[9999]"> {/* High Z-index to sit on top of Dialog */}
+      {/* --- ALERT DIALOGS (Uses high z-index) --- */}
+      
+      {/* 1. Info Dialog (Blocking) */}
+      <AlertDialog open={infoDialog.open} onOpenChange={(open) => !open && setInfoDialog(prev => ({...prev, open: false}))}>
+        <AlertDialogContent className="z-[100]">
           <AlertDialogHeader>
-            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This will mark the order as <strong>{pendingAction?.status.toUpperCase()}</strong>.
-              This action cannot be undone.
-            </AlertDialogDescription>
+            <div className="w-12 h-12 rounded-full bg-amber-100 flex items-center justify-center mb-2">
+                <AlertTriangle className="w-6 h-6 text-amber-600" />
+            </div>
+            <AlertDialogTitle>{infoDialog.title}</AlertDialogTitle>
+            <AlertDialogDescription>{infoDialog.description}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogAction>Okay</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* 2. Confirmation Dialog */}
+      <AlertDialog open={confirmDialog.open} onOpenChange={(open) => !open && setConfirmDialog(prev => ({...prev, open: false}))}>
+        <AlertDialogContent className="z-[100]">
+          <AlertDialogHeader>
+            <AlertDialogTitle>{confirmDialog.title}</AlertDialogTitle>
+            <AlertDialogDescription>{confirmDialog.description}</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction 
-              onClick={() => pendingAction && executeStatusUpdate(pendingAction.id, pendingAction.status)}
-              className="bg-red-600 hover:bg-red-700"
+              onClick={confirmDialog.onConfirm}
+              className={confirmDialog.actionClass}
             >
-              Yes, {pendingAction?.status} it
+              {confirmDialog.actionLabel}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
