@@ -14,6 +14,24 @@ function getAuthToken(): string | null {
 }
 
 /**
+ * Helper function to handle 401 Unauthorized globally.
+ * Clears data and redirects to home.
+ */
+function handleUnauthorized() {
+  if (typeof window !== 'undefined') {
+    // 1. Clear Auth Data
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    
+    // 2. Clear Cart Data
+    localStorage.removeItem('thebottlestories_cart');
+
+    // 3. Hard redirect to landing page
+    window.location.href = '/login';
+  }
+}
+
+/**
  * The core, private function that handles JSON API requests.
  */
 async function apiRequest<T>(
@@ -33,11 +51,8 @@ async function apiRequest<T>(
       ...defaultHeaders,
       ...options.headers,
     },
-    // --- THIS IS THE UPDATE ---
-    // This tells Next.js to cache all GET requests for 10 seconds.
-    // This fixes your stale data problem on the product page.
+    // Cache GET requests for 10 seconds to fix the stale data issue
     next: { revalidate: 10 },
-    // --------------------------
   };
 
   if (!isAuthRequest) {
@@ -49,18 +64,30 @@ async function apiRequest<T>(
 
   const response = await fetch(`${API_URL}${endpoint}`, config);
 
+  // --- GLOBAL 401 HANDLER ---
+  if (response.status === 401) {
+    handleUnauthorized();
+    // Throw error to stop the component from trying to use bad data
+    throw new Error('Session expired. Please login again.');
+  }
+  // --------------------------
+
   if (response.status === 204) {
     return null as T;
   }
+
   const data = await response.json();
+
   if (!response.ok) {
     throw new Error(data.msg || data.message || `API Error: ${response.status}`);
   }
+
   return data as T;
 }
 
-// --- NEW: Core, private function for FormData requests ---
-// (This one doesn't need the revalidate flag, as it's for POST/uploads)
+/**
+ * The core, private function for FormData requests.
+ */
 async function apiFormRequest<T>(
   endpoint: string,
   formData: FormData
@@ -80,7 +107,15 @@ async function apiFormRequest<T>(
 
   const response = await fetch(`${API_URL}${endpoint}`, config);
 
+  // --- GLOBAL 401 HANDLER ---
+  if (response.status === 401) {
+    handleUnauthorized();
+    throw new Error('Session expired. Please login again.');
+  }
+  // --------------------------
+
   const data = await response.json();
+  
   if (!response.ok) {
     throw new Error(data.msg || data.message || `API Error: ${response.status}`);
   }
@@ -117,12 +152,10 @@ function del<T>(endpoint: string) {
   });
 }
 
-// --- NEW: Public function for FormData ---
 function postFormData<T>(endpoint: string, data: FormData) {
   return apiFormRequest<T>(endpoint, data);
 }
 
-// Export all functions as a single 'api' object
 export const api = {
   get,
   post,

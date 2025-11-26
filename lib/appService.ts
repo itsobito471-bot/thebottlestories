@@ -1,7 +1,7 @@
 // lib/appService.ts
 
 import { api } from './apiService';
-import { DashboardStats, Product, Order, LoginResponse, AdminLoginResponse, Fragrance, Tag, PaginatedResponse, PaginatedProductResponse } from './types';
+import { DashboardStats, Product, Order, LoginResponse, AdminLoginResponse, Fragrance, Tag, PaginatedResponse, PaginatedProductResponse, OrdersResponse } from './types';
 
 
 // --- Auth Endpoints ---
@@ -36,15 +36,24 @@ export const getAdminStats = () => {
   return api.get<DashboardStats>('/admin/stats');
 };
 
-export const getAdminOrders = () => {
-  return api.get<Order[]>('/admin/orders'); // <-- Use Order[] type
+export const getAdminOrders = (page = 1, limit = 10, search = '', status = 'all') => {
+  // Build query string
+  const params = new URLSearchParams();
+  params.append('page', page.toString());
+  params.append('limit', limit.toString());
+  if (search) params.append('search', search);
+  if (status && status !== 'all') params.append('status', status);
+
+  return api.get<OrdersResponse>(`/admin/orders?${params.toString()}`);
 };
 
 /**
  * Updates an order's status.
  */
-export const updateOrderStatus = (orderId: string, status: { status: string }) => {
-  return api.put(`/admin/orders/${orderId}`, status);
+export const updateOrderStatus = (orderId: string, status: string) => {
+  console.log("inside here")
+  // Sending { status: "approved" } body
+  return api.put<Order>(`/admin/orders/${orderId}/status`, { status });
 };
 
 // --- Product Endpoints ---
