@@ -3,16 +3,29 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { loginAdmin } from '@/lib/appService';
-import Swal from 'sweetalert2';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 export default function AdminLoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [errorDialog, setErrorDialog] = useState<{ isOpen: boolean; title: string; message: string }>({
+    isOpen: false,
+    title: '',
+    message: '',
+  });
   const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -24,16 +37,17 @@ export default function AdminLoginPage() {
       router.push('/admin/dashboard');
     } catch (err: any) {
       setLoading(false);
-      Swal.fire({
-        icon: 'error',
+      setErrorDialog({
+        isOpen: true,
         title: 'Login Failed',
-        text: err.message || 'Something went wrong. Please try again.',
+        message: err.message || 'Something went wrong. Please try again.',
       });
     }
   };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-4 relative overflow-hidden">
+      
       {/* Animated background grid */}
       <div className="absolute inset-0 bg-grid-pattern opacity-10"></div>
       
@@ -266,6 +280,22 @@ export default function AdminLoginPage() {
           </div>
         </CardContent>
       </Card>
+
+      <AlertDialog open={errorDialog.isOpen} onOpenChange={(isOpen) => setErrorDialog(prev => ({ ...prev, isOpen }))}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-red-600">{errorDialog.title}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {errorDialog.message}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogAction onClick={() => setErrorDialog(prev => ({ ...prev, isOpen: false }))}>
+              Try Again
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

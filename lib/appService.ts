@@ -1,7 +1,18 @@
 // lib/appService.ts
 
 import { api } from './apiService';
-import { DashboardStats, Product, Order, LoginResponse, AdminLoginResponse, Fragrance, Tag, PaginatedResponse, PaginatedProductResponse, OrdersResponse } from './types';
+import { 
+  DashboardStats, 
+  Product, 
+  Order, 
+  LoginResponse, 
+  AdminLoginResponse, 
+  Fragrance, 
+  Tag, 
+  PaginatedResponse, 
+  PaginatedProductResponse, 
+  OrdersResponse 
+} from './types';
 
 
 // --- Auth Endpoints ---
@@ -12,7 +23,8 @@ import { DashboardStats, Product, Order, LoginResponse, AdminLoginResponse, Frag
  * @param data - { email: string, password: string }
  */
 export const loginAdmin = async (data: any) => {
-  // Tell 'api.post' this is an auth request (so it doesn't send a token)
+  // Tell 'api.post' this is an auth request (true) 
+  // This prevents the page from reloading if the password is wrong (401)
   const response = await api.post<AdminLoginResponse>('/admin-auth/admin-login', data, true);
 
   if (response.token) {
@@ -30,7 +42,6 @@ export const logoutAdmin = () => {
 };
 
 // --- Admin Endpoints (Protected) ---
-// These all use the 'api' object
 
 export const getAdminStats = () => {
   return api.get<DashboardStats>('/admin/stats');
@@ -51,20 +62,15 @@ export const getAdminOrders = (page = 1, limit = 10, search = '', status = 'all'
  * Updates an order's status.
  */
 export const updateOrderStatus = (orderId: string, status: string) => {
-  console.log("inside here")
-  // Sending { status: "approved" } body
   return api.put<Order>(`/admin/orders/${orderId}/status`, { status });
 };
 
 // --- Product Endpoints ---
 
-export const getProducts = () => {
-  return api.get('/product');
-};
-
 export const getAdminProducts = (page = 1, limit = 10) => {
   return api.get<PaginatedProductResponse>(`/admin/products?page=${page}&limit=${limit}`);
 };
+
 export const createAdminProduct = (data: Omit<Product, '_id' | 'created_at' | 'updated_at'>) => {
   return api.post<Product>('/admin/products', data);
 };
@@ -77,39 +83,25 @@ export const deleteAdminProduct = (id: string) => {
   return api.delete(`/admin/products/${id}`);
 };
 
-// --- UPDATED: File Upload Endpoint ---
-
 /**
  * Uploads images to the server using the api.postFormData function.
- * @param formData - The FormData object containing the files
  */
 export const uploadAdminImages = (formData: FormData) => {
-  // This endpoint must match the one in your Node.js server
   return api.postFormData<{ urls: string[] }>('/admin/upload', formData);
 };
 
+// --- Public / User Product Endpoints ---
 
-
-// --- Product Endpoints ---
-
-// export const getProducts = () => {
-//   return api.get('/product'); // Note: Your route file has /products. Might be a typo?
-// };
-
-// ... (getAdminProducts, createAdminProduct, etc. stay the same)
-
-// --- NEW PUBLIC ENDPOINT ---
+export const getProducts = () => {
+  return api.get('/product');
+};
 
 /**
  * Gets the top-rated "Most Preferred" products.
- * This is a public endpoint.
  */
 export const getPreferredProducts = () => {
-  // This endpoint must match the one in your Node.js server
   return api.get<Product[]>('/products/preferred');
 };
-
-
 
 interface FilterParams {
   search?: string;
@@ -122,9 +114,6 @@ interface FilterParams {
   limit?: number;
 }
 
-/**
- * Defines the shape of the paginated response from the API
- */
 interface FilterResponse {
   products: Product[];
   currentPage: number;
@@ -134,10 +123,8 @@ interface FilterResponse {
 
 /**
  * Fetches products with filtering, sorting, and pagination.
- * This is a public endpoint.
  */
 export const filterProducts = (params: FilterParams) => {
-  // Create query parameters from the params object
   const queryParams = new URLSearchParams();
   
   if (params.search) queryParams.append('search', params.search);
@@ -149,62 +136,38 @@ export const filterProducts = (params: FilterParams) => {
   if (params.page) queryParams.append('page', String(params.page));
   if (params.limit) queryParams.append('limit', String(params.limit));
 
-  // Call the API with the generated query string
   return api.get<FilterResponse>(`/products/filter?${queryParams.toString()}`);
 };
 
-/**
- * Gets a single product by its ID.
- * This is a public endpoint.
- */
 export const getProductById = (id: string) => {
-  // This matches your controller route: router.get('/:id', getProductById);
   return api.get<Product>(`/products/${id}`);
 };
 
-/**
- * Gets all product IDs for static generation.
- * This is a public endpoint.
- */
 export const getAllProductIds = () => {
   return api.get<string[]>(`/products/all/ids`);
 };
 
+// --- User Auth ---
 
-/**
- * Registers a new user.
- */
 export const registerUser = (data: any) => {
-  // Pass 'true' because this is an auth request and shouldn't send a token
+  // Pass 'true' because this is an auth request
   return api.post('/auth/register', data, true);
 };
 
-/**
- * Logs in a user and returns a token and user object.
- */
 export const loginUser = (data: any) => {
   // Pass 'true' because this is an auth request
   return api.post<LoginResponse>('/auth/login', data, true);
 };
 
+// --- Tags & Fragrances (Admin) ---
+
 export const getTags = (page = 1, limit = 10) => {
   return api.get<PaginatedResponse<Tag>>(`/admin/tags?page=${page}&limit=${limit}`);
 };
 
-/**
- * Fetches paginated fragrances.
- * Default limit is 10.
- */
 export const getFragrances = (page = 1, limit = 10) => {
   return api.get<PaginatedResponse<Fragrance>>(`/admin/fragrances?page=${page}&limit=${limit}`);
 };
-
-
-
-
-// ... (keep existing imports and functions) ...
-
-// --- TAGS ---
 
 export const createTag = (data: { name: string }) => {
   return api.post<Tag>('/admin/tags', data);
@@ -213,8 +176,6 @@ export const createTag = (data: { name: string }) => {
 export const deleteTag = (id: string) => {
   return api.delete(`/admin/tags/${id}`);
 };
-
-// --- FRAGRANCES ---
 
 export const createFragrance = (data: { name: string; description: string; in_stock: boolean }) => {
   return api.post<Fragrance>('/admin/fragrances', data);
@@ -227,4 +188,3 @@ export const deleteFragrance = (id: string) => {
 export const updateFragranceStock = (id: string, in_stock: boolean) => {
   return api.put<Fragrance>(`/admin/fragrances/${id}`, { in_stock });
 };
-

@@ -15,7 +15,7 @@ function getAuthToken(): string | null {
 
 /**
  * Helper function to handle 401 Unauthorized globally.
- * Clears data and redirects to home.
+ * Clears data and redirects based on the current section of the app.
  */
 function handleUnauthorized() {
   if (typeof window !== 'undefined') {
@@ -26,8 +26,18 @@ function handleUnauthorized() {
     // 2. Clear Cart Data
     localStorage.removeItem('thebottlestories_cart');
 
-    // 3. Hard redirect to landing page
-    window.location.href = '/login';
+    // 3. Smart Redirect
+    const currentPath = window.location.pathname;
+
+    // Check if the user is currently inside an Admin route
+    if (currentPath.startsWith('/admin')) {
+      // Redirect to Admin Login page
+      // CHANGE THIS if your admin login route is different (e.g. just '/admin')
+      window.location.href = '/admin/login'; 
+    } else {
+      // Redirect to User Login page
+      window.location.href = '/login';
+    }
   }
 }
 
@@ -65,9 +75,10 @@ async function apiRequest<T>(
   const response = await fetch(`${API_URL}${endpoint}`, config);
 
   // --- GLOBAL 401 HANDLER ---
-  if (response.status === 401) {
+  // Only redirect if this is NOT an auth request (login attempt)
+  // We don't want to redirect if the user just typed the wrong password.
+  if (response.status === 401 && !isAuthRequest) {
     handleUnauthorized();
-    // Throw error to stop the component from trying to use bad data
     throw new Error('Session expired. Please login again.');
   }
   // --------------------------
