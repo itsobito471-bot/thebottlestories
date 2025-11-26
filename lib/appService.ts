@@ -188,3 +188,29 @@ export const deleteFragrance = (id: string) => {
 export const updateFragranceStock = (id: string, in_stock: boolean) => {
   return api.put<Fragrance>(`/admin/fragrances/${id}`, { in_stock });
 };
+
+
+interface UserOrdersResponse {
+  data: Order[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    hasMore: boolean;
+  };
+}
+
+/**
+ * Fetches the logged-in user's orders with pagination and optional status filtering.
+ */
+export const getUserOrders = (page = 1, limit = 10, status = 'all') => {
+  const params = new URLSearchParams();
+  params.append('page', page.toString());
+  params.append('limit', limit.toString());
+  
+  if (status && status !== 'all') {
+    params.append('status', status);
+  }
+
+  return api.get<UserOrdersResponse>(`/orders/myorders?${params.toString()}`);
+};
