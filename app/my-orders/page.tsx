@@ -4,13 +4,13 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { getUserOrders } from '@/lib/appService';
 import { Order } from '@/lib/types';
-import { useCart } from '../context/CartContext'; 
+import { useCart, CartItem } from '../context/CartContext'; // Import CartItem type
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { 
   ShoppingBag, Calendar, MapPin, ArrowRight, Package, 
-  Loader2, RotateCcw, CheckCircle, Clock, XCircle, Truck, ChevronDown 
+  Loader2, RotateCcw, CheckCircle, Clock, XCircle, Truck 
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { motion } from 'framer-motion';
@@ -20,72 +20,45 @@ import Link from 'next/link';
 export default function MyOrdersPage() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
-  const [page, setPage] = useState(1);
-  const [hasMore, setHasMore] = useState(false);
-  const [loadingMore, setLoadingMore] = useState(false);
-
-  const { addToCart } = useCart(); 
+  const { startDirectCheckout } = useCart(); 
   const router = useRouter();
 
   useEffect(() => {
-    fetchMyOrders(1, true);
+    fetchMyOrders();
   }, []);
 
-  const fetchMyOrders = async (pageNum: number, reset = false) => {
+  const fetchMyOrders = async () => {
     try {
-      if (reset) setLoading(true);
-      else setLoadingMore(true);
-
-      const res = await getUserOrders(pageNum, 5); // Fetch 5 at a time for user
-      
-      if (reset) {
-        setOrders(res.data);
-      } else {
-        setOrders(prev => [...prev, ...res.data]);
-      }
-      
-      setHasMore(res.pagination.hasMore);
-      setPage(pageNum);
-
+      const res = await getUserOrders();
+      // The response structure from getUserOrders is { data: Order[], pagination: {...} }
+      // We need to extract the data array
+      setOrders(res.data || []);
     } catch (error: any) {
-      if (error.message?.includes('Session expired') || error.message?.includes('401')) {
+      if (error.message?.includes('Session expired')) {
         router.push('/login');
       }
+      // Don't show alert if it's just empty
     } finally {
       setLoading(false);
-      setLoadingMore(false);
-    }
-  };
-
-  const handleLoadMore = () => {
-    if (!loadingMore && hasMore) {
-      fetchMyOrders(page + 1, false);
     }
   };
 
   const handleOrderAgain = (order: Order) => {
-    // Loop through items in the old order and add them to cart
-    let addedCount = 0;
-    
-    order.items.forEach((item: any) => {
-      if (item.product) {
-        addToCart({
-          ...item.product,
-          quantity: item.quantity
-        });
-        addedCount++;
-      }
-    });
+    // 1. Construct Cart Items from the Order
+    const itemsToBuy: CartItem[] = order.items.map((item: any) => ({
+      ...item.product, // Spread product details (name, price, images)
+      cartId: `${item.product._id}-${Date.now()}-${Math.random()}`, // Generate new temp ID
+      quantity: item.quantity,
+      selectedFragrances: item.selected_fragrances?.map((f: any) => f._id) || [], // Extract IDs
+      customMessage: item.custom_message || ''
+    }));
 
-    if (addedCount > 0) {
-      Swal.fire({
-        icon: 'success',
-        title: 'Added to Cart',
-        text: `${addedCount} items from your previous order have been added to your cart.`,
-        showConfirmButton: false,
-        timer: 1500
-      });
-      router.push('/cart');
+    if (itemsToBuy.length > 0) {
+      // 2. Save to Direct Cart (Does not affect main cart)
+      startDirectCheckout(itemsToBuy);
+
+      // 3. Redirect to Checkout with a flag
+      router.push('/cart?buy_now=true');
     } else {
        Swal.fire('Error', 'Product data no longer available', 'error');
     }
@@ -94,22 +67,17 @@ export default function MyOrdersPage() {
   const getStatusBadge = (status: string) => {
     const styles: Record<string, string> = {
       pending: "bg-yellow-50 text-yellow-700 border-yellow-200",
-      crafting: "bg-indigo-50 text-indigo-700 border-indigo-200",
-      packaging: "bg-pink-50 text-pink-700 border-pink-200",
+      processing: "bg-blue-50 text-blue-700 border-blue-200",
       shipped: "bg-purple-50 text-purple-700 border-purple-200",
       delivered: "bg-green-50 text-green-700 border-green-200",
-      completed: "bg-green-50 text-green-700 border-green-200",
       cancelled: "bg-red-50 text-red-700 border-red-200",
-      rejected: "bg-red-50 text-red-700 border-red-200",
     };
     
     const icons: Record<string, any> = {
       pending: Clock,
       shipped: Truck,
       delivered: CheckCircle,
-      completed: CheckCircle,
       cancelled: XCircle,
-      rejected: XCircle,
     };
     
     const Icon = icons[status] || Package;
@@ -121,7 +89,7 @@ export default function MyOrdersPage() {
     );
   };
 
-  if (loading && page === 1) {
+  if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-50">
         <Loader2 className="w-8 h-8 animate-spin text-slate-400" />
@@ -176,7 +144,7 @@ export default function MyOrdersPage() {
                         <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Order Placed</p>
                         <div className="flex items-center gap-2 text-sm font-medium text-slate-700">
                           <Calendar className="w-4 h-4 text-slate-400" />
-                          {format(new Date(order.createdAt || order.created_at || new Date()), 'MMMM dd, yyyy')}
+                          {format(new Date(order?.createdAt || order?.created_at || new Date()), 'MMMM dd, yyyy')}
                         </div>
                       </div>
                       <div>
@@ -239,20 +207,6 @@ export default function MyOrdersPage() {
                 </Card>
               </motion.div>
             ))}
-
-            {hasMore && (
-              <div className="flex justify-center pt-4 pb-8">
-                <Button 
-                  variant="ghost" 
-                  onClick={handleLoadMore} 
-                  disabled={loadingMore}
-                  className="text-slate-500 hover:text-slate-900"
-                >
-                  {loadingMore ? <Loader2 className="animate-spin w-4 h-4 mr-2" /> : <ChevronDown className="w-4 h-4 mr-2" />}
-                  Load Older Orders
-                </Button>
-              </div>
-            )}
           </div>
         )}
       </div>

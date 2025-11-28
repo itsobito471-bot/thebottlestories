@@ -1,9 +1,9 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { motion, useInView } from 'framer-motion';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { 
   ShoppingBag, 
   Trash2, 
@@ -14,31 +14,76 @@ import {
   CreditCard, 
   Truck, 
   Shield, 
-  Tag, 
-  Sparkles, 
-  Check,
-  Loader2
+  Loader2,
+  AlertCircle,
+  CheckCircle2
 } from 'lucide-react';
-import Swal from 'sweetalert2';
 
 // --- Imports from your project ---
 import { Button } from '@/components/ui/button';
 import { useCart } from '../app/context/CartContext'; // Use the new Context hook
 import { api } from '@/lib/apiService'; // Use your API helper
-import { Input } from './ui/input';
+import { Input } from '@/components/ui/input';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 export default function CartPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const isBuyNow = searchParams.get('buy_now') === 'true';
+  
   const ref = useRef(null);
   const isInView = useInView(ref, { once: true, margin: "-100px" });
   
   // Use global cart state
-  const { cart, updateQuantity, removeFromCart, cartTotal, clearCart } = useCart();
+  const { 
+    cart, 
+    directCart,
+    updateQuantity, 
+    removeFromCart, 
+    clearCart, 
+    clearDirectCart 
+  } = useCart();
+
+  // 1. Determine which items to show
+  // If buy_now is true, we use the temporary directCart. Otherwise, standard cart.
+  const activeItems = isBuyNow ? directCart : cart;
+
+  // 2. Calculate total based on ACTIVE items
+  const activeSubtotal = activeItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+  const shippingCost = activeSubtotal > 3000 ? 0 : 150; // Example: Free shipping over 3000
+  const finalTotal = activeSubtotal + shippingCost;
 
   // Local state for checkout flow
   const [showCheckout, setShowCheckout] = useState(false);
   const [isPlacingOrder, setIsPlacingOrder] = useState(false);
   
+  // Alert Dialog State
+  const [alertState, setAlertState] = useState<{
+    isOpen: boolean;
+    title: string;
+    description: string;
+    actionLabel?: string;
+    cancelLabel?: string;
+    variant?: 'default' | 'destructive' | 'success';
+    onConfirm: () => void;
+    showCancel?: boolean;
+  }>({
+    isOpen: false,
+    title: '',
+    description: '',
+    onConfirm: () => {},
+    showCancel: false
+  });
+
   // Shipping Form State
   const [shippingInfo, setShippingInfo] = useState({
     firstName: '',
@@ -51,9 +96,46 @@ export default function CartPage() {
     zip: ''
   });
 
-  // Calculations
-  const shippingCost = cartTotal > 3000 ? 0 : 150; // Example: Free shipping over 3000
-  const finalTotal = cartTotal + shippingCost;
+  // Helper to show alert
+  const showAlert = (props: Partial<typeof alertState>) => {
+    setAlertState({
+      isOpen: true,
+      title: props.title || '',
+      description: props.description || '',
+      actionLabel: props.actionLabel || 'Continue',
+      cancelLabel: props.cancelLabel || 'Cancel',
+      variant: props.variant || 'default',
+      onConfirm: props.onConfirm || (() => setAlertState(prev => ({ ...prev, isOpen: false }))),
+      showCancel: props.showCancel ?? true
+    });
+  };
+
+  // 3. Auto-show checkout if Buy Now
+  useEffect(() => {
+    if (isBuyNow && activeItems.length > 0) {
+      // Check auth first before showing checkout automatically
+      const token = localStorage.getItem('token');
+      if (token) {
+        setShowCheckout(true);
+        // Pre-fill logic for Buy Now flow
+        const userStr = localStorage.getItem('user');
+        if (userStr) {
+          try {
+            const user = JSON.parse(userStr);
+            setShippingInfo(prev => ({
+              ...prev,
+              email: user.email || '',
+              firstName: user.name ? user.name.split(' ')[0] : '',
+              lastName: user.name ? user.name.split(' ')[1] || '' : ''
+            }));
+          } catch (e) { console.error(e); }
+        }
+      } else {
+        // Redirect to login if trying to buy now without auth
+        router.push('/login?redirect=/cart?buy_now=true');
+      }
+    }
+  }, [isBuyNow, activeItems.length, router]);
 
   // --- Handlers ---
 
@@ -62,22 +144,31 @@ export default function CartPage() {
     setShippingInfo(prev => ({ ...prev, [name]: value }));
   };
 
+  // --- NEW: Handle Remove Item with Shadcn Alert ---
+  const handleRemoveItem = (cartId: string) => {
+    showAlert({
+      title: 'Remove Item?',
+      description: "Are you sure you want to remove this item from your cart?",
+      actionLabel: 'Yes, remove it',
+      variant: 'destructive',
+      onConfirm: () => {
+        removeFromCart(cartId);
+        setAlertState(prev => ({ ...prev, isOpen: false }));
+      }
+    });
+  };
+
   const handleProceedToCheckout = () => {
     // 1. Check Authentication
     const token = localStorage.getItem('token');
     
     if (!token) {
-      // Redirect to login, pass current path as redirect param
-      Swal.fire({
+      showAlert({
         title: 'Please Login',
-        text: 'You need to be logged in to complete your purchase.',
-        icon: 'info',
-        confirmButtonText: 'Go to Login',
-        confirmButtonColor: '#1C1C1C'
-      }).then((result) => {
-        if (result.isConfirmed) {
-          router.push('/login?redirect=/cart');
-        }
+        description: 'You need to be logged in to complete your purchase.',
+        actionLabel: 'Go to Login',
+        variant: 'default',
+        onConfirm: () => router.push('/login?redirect=/cart')
       });
       return;
     }
@@ -103,7 +194,13 @@ export default function CartPage() {
   const handlePlaceOrder = async () => {
     // Basic Validation
     if (!shippingInfo.address || !shippingInfo.phone || !shippingInfo.city) {
-      Swal.fire('Missing Information', 'Please fill in all required shipping details.', 'warning');
+      showAlert({
+        title: 'Missing Information',
+        description: 'Please fill in all required shipping details.',
+        showCancel: false,
+        actionLabel: 'Okay',
+        variant: 'destructive'
+      });
       return;
     }
 
@@ -111,30 +208,37 @@ export default function CartPage() {
 
     try {
       // 3. Send Order to Backend
-      // Note: Your backend endpoint might be /api/orders or /api/admin/orders 
-      // Adjust based on your route setup. Usually customer orders go to /api/orders
       await api.post('/orders', {
-        items: cart,
+        items: activeItems, // Use activeItems (either cart or directCart)
         shippingAddress: shippingInfo,
         totalAmount: finalTotal
       });
 
-      // 4. Success!
-      clearCart();
+      // 4. Clear the correct cart
+      if (isBuyNow) {
+        clearDirectCart();
+      } else {
+        clearCart();
+      }
       
-      await Swal.fire({
+      showAlert({
         title: 'Order Placed!',
-        text: 'Thank you for your purchase. You will receive an email confirmation shortly.',
-        icon: 'success',
-        confirmButtonText: 'Continue Shopping',
-        confirmButtonColor: '#1C1C1C'
+        description: 'Thank you for your purchase. You will receive an email confirmation shortly.',
+        variant: 'success',
+        actionLabel: 'Continue Shopping',
+        showCancel: false,
+        onConfirm: () => router.push('/products')
       });
-      
-      router.push('/products');
 
     } catch (error: any) {
       console.error("Order failed", error);
-      Swal.fire('Order Failed', error.message || 'Something went wrong. Please try again.', 'error');
+      showAlert({
+        title: 'Order Failed',
+        description: error.message || 'Something went wrong. Please try again.',
+        variant: 'destructive',
+        showCancel: false,
+        actionLabel: 'Close'
+      });
     } finally {
       setIsPlacingOrder(false);
     }
@@ -143,6 +247,46 @@ export default function CartPage() {
   return (
     <section ref={ref} className="pt-20 pb-24 px-4 bg-gradient-to-b from-[#F8F8F8] via-white to-[#F8F8F8] min-h-screen relative overflow-hidden">
       
+      {/* Alert Dialog Component */}
+      <AlertDialog open={alertState.isOpen} onOpenChange={(isOpen) => !isOpen && setAlertState(prev => ({ ...prev, isOpen: false }))}>
+        <AlertDialogContent className="rounded-2xl border border-slate-100 shadow-2xl">
+          <AlertDialogHeader className="flex flex-col items-center text-center sm:text-center">
+            <div className={`w-12 h-12 rounded-full flex items-center justify-center mb-4 ${
+              alertState.variant === 'success' ? 'bg-green-50 text-green-600' : 
+              alertState.variant === 'destructive' ? 'bg-red-50 text-red-600' : 
+              'bg-slate-50 text-slate-900'
+            }`}>
+              {alertState.variant === 'success' ? <CheckCircle2 className="w-6 h-6" /> : 
+               alertState.variant === 'destructive' ? <AlertCircle className="w-6 h-6" /> : 
+               <Shield className="w-6 h-6" />}
+            </div>
+            <AlertDialogTitle className="text-xl font-bold text-slate-900">
+              {alertState.title}
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-slate-600 text-base mt-2">
+              {alertState.description}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="sm:justify-center mt-4 gap-3 w-full">
+            {alertState.showCancel && (
+              <AlertDialogCancel className="mt-0 w-full sm:w-auto rounded-xl border-slate-200 hover:bg-slate-50">
+                {alertState.cancelLabel}
+              </AlertDialogCancel>
+            )}
+            <AlertDialogAction 
+              onClick={alertState.onConfirm}
+              className={`w-full sm:w-auto rounded-xl px-8 h-10 font-medium text-white ${
+                alertState.variant === 'success' ? 'bg-green-600 hover:bg-green-700' : 
+                alertState.variant === 'destructive' ? 'bg-red-600 hover:bg-red-700' : 
+                'bg-slate-900 hover:bg-slate-800'
+              }`}
+            >
+              {alertState.actionLabel}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       {/* Background Effects */}
       <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none">
         <div className="absolute top-10 right-0 w-[500px] h-[500px] bg-pink-100/30 rounded-full blur-3xl" />
@@ -168,14 +312,14 @@ export default function CartPage() {
         {/* Header */}
         <div className="text-center mb-12">
           <h1 className="text-4xl md:text-5xl font-bold text-[#222222] mb-4">
-            {showCheckout ? 'Checkout' : 'Shopping Cart'}
+            {showCheckout ? 'Checkout' : (isBuyNow ? 'Direct Checkout' : 'Shopping Cart')}
           </h1>
           <p className="text-gray-500">
-            {showCheckout ? 'Enter your shipping details' : `You have ${cart.length} items in your cart`}
+            {showCheckout ? 'Enter your shipping details' : `You have ${activeItems.length} items in your cart`}
           </p>
         </div>
 
-        {cart.length === 0 ? (
+        {activeItems.length === 0 ? (
           // Empty State
           <motion.div 
             initial={{ opacity: 0, scale: 0.9 }}
@@ -203,8 +347,8 @@ export default function CartPage() {
                   animate={{ opacity: 1 }}
                   className="space-y-4"
                 >
-                  {cart.map((item) => (
-                    <div key={item._id} className="bg-white rounded-2xl p-4 flex gap-4 items-center shadow-sm border border-gray-100">
+                  {activeItems.map((item) => (
+                    <div key={item.cartId} className="bg-white rounded-2xl p-4 flex gap-4 items-center shadow-sm border border-gray-100">
                       <div className="w-24 h-24 bg-gray-50 rounded-xl overflow-hidden flex-shrink-0">
                         <img src={item.images[0]} alt={item.name} className="w-full h-full object-cover" />
                       </div>
@@ -214,9 +358,14 @@ export default function CartPage() {
                           <div>
                             <h3 className="font-bold text-lg text-gray-900 truncate">{item.name}</h3>
                             {item.tag && <span className="text-xs bg-gray-100 px-2 py-1 rounded-full text-gray-600">{item.tag}</span>}
+                            {/* Show customizations if any */}
+                            {(item.selectedFragrances && item.selectedFragrances.length > 0) && (
+                              <p className="text-xs text-gray-500 mt-1">Scents: {item.selectedFragrances.join(', ')}</p>
+                            )}
                           </div>
+                          {/* Updated Remove Button with Confirmation */}
                           <button 
-                            onClick={() => removeFromCart(item._id)}
+                            onClick={() => handleRemoveItem(item.cartId)}
                             className="text-gray-400 hover:text-red-500 transition-colors p-1"
                           >
                             <Trash2 className="w-5 h-5" />
@@ -226,14 +375,14 @@ export default function CartPage() {
                         <div className="flex justify-between items-end mt-4">
                           <div className="flex items-center border border-gray-200 rounded-lg">
                             <button 
-                              onClick={() => updateQuantity(item._id, -1)}
+                              onClick={() => updateQuantity(item.cartId, -1)}
                               className="p-1.5 hover:bg-gray-50 text-gray-600"
                             >
                               <Minus className="w-4 h-4" />
                             </button>
                             <span className="w-8 text-center font-medium text-sm">{item.quantity}</span>
                             <button 
-                              onClick={() => updateQuantity(item._id, 1)}
+                              onClick={() => updateQuantity(item.cartId, 1)}
                               className="p-1.5 hover:bg-gray-50 text-gray-600"
                             >
                               <Plus className="w-4 h-4" />
@@ -321,13 +470,12 @@ export default function CartPage() {
                 <div className="space-y-3 text-sm mb-6">
                   <div className="flex justify-between text-gray-600">
                     <span>Subtotal</span>
-                    <span>₹{cartTotal.toFixed(2)}</span>
+                    <span>₹{activeSubtotal.toFixed(2)}</span>
                   </div>
                   <div className="flex justify-between text-gray-600">
                     <span>Shipping</span>
                     <span>{shippingCost === 0 ? <span className="text-green-600 font-medium">Free</span> : `₹${shippingCost}`}</span>
                   </div>
-                  {/* You can add Tax logic here later */}
                 </div>
 
                 <div className="border-t border-gray-100 pt-4 mb-8">

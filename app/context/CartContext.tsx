@@ -3,6 +3,7 @@
 import { createContext, useContext, useState, useEffect, ReactNode, useRef } from 'react';
 import { Product } from '@/lib/types';
 import { saveCart, mergeCart } from '@/lib/appService';
+import { useRouter } from 'next/navigation';
 
 export interface CartItem extends Product {
   cartId: string;
@@ -13,11 +14,18 @@ export interface CartItem extends Product {
 
 interface CartContextType {
   cart: CartItem[];
+  directCart: CartItem[]; // <--- NEW: Separate cart for "Buy Now" / "Order Again"
+  
   // Updated: quantity is now optional (defaults to 1)
   addToCart: (product: Product, quantity?: number, options?: { fragrances?: string[], message?: string }) => void;
   removeFromCart: (cartId: string) => void;
   updateQuantity: (cartId: string, change: number) => void;
   clearCart: () => void;
+  
+  // --- NEW FUNCTIONS ---
+  startDirectCheckout: (items: CartItem[]) => void;
+  clearDirectCart: () => void;
+  
   cartTotal: number;
   cartCount: number;
 }
@@ -26,20 +34,27 @@ const CartContext = createContext<CartContextType | undefined>(undefined);
 
 export function CartProvider({ children }: { children: ReactNode }) {
   const [cart, setCart] = useState<CartItem[]>([]);
+  const [directCart, setDirectCart] = useState<CartItem[]>([]); // <--- NEW STATE
   const [isInitialized, setIsInitialized] = useState(false);
+  const router = useRouter();
   
-  // Track if we should sync to DB (prevent syncing on initial load)
   const shouldSyncToDb = useRef(false);
 
-  // 1. INITIAL LOAD & MERGE STRATEGY
+  // 1. LOAD: Check localStorage for both carts
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const token = localStorage.getItem('token');
       const savedCartStr = localStorage.getItem('thebottlestories_cart');
+      const savedDirectCartStr = localStorage.getItem('thebottlestories_direct'); // <--- LOAD DIRECT CART
+
       let localCart: CartItem[] = [];
 
       if (savedCartStr) {
-        try { localCart = JSON.parse(savedCartStr); } catch (e) {}
+        try { localCart = JSON.parse(savedCartStr); } catch (e) { console.error("Error parsing cart", e); }
+      }
+      
+      if (savedDirectCartStr) {
+        try { setDirectCart(JSON.parse(savedDirectCartStr)); } catch (e) { console.error("Error parsing direct cart", e); }
       }
 
       const initializeCart = async () => {
@@ -49,10 +64,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
             // Case A: Has local items -> Merge with DB
             try {
               const mergedItems = await mergeCart(localCart);
-              // Backend returns standardized items, might need formatting to match CartItem
               const formatted = formatBackendItems(mergedItems as any[]);
               setCart(formatted);
-              // Clear local storage now that it's in DB
               localStorage.removeItem('thebottlestories_cart'); 
             } catch (e) {
               console.error("Merge failed", e);
@@ -61,7 +74,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
           } else {
             // Case B: No local items -> Just fetch DB cart
             try {
-              const dbItems = await mergeCart([]); // Reuse merge endpoint to get current
+              const dbItems = await mergeCart([]); 
               setCart(formatBackendItems(dbItems as any[]));
             } catch (e) { console.error(e); }
           }
@@ -70,7 +83,6 @@ export function CartProvider({ children }: { children: ReactNode }) {
           setCart(localCart);
         }
         setIsInitialized(true);
-        // Enable syncing for future changes
         setTimeout(() => { shouldSyncToDb.current = true; }, 500);
       };
 
@@ -78,30 +90,28 @@ export function CartProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  // 2. PERSIST: Save to LocalStorage (Guest) OR Database (User)
+  // 2. SAVE: Persist both carts
   useEffect(() => {
-    if (!isInitialized) return;
-
-    const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
-
-    if (token) {
-      // Logged In: Save to DB (Debounce could be added here for performance)
-      if (shouldSyncToDb.current) {
+    if (isInitialized) {
+      const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+      
+      // Main Cart Logic
+      if (token && shouldSyncToDb.current) {
         saveCart(cart).catch(err => console.error("Auto-save failed", err));
+      } else {
+        localStorage.setItem('thebottlestories_cart', JSON.stringify(cart));
       }
-    } else {
-      // Guest: Save to LocalStorage
-      localStorage.setItem('thebottlestories_cart', JSON.stringify(cart));
+
+      // Direct Cart Logic (Always Local is fine for temporary flow)
+      localStorage.setItem('thebottlestories_direct', JSON.stringify(directCart));
     }
-  }, [cart, isInitialized]);
+  }, [cart, directCart, isInitialized]);
 
   // --- Helpers ---
-  
-  // Format backend response (which has nested product object) back to flat CartItem
   const formatBackendItems = (backendItems: any[]): CartItem[] => {
     return backendItems.map((item: any) => ({
-      ...item.product, // Spread product details
-      cartId: item._id || Math.random().toString(), // Use DB ID or random
+      ...item.product, 
+      cartId: item._id || Math.random().toString(), 
       quantity: item.quantity,
       selectedFragrances: item.selected_fragrances,
       customMessage: item.custom_message
@@ -110,31 +120,24 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   // --- Actions ---
 
-  // Updated implementation: quantity defaults to 1
   const addToCart = (product: Product, quantity: number = 1, options: { fragrances?: string[], message?: string } = {}) => {
     setCart((prev) => {
-      // Check if an IDENTICAL item already exists (same product + same options)
       const existingIndex = prev.findIndex((item) => {
         const isSameProduct = item._id === product._id;
-        
-        // Compare sorted arrays to ensure order doesn't matter
         const currentFragrances = JSON.stringify(item.selectedFragrances?.sort() || []);
         const newFragrances = JSON.stringify(options.fragrances?.sort() || []);
         const isSameFragrances = currentFragrances === newFragrances;
-        
         const isSameMessage = (item.customMessage || '') === (options.message || '');
 
         return isSameProduct && isSameFragrances && isSameMessage;
       });
 
       if (existingIndex > -1) {
-        // If exact item exists, just update quantity
         const newCart = [...prev];
         newCart[existingIndex].quantity += quantity;
         return newCart;
       }
 
-      // Else add new item with a unique cartId
       const newItem: CartItem = {
         ...product,
         cartId: `${product._id}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
@@ -165,16 +168,30 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   const clearCart = () => {
     setCart([]);
-    if (typeof window !== 'undefined') {
-      localStorage.removeItem('thebottlestories_cart');
-    }
+    if (typeof window !== 'undefined') localStorage.removeItem('thebottlestories_cart');
   };
 
+  // --- NEW ACTIONS ---
+  const startDirectCheckout = (items: CartItem[]) => {
+    setDirectCart(items);
+  };
+
+  const clearDirectCart = () => {
+    setDirectCart([]);
+    if (typeof window !== 'undefined') localStorage.removeItem('thebottlestories_direct');
+  };
+
+  // --- Calculations ---
   const cartTotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
   const cartCount = cart.reduce((sum, item) => sum + item.quantity, 0);
 
   return (
-    <CartContext.Provider value={{ cart, addToCart, removeFromCart, updateQuantity, clearCart, cartTotal, cartCount }}>
+    <CartContext.Provider value={{ 
+      cart, directCart, 
+      addToCart, removeFromCart, updateQuantity, clearCart, 
+      startDirectCheckout, clearDirectCart, 
+      cartTotal, cartCount 
+    }}>
       {children}
     </CartContext.Provider>
   );
