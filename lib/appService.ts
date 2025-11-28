@@ -1,5 +1,6 @@
 // lib/appService.ts
 
+import { CartItem } from '@/app/context/CartContext';
 import { api } from './apiService';
 import { 
   DashboardStats, 
@@ -213,4 +214,17 @@ export const getUserOrders = (page = 1, limit = 10, status = 'all') => {
   }
 
   return api.get<UserOrdersResponse>(`/orders/myorders?${params.toString()}`);
+};
+
+
+export const fetchCart = () => {
+  return api.get<any[]>('/cart');
+};
+
+export const saveCart = (items: CartItem[]) => {
+  return api.post('/cart', { items });
+};
+
+export const mergeCart = (localItems: CartItem[]) => {
+  return api.post('/cart/merge', { localItems });
 };
