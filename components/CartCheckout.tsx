@@ -67,7 +67,7 @@ export default function CartPage() {
 
   // 2. Calculate total based on ACTIVE items
   const activeSubtotal = activeItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-  const shippingCost = activeSubtotal > 3000 ? 0 : 150; 
+  const shippingCost = activeSubtotal > 3000 ? 0 : 0; 
   const finalTotal = activeSubtotal + shippingCost;
 
   // Local state for checkout flow
