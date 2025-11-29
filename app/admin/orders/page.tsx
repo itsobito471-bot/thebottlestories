@@ -205,24 +205,33 @@ export default function AdminOrders() {
     }
   };
 
-  // 2. Execute API Call
+  // 2. Execute API Call (FIXED)
   const executeStatusUpdate = async (orderId: string, status: string) => {
     setUpdating(true);
-    // Close confirm dialog immediately
     setConfirmDialog(prev => ({ ...prev, open: false }));
 
     try {
       const updatedOrder = await updateOrderStatus(orderId, status);
       
-      // Optimistic Update
-      setOrders(prev => prev.map(o => o._id === orderId ? updatedOrder : o));
+      // --- FIX: Merge new status with existing populated data ---
       
-      // If detail view is open, update it too
+      // 1. Update List State
+      setOrders(prev => prev.map(o => 
+        o._id === orderId 
+          ? { ...o, status: updatedOrder.status, updatedAt: updatedOrder.updatedAt || new Date().toISOString() } 
+          : o
+      ));
+      
+      // 2. Update Selected Order Modal
       if (selectedOrder?._id === orderId) {
-        setSelectedOrder(updatedOrder);
+        setSelectedOrder(prev => prev ? ({
+          ...prev, // Keep existing populated items
+          status: updatedOrder.status, 
+          updatedAt: updatedOrder?.updatedAt || new Date().toISOString()
+        }) : null);
       }
 
-      // Reload if it affects revenue stats (completed/cancelled)
+      // Reload stats if necessary
       if (['completed', 'cancelled', 'rejected'].includes(status)) {
          loadOrders(1, true);
       }
@@ -524,7 +533,6 @@ export default function AdminOrders() {
                       {selectedOrder.items?.map((item: any, idx: number) => (
                         <div key={idx} className="flex gap-4 p-3 rounded-xl border border-slate-100 bg-white hover:border-slate-200 transition-colors">
                            
-                           {/* --- FIX START: ROBUST IMAGE HANDLING --- */}
                            <div className="w-14 h-14 bg-slate-100 rounded-lg overflow-hidden flex-shrink-0 flex items-center justify-center border border-slate-200">
                               {item.product?.images?.[0] ? (
                                 <img 
@@ -532,18 +540,15 @@ export default function AdminOrders() {
                                   className="w-full h-full object-cover" 
                                   alt={item.product?.name || "Product Image"}
                                   onError={(e) => {
-                                    // Fallback to placeholder on error
                                     const target = e.target as HTMLImageElement;
                                     target.onerror = null;
                                     target.src = "https://placehold.co/100x100?text=No+Img";
                                   }}
                                 />
                               ) : (
-                                // Fallback icon if no image data exists
                                 <Package className="w-6 h-6 text-slate-300" />
                               )}
                            </div>
-                           {/* --- FIX END --- */}
 
                            <div className="flex-1 min-w-0">
                               <div className="flex justify-between items-start mb-1">
@@ -582,9 +587,9 @@ export default function AdminOrders() {
         </DialogContent>
       </Dialog>
 
-      {/* --- ALERT DIALOGS (Uses high z-index) --- */}
+      {/* --- ALERT DIALOGS --- */}
       
-      {/* 1. Info Dialog (Blocking) */}
+      {/* 1. Info Dialog */}
       <AlertDialog open={infoDialog.open} onOpenChange={(open) => !open && setInfoDialog(prev => ({...prev, open: false}))}>
         <AlertDialogContent className="z-[100]">
           <AlertDialogHeader>

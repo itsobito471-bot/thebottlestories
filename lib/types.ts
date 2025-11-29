@@ -66,6 +66,7 @@ export interface OrderItem {
 }
 
 export interface Order {
+  updatedAt: string;
   _id: string;
   customer_name: string;
   customer_email: string;
@@ -88,6 +89,7 @@ export interface Order {
   created_at?: string;
   
   items: OrderItem[]; // Use the new OrderItem interface
+  updated_at?: string;
 }
 
 export interface User {
