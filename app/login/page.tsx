@@ -5,7 +5,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import Swal from 'sweetalert2'; // <-- Import SweetAlert
+import Swal from 'sweetalert2'; 
 
 // --- Shadcn/ui Components ---
 import { Button } from '@/components/ui/button';
@@ -14,10 +14,13 @@ import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 
 // --- Icons ---
-import { Loader2, Chrome, Facebook, Sparkles } from 'lucide-react';
+import { Loader2, Chrome, Facebook } from 'lucide-react';
 
-// --- 1. Import your new API functions ---
+// --- API functions ---
 import { registerUser, loginUser } from '@/lib/appService';
+
+// --- NEW: Import Cart Context ---
+import { useCart } from '@/app/context/CartContext';
 
 export default function AuthPage() {
   const [view, setView] = useState<'login' | 'register'>('login');
@@ -33,6 +36,9 @@ export default function AuthPage() {
   
   const router = useRouter();
 
+  // --- NEW: Get syncCart from context ---
+  const { syncCart } = useCart();
+
   const toggleView = () => {
     setView((prev) => (prev === 'login' ? 'register' : 'login'));
     setName('');
@@ -42,7 +48,6 @@ export default function AuthPage() {
     setIsSocialLoading(null);
   };
 
-  // --- 2. UPDATED handleSubmit FUNCTION ---
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
@@ -55,7 +60,18 @@ export default function AuthPage() {
         // Save session logic
         const storage = rememberMe ? localStorage : sessionStorage;
         storage.setItem('token', data.token);
-        storage.setItem('user', JSON.stringify(data.user)); // Save user object
+        storage.setItem('user', JSON.stringify(data.user)); 
+
+        // If using sessionStorage (Remember Me unchecked), we must ensure 
+        // localStorage has the token temporarily if your CartContext relies solely on localStorage.
+        // If your Context checks both, this line isn't strictly necessary but is a good safeguard.
+        if (!rememberMe) {
+            localStorage.setItem('token', data.token);
+        }
+
+        // --- FIX: Sync Cart Immediately ---
+        // This takes the local items and merges them with the database
+        await syncCart();
 
         // Show success and redirect
         await Swal.fire({
@@ -66,8 +82,8 @@ export default function AuthPage() {
           showConfirmButton: false,
         });
         
-        router.push('/'); // Redirect to home page
-        router.refresh(); // Force a refresh of the navbar to show user state
+        router.push('/'); 
+        router.refresh(); 
 
       } catch (error: any) {
         console.error('Login error:', error);
@@ -89,7 +105,7 @@ export default function AuthPage() {
           title: 'Account Created!',
           text: 'You can now log in with your new account.',
         });
-        toggleView(); // Switch to login view after success
+        toggleView(); 
 
       } catch (error: any) {
         console.error('Register error:', error);
@@ -103,8 +119,9 @@ export default function AuthPage() {
     }
   };
 
-  // ... (Social login handlers are unchanged, they are just placeholders)
+  // ... (Social login handlers)
   const handleGoogleLogin = () => {
+    
     setIsSocialLoading('google');
     console.log('Redirecting to Google...');
     window.location.href = `${process.env.NEXT_PUBLIC_API_URL}/auth/google`;
@@ -116,7 +133,7 @@ export default function AuthPage() {
     // window.location.href = `${process.env.NEXT_PUBLIC_API_URL}/auth/facebook`;
   };
 
-  // ... (Animation variants are unchanged)
+  // ... (Animation variants)
   const containerVariants = {
     hidden: { opacity: 0 },
     visible: {
@@ -338,7 +355,7 @@ export default function AuthPage() {
         </motion.div>
       </div>
 
-      {/* --- Right Side - Image/Branding (Unchanged) --- */}
+      {/* --- Right Side - Image/Branding --- */}
       <motion.div 
         className="hidden lg:flex flex-1 items-center justify-center p-12 relative overflow-hidden"
         variants={imageVariants}

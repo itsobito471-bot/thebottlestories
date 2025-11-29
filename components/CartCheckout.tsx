@@ -21,8 +21,8 @@ import {
 
 // --- Imports from your project ---
 import { Button } from '@/components/ui/button';
-import { useCart } from '../app/context/CartContext'; // Use the new Context hook
-import { api } from '@/lib/apiService'; // Use your API helper
+import { useCart } from '../app/context/CartContext'; 
+import { api } from '@/lib/apiService'; 
 import { Input } from '@/components/ui/input';
 import {
   AlertDialog,
@@ -50,16 +50,16 @@ export default function CartPage() {
     updateQuantity, 
     removeFromCart, 
     clearCart, 
-    clearDirectCart 
+    clearDirectCart,
+    startDirectCheckout // <--- Added this to update Buy Now items
   } = useCart();
 
   // 1. Determine which items to show
-  // If buy_now is true, we use the temporary directCart. Otherwise, standard cart.
   const activeItems = isBuyNow ? directCart : cart;
 
   // 2. Calculate total based on ACTIVE items
   const activeSubtotal = activeItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-  const shippingCost = activeSubtotal > 3000 ? 0 : 150; // Example: Free shipping over 3000
+  const shippingCost = activeSubtotal > 3000 ? 0 : 150; 
   const finalTotal = activeSubtotal + shippingCost;
 
   // Local state for checkout flow
@@ -113,11 +113,9 @@ export default function CartPage() {
   // 3. Auto-show checkout if Buy Now
   useEffect(() => {
     if (isBuyNow && activeItems.length > 0) {
-      // Check auth first before showing checkout automatically
       const token = localStorage.getItem('token');
       if (token) {
         setShowCheckout(true);
-        // Pre-fill logic for Buy Now flow
         const userStr = localStorage.getItem('user');
         if (userStr) {
           try {
@@ -131,7 +129,6 @@ export default function CartPage() {
           } catch (e) { console.error(e); }
         }
       } else {
-        // Redirect to login if trying to buy now without auth
         router.push('/login?redirect=/cart?buy_now=true');
       }
     }
@@ -144,22 +141,30 @@ export default function CartPage() {
     setShippingInfo(prev => ({ ...prev, [name]: value }));
   };
 
-  // --- NEW: Handle Remove Item with Shadcn Alert ---
+  // --- FIXED: Handle Remove Item Correctly for Both Cart Types ---
   const handleRemoveItem = (cartId: string) => {
     showAlert({
       title: 'Remove Item?',
       description: "Are you sure you want to remove this item from your cart?",
       actionLabel: 'Yes, remove it',
       variant: 'destructive',
+      showCancel: true,
       onConfirm: () => {
-        removeFromCart(cartId);
+        if (isBuyNow) {
+            // Logic for Direct Checkout (Buy Now)
+            // We manually filter the directCart and update it using startDirectCheckout
+            const updatedDirectItems = directCart.filter(item => item.cartId !== cartId);
+            startDirectCheckout(updatedDirectItems);
+        } else {
+            // Logic for Main Cart
+            removeFromCart(cartId);
+        }
         setAlertState(prev => ({ ...prev, isOpen: false }));
       }
     });
   };
 
   const handleProceedToCheckout = () => {
-    // 1. Check Authentication
     const token = localStorage.getItem('token');
     
     if (!token) {
@@ -173,10 +178,8 @@ export default function CartPage() {
       return;
     }
     
-    // 2. If logged in, show checkout form
     setShowCheckout(true);
     
-    // Optional: Pre-fill user data from localStorage if available
     const userStr = localStorage.getItem('user');
     if (userStr) {
       try {
@@ -192,7 +195,6 @@ export default function CartPage() {
   };
 
   const handlePlaceOrder = async () => {
-    // Basic Validation
     if (!shippingInfo.address || !shippingInfo.phone || !shippingInfo.city) {
       showAlert({
         title: 'Missing Information',
@@ -207,14 +209,12 @@ export default function CartPage() {
     setIsPlacingOrder(true);
 
     try {
-      // 3. Send Order to Backend
       await api.post('/orders', {
-        items: activeItems, // Use activeItems (either cart or directCart)
+        items: activeItems,
         shippingAddress: shippingInfo,
         totalAmount: finalTotal
       });
 
-      // 4. Clear the correct cart
       if (isBuyNow) {
         clearDirectCart();
       } else {
@@ -363,7 +363,6 @@ export default function CartPage() {
                               <p className="text-xs text-gray-500 mt-1">Scents: {item.selectedFragrances.join(', ')}</p>
                             )}
                           </div>
-                          {/* Updated Remove Button with Confirmation */}
                           <button 
                             onClick={() => handleRemoveItem(item.cartId)}
                             className="text-gray-400 hover:text-red-500 transition-colors p-1"
