@@ -5,21 +5,29 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import Swal from 'sweetalert2'; 
 
 // --- Shadcn/ui Components ---
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 // --- Icons ---
-import { Loader2, Chrome, Facebook } from 'lucide-react';
+import { Loader2, Chrome, Facebook, AlertCircle, CheckCircle2 } from 'lucide-react';
 
 // --- API functions ---
 import { registerUser, loginUser } from '@/lib/appService';
 
-// --- NEW: Import Cart Context ---
+// --- Cart Context ---
 import { useCart } from '@/app/context/CartContext';
 
 export default function AuthPage() {
@@ -34,10 +42,41 @@ export default function AuthPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [isSocialLoading, setIsSocialLoading] = useState<null | 'google' | 'facebook'>(null);
   
-  const router = useRouter();
+  // --- Alert Dialog State ---
+  const [alertState, setAlertState] = useState<{
+    isOpen: boolean;
+    title: string;
+    description: string;
+    variant: 'success' | 'error';
+    onConfirm?: () => void;
+  }>({
+    isOpen: false,
+    title: '',
+    description: '',
+    variant: 'success',
+  });
 
-  // --- NEW: Get syncCart from context ---
+  const router = useRouter();
   const { syncCart } = useCart();
+
+  // --- Helper to show Alert ---
+  const showAlert = (title: string, description: string, variant: 'success' | 'error', onConfirm?: () => void) => {
+    setAlertState({
+      isOpen: true,
+      title,
+      description,
+      variant,
+      onConfirm
+    });
+  };
+
+  const closeAlert = () => {
+    setAlertState((prev) => ({ ...prev, isOpen: false }));
+    // Execute the confirm action if it exists when closing/clicking continue
+    if (alertState.onConfirm) {
+      alertState.onConfirm();
+    }
+  };
 
   const toggleView = () => {
     setView((prev) => (prev === 'login' ? 'register' : 'login'));
@@ -62,36 +101,31 @@ export default function AuthPage() {
         storage.setItem('token', data.token);
         storage.setItem('user', JSON.stringify(data.user)); 
 
-        // If using sessionStorage (Remember Me unchecked), we must ensure 
-        // localStorage has the token temporarily if your CartContext relies solely on localStorage.
-        // If your Context checks both, this line isn't strictly necessary but is a good safeguard.
         if (!rememberMe) {
             localStorage.setItem('token', data.token);
         }
 
-        // --- FIX: Sync Cart Immediately ---
-        // This takes the local items and merges them with the database
+        // Sync Cart Immediately
         await syncCart();
 
-        // Show success and redirect
-        await Swal.fire({
-          icon: 'success',
-          title: 'Login Successful!',
-          text: `Welcome back, ${data.user.name}!`,
-          timer: 1500,
-          showConfirmButton: false,
-        });
-        
-        router.push('/'); 
-        router.refresh(); 
+        // Show Success Alert
+        showAlert(
+          'Login Successful!',
+          `Welcome back, ${data.user.name}!`,
+          'success',
+          () => {
+            router.push('/'); 
+            router.refresh(); 
+          }
+        );
 
       } catch (error: any) {
         console.error('Login error:', error);
-        Swal.fire({
-          icon: 'error',
-          title: 'Login Failed',
-          text: error.message || 'Invalid credentials. Please try again.',
-        });
+        showAlert(
+          'Login Failed',
+          error.message || 'Invalid credentials. Please try again.',
+          'error'
+        );
         setIsLoading(false);
       }
     } else {
@@ -99,29 +133,27 @@ export default function AuthPage() {
       try {
         await registerUser({ name, email, password });
 
-        // Show success, then toggle view
-        await Swal.fire({
-          icon: 'success',
-          title: 'Account Created!',
-          text: 'You can now log in with your new account.',
-        });
-        toggleView(); 
+        // Show Success Alert
+        showAlert(
+          'Account Created!',
+          'You can now log in with your new account.',
+          'success',
+          () => toggleView() // Switch to login view on confirm
+        );
 
       } catch (error: any) {
         console.error('Register error:', error);
-        Swal.fire({
-          icon: 'error',
-          title: 'Registration Failed',
-          text: error.message || 'Please check your details and try again.',
-        });
+        showAlert(
+          'Registration Failed',
+          error.message || 'Please check your details and try again.',
+          'error'
+        );
         setIsLoading(false);
       }
     }
   };
 
-  // ... (Social login handlers)
   const handleGoogleLogin = () => {
-    
     setIsSocialLoading('google');
     console.log('Redirecting to Google...');
     window.location.href = `${process.env.NEXT_PUBLIC_API_URL}/auth/google`;
@@ -133,7 +165,7 @@ export default function AuthPage() {
     // window.location.href = `${process.env.NEXT_PUBLIC_API_URL}/auth/facebook`;
   };
 
-  // ... (Animation variants)
+  // --- Animation Variants ---
   const containerVariants = {
     hidden: { opacity: 0 },
     visible: {
@@ -158,9 +190,44 @@ export default function AuthPage() {
     visible: { opacity: 1, x: 0, transition: { duration: 0.8, ease: 'easeOut' } },
   } as const;
 
-
   return (
     <div className="min-h-screen flex flex-col lg:flex-row bg-white text-[#1C1C1C]">
+      
+      {/* --- Alert Dialog Component --- */}
+      <AlertDialog open={alertState.isOpen} onOpenChange={(isOpen) => !isOpen && setAlertState(prev => ({ ...prev, isOpen: false }))}>
+        <AlertDialogContent className="rounded-2xl border border-slate-100 shadow-2xl max-w-sm">
+          <AlertDialogHeader className="flex flex-col items-center text-center">
+            <div className={`w-12 h-12 rounded-full flex items-center justify-center mb-4 ${
+              alertState.variant === 'success' ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600'
+            }`}>
+              {alertState.variant === 'success' ? (
+                <CheckCircle2 className="w-6 h-6" />
+              ) : (
+                <AlertCircle className="w-6 h-6" />
+              )}
+            </div>
+            <AlertDialogTitle className="text-xl font-bold text-slate-900">
+              {alertState.title}
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-slate-600 text-base mt-2">
+              {alertState.description}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="sm:justify-center mt-4 w-full">
+            <AlertDialogAction 
+              onClick={closeAlert}
+              className={`w-full rounded-xl h-10 font-medium text-white ${
+                alertState.variant === 'success' 
+                  ? 'bg-green-600 hover:bg-green-700' 
+                  : 'bg-red-600 hover:bg-red-700'
+              }`}
+            >
+              {alertState.variant === 'success' ? 'Continue' : 'Try Again'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       {/* --- Left Side - Login/Register Form --- */}
       <div className="w-full lg:w-1/2 flex items-center justify-center p-6 sm:p-12 overflow-y-auto">
         <motion.div
