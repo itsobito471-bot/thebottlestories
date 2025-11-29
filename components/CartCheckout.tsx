@@ -16,7 +16,9 @@ import {
   Shield, 
   Loader2,
   AlertCircle,
-  CheckCircle2
+  CheckCircle2,
+  PenLine,
+  Sparkles
 } from 'lucide-react';
 
 // --- Imports from your project ---
@@ -35,6 +37,12 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
+// Define interface for local customizations
+interface ItemCustomization {
+  selectedFragrance: string; // Storing single ID for dropdown
+  customMessage: string;
+}
+
 export default function CartPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -51,7 +59,7 @@ export default function CartPage() {
     removeFromCart, 
     clearCart, 
     clearDirectCart,
-    startDirectCheckout // <--- Added this to update Buy Now items
+    startDirectCheckout 
   } = useCart();
 
   // 1. Determine which items to show
@@ -65,6 +73,32 @@ export default function CartPage() {
   // Local state for checkout flow
   const [showCheckout, setShowCheckout] = useState(false);
   const [isPlacingOrder, setIsPlacingOrder] = useState(false);
+
+  // --- NEW: Local State for Customizations (Fragrance & Message) ---
+  const [customizations, setCustomizations] = useState<Record<string, ItemCustomization>>({});
+
+  // Initialize customizations when items load
+  useEffect(() => {
+    const initialCustoms: Record<string, ItemCustomization> = {};
+    activeItems.forEach(item => {
+      // Check if we already have a customization state for this item, if not, create default
+      if (!customizations[item.cartId]) {
+        // Default fragrance: First available one's ID, or empty
+        const defaultFrag = (item.available_fragrances && item.available_fragrances.length > 0) 
+          ? (typeof item.available_fragrances[0] === 'object' ? item.available_fragrances[0]._id : item.available_fragrances[0]) 
+          : '';
+          
+        initialCustoms[item.cartId] = {
+          selectedFragrance: defaultFrag,
+          customMessage: ''
+        };
+      }
+    });
+    // Only update if we have new items to add to state
+    if (Object.keys(initialCustoms).length > 0) {
+      setCustomizations(prev => ({ ...prev, ...initialCustoms }));
+    }
+  }, [activeItems.length, isBuyNow]); // Depend on list length
   
   // Alert Dialog State
   const [alertState, setAlertState] = useState<{
@@ -141,7 +175,27 @@ export default function CartPage() {
     setShippingInfo(prev => ({ ...prev, [name]: value }));
   };
 
-  // --- FIXED: Handle Remove Item Correctly for Both Cart Types ---
+  // --- NEW: Handle Customization Changes ---
+  const handleFragranceChange = (cartId: string, fragranceId: string) => {
+    setCustomizations(prev => ({
+      ...prev,
+      [cartId]: {
+        ...prev[cartId],
+        selectedFragrance: fragranceId
+      }
+    }));
+  };
+
+  const handleMessageChange = (cartId: string, message: string) => {
+    setCustomizations(prev => ({
+      ...prev,
+      [cartId]: {
+        ...prev[cartId],
+        customMessage: message
+      }
+    }));
+  };
+
   const handleRemoveItem = (cartId: string) => {
     showAlert({
       title: 'Remove Item?',
@@ -151,14 +205,19 @@ export default function CartPage() {
       showCancel: true,
       onConfirm: () => {
         if (isBuyNow) {
-            // Logic for Direct Checkout (Buy Now)
-            // We manually filter the directCart and update it using startDirectCheckout
             const updatedDirectItems = directCart.filter(item => item.cartId !== cartId);
             startDirectCheckout(updatedDirectItems);
         } else {
-            // Logic for Main Cart
             removeFromCart(cartId);
         }
+        
+        // Cleanup customization state
+        setCustomizations(prev => {
+          const newState = { ...prev };
+          delete newState[cartId];
+          return newState;
+        });
+
         setAlertState(prev => ({ ...prev, isOpen: false }));
       }
     });
@@ -209,8 +268,20 @@ export default function CartPage() {
     setIsPlacingOrder(true);
 
     try {
+      // --- MERGE CUSTOMIZATIONS INTO ITEMS ---
+      const itemsPayload = activeItems.map(item => {
+        const customData = customizations[item.cartId] || { selectedFragrance: '', customMessage: '' };
+        
+        return {
+          ...item,
+          // Backend expects array of IDs for fragrances
+          selectedFragrances: customData.selectedFragrance ? [customData.selectedFragrance] : [],
+          customMessage: customData.customMessage || ''
+        };
+      });
+
       await api.post('/orders', {
-        items: activeItems,
+        items: itemsPayload,
         shippingAddress: shippingInfo,
         totalAmount: finalTotal
       });
@@ -347,54 +418,98 @@ export default function CartPage() {
                   animate={{ opacity: 1 }}
                   className="space-y-4"
                 >
-                  {activeItems.map((item) => (
-                    <div key={item.cartId} className="bg-white rounded-2xl p-4 flex gap-4 items-center shadow-sm border border-gray-100">
-                      <div className="w-24 h-24 bg-gray-50 rounded-xl overflow-hidden flex-shrink-0">
-                        <img src={item.images[0]} alt={item.name} className="w-full h-full object-cover" />
-                      </div>
-                      
-                      <div className="flex-1 min-w-0">
-                        <div className="flex justify-between items-start">
-                          <div>
-                            <h3 className="font-bold text-lg text-gray-900 truncate">{item.name}</h3>
-                            {item.tag && <span className="text-xs bg-gray-100 px-2 py-1 rounded-full text-gray-600">{item.tag}</span>}
-                            {/* Show customizations if any */}
-                            {(item.selectedFragrances && item.selectedFragrances.length > 0) && (
-                              <p className="text-xs text-gray-500 mt-1">Scents: {item.selectedFragrances.join(', ')}</p>
-                            )}
-                          </div>
-                          <button 
-                            onClick={() => handleRemoveItem(item.cartId)}
-                            className="text-gray-400 hover:text-red-500 transition-colors p-1"
-                          >
-                            <Trash2 className="w-5 h-5" />
-                          </button>
-                        </div>
+                  {activeItems.map((item) => {
+                    // Check if customizations are available
+                    const hasFragrances = item.available_fragrances && item.available_fragrances.length > 0;
+                    const hasCustomMsg = item.allow_custom_message;
 
-                        <div className="flex justify-between items-end mt-4">
-                          <div className="flex items-center border border-gray-200 rounded-lg">
+                    return (
+                      <div key={item.cartId} className="bg-white rounded-2xl p-4 flex gap-4 items-start shadow-sm border border-gray-100">
+                        {/* Image */}
+                        <div className="w-24 h-24 bg-gray-50 rounded-xl overflow-hidden flex-shrink-0">
+                          <img src={item.images[0]} alt={item.name} className="w-full h-full object-cover" />
+                        </div>
+                        
+                        <div className="flex-1 min-w-0 flex flex-col h-full justify-between">
+                          
+                          {/* Top Row: Name and Delete */}
+                          <div className="flex justify-between items-start">
+                            <div className="flex-1 pr-4">
+                              <h3 className="font-bold text-lg text-gray-900 truncate">{item.name}</h3>
+                              {item.tag && <span className="text-xs bg-gray-100 px-2 py-1 rounded-full text-gray-600">{item.tag}</span>}
+                              
+                              {/* --- FRAGRANCE SELECTOR --- */}
+                              {hasFragrances && (
+                                <div className="mt-2">
+                                  <label className="text-xs font-medium text-gray-500 flex items-center gap-1 mb-1">
+                                    <Sparkles className="w-3 h-3" /> Select Fragrance:
+                                  </label>
+                                  <select 
+                                    className="w-full sm:w-64 text-sm bg-white border border-gray-200 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-slate-900/10 cursor-pointer"
+                                    value={customizations[item.cartId]?.selectedFragrance || ''}
+                                    onChange={(e) => handleFragranceChange(item.cartId, e.target.value)}
+                                  >
+                                    <option value="" disabled>Choose a scent...</option>
+                                    {(item.available_fragrances || []).map((frag: any) => (
+                                      <option key={typeof frag === 'object' ? frag._id : frag} value={typeof frag === 'object' ? frag._id : frag}>
+                                        {typeof frag === 'object' ? frag.name : 'Unknown Fragrance'}
+                                      </option>
+                                    ))}
+                                  </select>
+                                </div>
+                              )}
+
+                              {/* --- CUSTOM MESSAGE INPUT --- */}
+                              {hasCustomMsg && (
+                                <div className="mt-3">
+                                  <label className="text-xs font-medium text-gray-500 flex items-center gap-1 mb-1">
+                                    <PenLine className="w-3 h-3" /> Custom Message:
+                                  </label>
+                                  <Input 
+                                    className="h-9 text-sm w-full sm:w-64 bg-slate-50 border-slate-200"
+                                    placeholder="Add a note (optional)..."
+                                    value={customizations[item.cartId]?.customMessage || ''}
+                                    onChange={(e) => handleMessageChange(item.cartId, e.target.value)}
+                                    maxLength={150}
+                                  />
+                                </div>
+                              )}
+                            </div>
+                            
                             <button 
-                              onClick={() => updateQuantity(item.cartId, -1)}
-                              className="p-1.5 hover:bg-gray-50 text-gray-600"
+                              onClick={() => handleRemoveItem(item.cartId)}
+                              className="text-gray-400 hover:text-red-500 transition-colors p-1"
                             >
-                              <Minus className="w-4 h-4" />
-                            </button>
-                            <span className="w-8 text-center font-medium text-sm">{item.quantity}</span>
-                            <button 
-                              onClick={() => updateQuantity(item.cartId, 1)}
-                              className="p-1.5 hover:bg-gray-50 text-gray-600"
-                            >
-                              <Plus className="w-4 h-4" />
+                              <Trash2 className="w-5 h-5" />
                             </button>
                           </div>
-                          <div className="text-right">
-                            <p className="font-bold text-lg">₹{(item.price * item.quantity).toFixed(2)}</p>
-                            <p className="text-xs text-gray-400">₹{item.price} each</p>
+
+                          {/* Bottom Row: Quantity and Price */}
+                          <div className="flex justify-between items-end mt-4">
+                            <div className="flex items-center border border-gray-200 rounded-lg">
+                              <button 
+                                onClick={() => updateQuantity(item.cartId, -1)}
+                                className="p-1.5 hover:bg-gray-50 text-gray-600"
+                              >
+                                <Minus className="w-4 h-4" />
+                              </button>
+                              <span className="w-8 text-center font-medium text-sm">{item.quantity}</span>
+                              <button 
+                                onClick={() => updateQuantity(item.cartId, 1)}
+                                className="p-1.5 hover:bg-gray-50 text-gray-600"
+                              >
+                                <Plus className="w-4 h-4" />
+                              </button>
+                            </div>
+                            <div className="text-right">
+                              <p className="font-bold text-lg">₹{(item.price * item.quantity).toFixed(2)}</p>
+                              <p className="text-xs text-gray-400">₹{item.price} each</p>
+                            </div>
                           </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </motion.div>
               ) : (
                 // --- CHECKOUT FORM VIEW ---

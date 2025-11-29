@@ -3,7 +3,7 @@
 import { createContext, useContext, useState, useEffect, ReactNode, useRef, useCallback } from 'react';
 import { Product } from '@/lib/types';
 import { saveCart, mergeCart, fetchCart } from '@/lib/appService';
-import { useRouter, useSearchParams } from 'next/navigation'; // Import useSearchParams
+import { useRouter } from 'next/navigation';
 
 export interface CartItem extends Product {
   cartId: string;
@@ -41,7 +41,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const formatBackendItems = (backendItems: any[]): CartItem[] => {
     return backendItems.map((item: any) => ({
       ...item.product, 
-      cartId: item._id || Math.random().toString(), 
+      // If backend provides an _id for the cart item, use it, otherwise generate one
+      cartId: item._id || `${item.product._id}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`, 
       quantity: item.quantity,
       selectedFragrances: item.selected_fragrances,
       customMessage: item.custom_message
@@ -55,7 +56,6 @@ export function CartProvider({ children }: { children: ReactNode }) {
     isSyncing.current = true; 
     const token = localStorage.getItem('token');
     
-    // Load local cart strictly for merging purposes
     const savedCartStr = localStorage.getItem('thebottlestories_cart');
     let localCart: CartItem[] = savedCartStr ? JSON.parse(savedCartStr) : [];
 
@@ -87,35 +87,25 @@ export function CartProvider({ children }: { children: ReactNode }) {
   // --- 1. INITIALIZE & CHECK FOR SOCIAL LOGIN TOKEN ---
   useEffect(() => {
     const initialize = async () => {
-      // A. Check for Direct Cart
       const savedDirectCartStr = localStorage.getItem('thebottlestories_direct');
       if (savedDirectCartStr) {
           try { setDirectCart(JSON.parse(savedDirectCartStr)); } catch (e) { console.error(e); }
       }
 
-      // B. SOCIAL LOGIN HANDLER (New Logic)
-      // Check if we just came back from Google with a token in URL
       if (typeof window !== 'undefined') {
         const params = new URLSearchParams(window.location.search);
         const urlToken = params.get('token');
-        const urlUser = params.get('user'); // Optional: if backend sends user string
+        const urlUser = params.get('user');
 
         if (urlToken) {
-           console.log("Social Login Detected: Syncing...");
-           // 1. Save Token
            localStorage.setItem('token', urlToken);
            if (urlUser) localStorage.setItem('user', urlUser);
-
-           // 2. Clean URL (Remove token from address bar for security/cleanliness)
            window.history.replaceState({}, document.title, window.location.pathname);
-           
-           // 3. Force Sync Immediately
            await syncCart();
-           return; // Sync is done, exit
+           return;
         }
       }
 
-      // C. Normal Load (If no social login happened)
       syncCart();
     };
 
@@ -140,29 +130,24 @@ export function CartProvider({ children }: { children: ReactNode }) {
   }, [cart, directCart, isInitialized]);
 
   // --- Actions ---
+
+  // *** UPDATED ADD TO CART LOGIC ***
   const addToCart = (product: Product, quantity: number = 1, options: { fragrances?: string[], message?: string } = {}) => {
     setCart((prev) => {
-      const existingIndex = prev.findIndex((item) => {
-        const isSameProduct = item._id === product._id;
-        const currentFragrances = JSON.stringify(item.selectedFragrances?.sort() || []);
-        const newFragrances = JSON.stringify(options.fragrances?.sort() || []);
-        return isSameProduct && currentFragrances === newFragrances;
-      });
+      // 1. Generate a strictly unique ID. 
+      // We add Math.random() to ensure even fast clicks generate unique IDs.
+      const uniqueCartId = `${product._id}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
-      if (existingIndex > -1) {
-        const newCart = [...prev];
-        newCart[existingIndex].quantity += quantity;
-        return newCart;
-      }
-
+      // 2. Create the new item
       const newItem: CartItem = {
         ...product,
-        cartId: `${product._id}-${Date.now()}`,
-        quantity,
+        cartId: uniqueCartId,
+        quantity, // This takes the quantity selected on the product page (e.g., 1)
         selectedFragrances: options.fragrances || [],
         customMessage: options.message || ''
       };
 
+      // 3. Always append the new item, never merge.
       return [...prev, newItem];
     });
   };
