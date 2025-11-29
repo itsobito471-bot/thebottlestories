@@ -58,6 +58,8 @@ export default function Navbar() {
   const handleLogout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
+    localStorage.removeItem('thebottlestories_cart');
+    localStorage.removeItem('thebottlestories_direct');
     setUser(null);
     router.push('/login');
     router.refresh();
