@@ -191,7 +191,7 @@ export default function AuthPage() {
   } as const;
 
   return (
-    <div className="min-h-screen flex flex-col lg:flex-row bg-white text-[#1C1C1C]">
+    <div className="min-h-screen flex flex-col lg:flex-row relative">
       
       {/* --- Alert Dialog Component --- */}
       <AlertDialog open={alertState.isOpen} onOpenChange={(isOpen) => !isOpen && setAlertState(prev => ({ ...prev, isOpen: false }))}>
@@ -228,17 +228,32 @@ export default function AuthPage() {
         </AlertDialogContent>
       </AlertDialog>
 
+      {/* --- MOBILE BACKGROUND IMAGE (Only visible on mobile/tablet) --- */}
+      <div className="absolute inset-0 z-0 lg:hidden">
+        <Image
+          src="https://images.unsplash.com/photo-1585386959984-a4155224a1ad?w=800&q=80"
+          alt="Luxury perfume background"
+          fill
+          className="object-cover"
+        />
+        {/* Dark Overlay for readability on mobile */}
+        <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px]" />
+      </div>
+
       {/* --- Left Side - Login/Register Form --- */}
-      <div className="w-full lg:w-1/2 flex items-center justify-center p-6 sm:p-12 overflow-y-auto">
+      <div className="w-full lg:w-1/2 flex items-center justify-center p-4 sm:p-6 lg:p-12 relative z-10 min-h-screen lg:min-h-0 lg:bg-white">
         <motion.div
-          className="w-full max-w-md"
+          // Added styling here: 
+          // Mobile: White w/ opacity, rounded corners, shadow. 
+          // Desktop (lg): Pure white, no shadow, square corners (resetting mobile styles).
+          className="w-full max-w-md bg-white/95 backdrop-blur-sm lg:backdrop-blur-none lg:bg-transparent p-8 lg:p-0 rounded-3xl lg:rounded-none shadow-2xl lg:shadow-none"
           key={view} 
           variants={containerVariants}
           initial="hidden"
           animate="visible"
         >
           {/* Logo */}
-          <motion.div variants={formItemVariants}>
+          <motion.div variants={formItemVariants} className="flex justify-center lg:justify-start">
             <Image
               src="/logo.png" 
               alt="The Bottle Stories Logo"
@@ -249,8 +264,8 @@ export default function AuthPage() {
           </motion.div>
 
           {/* Header */}
-          <motion.div variants={formItemVariants} className="mb-8">
-            <h1 className="text-4xl font-serif font-bold text-gray-800 mb-2">
+          <motion.div variants={formItemVariants} className="mb-8 text-center lg:text-left">
+            <h1 className="text-3xl sm:text-4xl font-serif font-bold text-gray-800 mb-2">
               {view === 'login' ? 'Welcome Back' : 'Create an Account'}
             </h1>
             <p className="text-gray-600 text-lg">
@@ -281,7 +296,7 @@ export default function AuthPage() {
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     required
-                    className="w-full px-4 py-3 h-12 text-base border-gray-300 rounded-lg focus:ring-2 focus:ring-[#222222] focus:border-transparent outline-none transition-all"
+                    className="w-full px-4 py-3 h-12 text-base border-gray-300 rounded-lg focus:ring-2 focus:ring-[#222222] focus:border-transparent outline-none transition-all bg-white"
                     placeholder="Enter your full name"
                     disabled={isLoading}
                   />
@@ -299,7 +314,7 @@ export default function AuthPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                className="w-full px-4 py-3 h-12 text-base border-gray-300 rounded-lg focus:ring-2 focus:ring-[#222222] focus:border-transparent outline-none transition-all"
+                className="w-full px-4 py-3 h-12 text-base border-gray-300 rounded-lg focus:ring-2 focus:ring-[#222222] focus:border-transparent outline-none transition-all bg-white"
                 placeholder="Enter your email"
                 disabled={isLoading}
               />
@@ -315,7 +330,7 @@ export default function AuthPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
-                className="w-full px-4 py-3 h-12 text-base border-gray-300 rounded-lg focus:ring-2 focus:ring-[#222222] focus:border-transparent outline-none transition-all"
+                className="w-full px-4 py-3 h-12 text-base border-gray-300 rounded-lg focus:ring-2 focus:ring-[#222222] focus:border-transparent outline-none transition-all bg-white"
                 placeholder="Enter your password"
                 disabled={isLoading}
               />
@@ -367,7 +382,7 @@ export default function AuthPage() {
                 <div className="w-full border-t border-gray-300"></div>
               </div>
               <div className="relative flex justify-center text-sm">
-                <span className="px-4 bg-white text-gray-500">
+                <span className="px-4 bg-white/50 lg:bg-white text-gray-500">
                   Or {view === 'login' ? 'continue' : 'sign up'} with
                 </span>
               </div>
@@ -379,7 +394,7 @@ export default function AuthPage() {
                 variant="outline"
                 onClick={handleGoogleLogin}
                 disabled={isLoading || !!isSocialLoading}
-                className="w-full flex items-center justify-center px-4 py-3 h-12 text-base border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                className="w-full flex items-center justify-center px-4 py-3 h-12 text-base border-gray-300 rounded-lg hover:bg-gray-50 transition-colors bg-white"
               >
                 {isSocialLoading === 'google' ? (
                   <Loader2 className="w-5 h-5 animate-spin" />
@@ -395,7 +410,7 @@ export default function AuthPage() {
                 variant="outline"
                 onClick={handleFacebookLogin}
                 disabled={isLoading || !!isSocialLoading}
-                className="w-full flex items-center justify-center px-4 py-3 h-12 text-base border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                className="w-full flex items-center justify-center px-4 py-3 h-12 text-base border-gray-300 rounded-lg hover:bg-gray-50 transition-colors bg-white"
               >
                 {isSocialLoading === 'facebook' ? (
                   <Loader2 className="w-5 h-5 animate-spin" />
@@ -422,7 +437,7 @@ export default function AuthPage() {
         </motion.div>
       </div>
 
-      {/* --- Right Side - Image/Branding --- */}
+      {/* --- Right Side - Image/Branding (Desktop Only) --- */}
       <motion.div 
         className="hidden lg:flex flex-1 items-center justify-center p-12 relative overflow-hidden"
         variants={imageVariants}
