@@ -142,3 +142,26 @@ export interface OrdersResponse {
     pending: number;
   };
 }
+
+
+
+// Optional: Define the type here or import it if you have it elsewhere
+export interface StoreSettings {
+  contact_email: string;
+  contact_phone: string;
+  address: {
+    street: string;
+    city: string;
+    state: string;
+    zip: string;
+    country: string;
+  };
+}
+
+export interface EnquiryData {
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone: string;
+  message: string;
+}

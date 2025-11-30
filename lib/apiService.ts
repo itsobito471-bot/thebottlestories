@@ -163,6 +163,14 @@ function del<T>(endpoint: string) {
   });
 }
 
+
+function patch<T>(endpoint: string, data: any) {
+  return apiRequest<T>(endpoint, {
+    method: 'PATCH',
+    body: JSON.stringify(data),
+  });
+}
+
 function postFormData<T>(endpoint: string, data: FormData) {
   return apiFormRequest<T>(endpoint, data);
 }
@@ -172,5 +180,6 @@ export const api = {
   post,
   put,
   delete: del,
+  patch,
   postFormData,
 };

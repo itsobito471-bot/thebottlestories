@@ -12,7 +12,9 @@ import {
   Tag, 
   PaginatedResponse, 
   PaginatedProductResponse, 
-  OrdersResponse 
+  OrdersResponse, 
+  StoreSettings,
+  EnquiryData
 } from './types';
 
 
@@ -227,4 +229,29 @@ export const saveCart = (items: CartItem[]) => {
 
 export const mergeCart = (localItems: CartItem[]) => {
   return api.post('/cart/merge', { localItems });
+};
+
+export const getStoreSettings = () => {
+  return api.get<StoreSettings>('/admin/settings');
+};
+
+export const updateStoreSettings = (settings: StoreSettings) => {
+  // We pass the settings object directly as the body because 
+  // the backend expects req.body.contact_email, etc.
+  return api.post('/admin/settings', settings);
+};
+
+
+// Add/Update this function
+export const getAdminEnquiries = (page: number = 1, limit: number = 10) => {
+  return api.get(`/admin/enquiries?page=${page}&limit=${limit}`);
+};
+
+// Ensure this exists from previous step
+export const markEnquiryAsRead = (id: string) => {
+  return api.patch(`/admin/enquiries/${id}/read`, {});
+};
+
+export const submitEnquiry = (data: EnquiryData) => {
+  return api.post('/enquiries', data);
 };

@@ -19,7 +19,9 @@ import {
   LayoutDashboard, 
   Menu, 
   Tag, 
-  Wind 
+  Wind ,
+  Settings,
+  FileQuestion
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -30,6 +32,8 @@ const navItems = [
   { href: '/admin/orders', label: 'Orders', icon: ShoppingCart },
   { href: '/admin/tags', label: 'Tags', icon: Tag },           // Added
   { href: '/admin/fragrances', label: 'Fragrances', icon: Wind }, // Added
+  { href: '/admin/settings', label: 'Settings', icon: Settings }, // Added
+  { href: '/admin/enquiries', label: 'Enquiries', icon: FileQuestion }, // Added
 ];
 
 export default function AdminNav() {
