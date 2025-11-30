@@ -5,23 +5,10 @@ import { motion, useInView } from 'framer-motion';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { 
-  ShoppingBag, 
-  Trash2, 
-  Plus, 
-  Minus, 
-  ArrowLeft, 
-  ArrowRight, 
-  CreditCard, 
-  Truck, 
-  Shield, 
-  Loader2,
-  AlertCircle,
-  CheckCircle2,
-  PenLine,
-  Sparkles
+  ShoppingBag, Trash2, Plus, Minus, ArrowLeft, ArrowRight, 
+  CreditCard, Truck, Shield, Loader2, AlertCircle, CheckCircle2, 
+  PenLine, Sparkles
 } from 'lucide-react';
-
-// --- Imports from your project ---
 import { Button } from '@/components/ui/button';
 import { useCart } from '../app/context/CartContext'; 
 import { api } from '@/lib/apiService'; 
@@ -37,70 +24,32 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
-// Define interface for local customizations
-interface ItemCustomization {
-  selectedFragrance: string; // Storing single ID for dropdown
-  customMessage: string;
-}
-
 export default function CartPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const isBuyNow = searchParams.get('buy_now') === 'true';
   
   const ref = useRef(null);
-  const isInView = useInView(ref, { once: true, margin: "-100px" });
   
-  // Use global cart state
   const { 
     cart, 
     directCart,
     updateQuantity, 
+    updateItemMetaData, // Use the new function
     removeFromCart, 
     clearCart, 
     clearDirectCart,
     startDirectCheckout 
   } = useCart();
 
-  // 1. Determine which items to show
   const activeItems = isBuyNow ? directCart : cart;
-
-  // 2. Calculate total based on ACTIVE items
   const activeSubtotal = activeItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
   const shippingCost = activeSubtotal > 3000 ? 0 : 0; 
   const finalTotal = activeSubtotal + shippingCost;
 
-  // Local state for checkout flow
   const [showCheckout, setShowCheckout] = useState(false);
   const [isPlacingOrder, setIsPlacingOrder] = useState(false);
-
-  // --- NEW: Local State for Customizations (Fragrance & Message) ---
-  const [customizations, setCustomizations] = useState<Record<string, ItemCustomization>>({});
-
-  // Initialize customizations when items load
-  useEffect(() => {
-    const initialCustoms: Record<string, ItemCustomization> = {};
-    activeItems.forEach(item => {
-      // Check if we already have a customization state for this item, if not, create default
-      if (!customizations[item.cartId]) {
-        // Default fragrance: First available one's ID, or empty
-        const defaultFrag = (item.available_fragrances && item.available_fragrances.length > 0) 
-          ? (typeof item.available_fragrances[0] === 'object' ? item.available_fragrances[0]._id : item.available_fragrances[0]) 
-          : '';
-          
-        initialCustoms[item.cartId] = {
-          selectedFragrance: defaultFrag,
-          customMessage: ''
-        };
-      }
-    });
-    // Only update if we have new items to add to state
-    if (Object.keys(initialCustoms).length > 0) {
-      setCustomizations(prev => ({ ...prev, ...initialCustoms }));
-    }
-  }, [activeItems.length, isBuyNow]); // Depend on list length
   
-  // Alert Dialog State
   const [alertState, setAlertState] = useState<{
     isOpen: boolean;
     title: string;
@@ -118,19 +67,11 @@ export default function CartPage() {
     showCancel: false
   });
 
-  // Shipping Form State
   const [shippingInfo, setShippingInfo] = useState({
-    firstName: '',
-    lastName: '',
-    email: '',
-    phone: '',
-    address: '',
-    city: '',
-    state: '',
-    zip: ''
+    firstName: '', lastName: '', email: '', phone: '',
+    address: '', city: '', state: '', zip: ''
   });
 
-  // Helper to show alert
   const showAlert = (props: Partial<typeof alertState>) => {
     setAlertState({
       isOpen: true,
@@ -144,7 +85,6 @@ export default function CartPage() {
     });
   };
 
-  // 3. Auto-show checkout if Buy Now
   useEffect(() => {
     if (isBuyNow && activeItems.length > 0) {
       const token = localStorage.getItem('token');
@@ -168,32 +108,24 @@ export default function CartPage() {
     }
   }, [isBuyNow, activeItems.length, router]);
 
-  // --- Handlers ---
-
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setShippingInfo(prev => ({ ...prev, [name]: value }));
   };
 
-  // --- NEW: Handle Customization Changes ---
+  // --- UPDATED HANDLERS: Call Context Directly ---
+  
   const handleFragranceChange = (cartId: string, fragranceId: string) => {
-    setCustomizations(prev => ({
-      ...prev,
-      [cartId]: {
-        ...prev[cartId],
-        selectedFragrance: fragranceId
-      }
-    }));
+    // This updates the global state immediately, triggering the Context's auto-save effect
+    updateItemMetaData(cartId, { selectedFragrances: [fragranceId] });
   };
 
   const handleMessageChange = (cartId: string, message: string) => {
-    setCustomizations(prev => ({
-      ...prev,
-      [cartId]: {
-        ...prev[cartId],
-        customMessage: message
-      }
-    }));
+    // Updates global state. 
+    // Note: If you want to prevent API calls on every keystroke, you could add debouncing here,
+    // but React state updates are fast enough for UI. The Context API call will fire rapidly.
+    // If that's an issue, use onBlur on the input instead of onChange.
+    updateItemMetaData(cartId, { customMessage: message });
   };
 
   const handleRemoveItem = (cartId: string) => {
@@ -210,14 +142,6 @@ export default function CartPage() {
         } else {
             removeFromCart(cartId);
         }
-        
-        // Cleanup customization state
-        setCustomizations(prev => {
-          const newState = { ...prev };
-          delete newState[cartId];
-          return newState;
-        });
-
         setAlertState(prev => ({ ...prev, isOpen: false }));
       }
     });
@@ -268,20 +192,9 @@ export default function CartPage() {
     setIsPlacingOrder(true);
 
     try {
-      // --- MERGE CUSTOMIZATIONS INTO ITEMS ---
-      const itemsPayload = activeItems.map(item => {
-        const customData = customizations[item.cartId] || { selectedFragrance: '', customMessage: '' };
-        
-        return {
-          ...item,
-          // Backend expects array of IDs for fragrances
-          selectedFragrances: customData.selectedFragrance ? [customData.selectedFragrance] : [],
-          customMessage: customData.customMessage || ''
-        };
-      });
-
+      // Data is already in activeItems because we updated the context directly!
       await api.post('/orders', {
-        items: itemsPayload,
+        items: activeItems,
         shippingAddress: shippingInfo,
         totalAmount: finalTotal
       });
@@ -318,7 +231,6 @@ export default function CartPage() {
   return (
     <section ref={ref} className="pt-20 pb-24 px-4 bg-gradient-to-b from-[#F8F8F8] via-white to-[#F8F8F8] min-h-screen relative overflow-hidden">
       
-      {/* Alert Dialog Component */}
       <AlertDialog open={alertState.isOpen} onOpenChange={(isOpen) => !isOpen && setAlertState(prev => ({ ...prev, isOpen: false }))}>
         <AlertDialogContent className="rounded-2xl border border-slate-100 shadow-2xl">
           <AlertDialogHeader className="flex flex-col items-center text-center sm:text-center">
@@ -358,7 +270,6 @@ export default function CartPage() {
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Background Effects */}
       <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none">
         <div className="absolute top-10 right-0 w-[500px] h-[500px] bg-pink-100/30 rounded-full blur-3xl" />
         <div className="absolute bottom-10 left-0 w-[400px] h-[400px] bg-rose-100/30 rounded-full blur-3xl" />
@@ -366,7 +277,6 @@ export default function CartPage() {
 
       <div className="container mx-auto max-w-7xl relative z-10">
         
-        {/* Back Button */}
         <motion.div 
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
@@ -380,7 +290,6 @@ export default function CartPage() {
           </Link>
         </motion.div>
 
-        {/* Header */}
         <div className="text-center mb-12">
           <h1 className="text-4xl md:text-5xl font-bold text-[#222222] mb-4">
             {showCheckout ? 'Checkout' : (isBuyNow ? 'Direct Checkout' : 'Shopping Cart')}
@@ -391,7 +300,6 @@ export default function CartPage() {
         </div>
 
         {activeItems.length === 0 ? (
-          // Empty State
           <motion.div 
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -409,36 +317,40 @@ export default function CartPage() {
         ) : (
           <div className="grid lg:grid-cols-3 gap-8">
             
-            {/* Left Column: Cart Items OR Shipping Form */}
             <div className="lg:col-span-2">
               {!showCheckout ? (
-                // --- CART ITEMS VIEW ---
                 <motion.div 
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   className="space-y-4"
                 >
                   {activeItems.map((item) => {
-                    // Check if customizations are available
                     const hasFragrances = item.available_fragrances && item.available_fragrances.length > 0;
                     const hasCustomMsg = item.allow_custom_message;
 
+                    // Safely get the selected fragrance ID (it might be in array or string from API)
+                    const currentFragrance = item.selectedFragrances && item.selectedFragrances.length > 0 
+                      ? item.selectedFragrances[0] 
+                      : '';
+
                     return (
                       <div key={item.cartId} className="bg-white rounded-2xl p-4 flex gap-4 items-start shadow-sm border border-gray-100">
-                        {/* Image */}
                         <div className="w-24 h-24 bg-gray-50 rounded-xl overflow-hidden flex-shrink-0">
                           <img src={item.images[0]} alt={item.name} className="w-full h-full object-cover" />
                         </div>
                         
                         <div className="flex-1 min-w-0 flex flex-col h-full justify-between">
                           
-                          {/* Top Row: Name and Delete */}
                           <div className="flex justify-between items-start">
                             <div className="flex-1 pr-4">
                               <h3 className="font-bold text-lg text-gray-900 truncate">{item.name}</h3>
-                              {item.tag && <span className="text-xs bg-gray-100 px-2 py-1 rounded-full text-gray-600">{item.tag}</span>}
+                              {item.tags && item.tags.length > 0 && (
+                                 <span className="text-xs bg-gray-100 px-2 py-1 rounded-full text-gray-600">
+                                   {/* Handle both populated Tag object and ID string */}
+                                   {typeof item.tags[0] === 'object' ? item.tags[0].name : 'Tag'}
+                                 </span>
+                              )}
                               
-                              {/* --- FRAGRANCE SELECTOR --- */}
                               {hasFragrances && (
                                 <div className="mt-2">
                                   <label className="text-xs font-medium text-gray-500 flex items-center gap-1 mb-1">
@@ -446,7 +358,7 @@ export default function CartPage() {
                                   </label>
                                   <select 
                                     className="w-full sm:w-64 text-sm bg-white border border-gray-200 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-slate-900/10 cursor-pointer"
-                                    value={customizations[item.cartId]?.selectedFragrance || ''}
+                                    value={currentFragrance}
                                     onChange={(e) => handleFragranceChange(item.cartId, e.target.value)}
                                   >
                                     <option value="" disabled>Choose a scent...</option>
@@ -459,7 +371,6 @@ export default function CartPage() {
                                 </div>
                               )}
 
-                              {/* --- CUSTOM MESSAGE INPUT --- */}
                               {hasCustomMsg && (
                                 <div className="mt-3">
                                   <label className="text-xs font-medium text-gray-500 flex items-center gap-1 mb-1">
@@ -468,7 +379,9 @@ export default function CartPage() {
                                   <Input 
                                     className="h-9 text-sm w-full sm:w-64 bg-slate-50 border-slate-200"
                                     placeholder="Add a note (optional)..."
-                                    value={customizations[item.cartId]?.customMessage || ''}
+                                    // Use 'onBlur' for saving to context if you want to avoid too many writes, 
+                                    // or onChange for instant updates. Here using onChange for responsiveness.
+                                    value={item.customMessage || ''}
                                     onChange={(e) => handleMessageChange(item.cartId, e.target.value)}
                                     maxLength={150}
                                   />
@@ -484,7 +397,6 @@ export default function CartPage() {
                             </button>
                           </div>
 
-                          {/* Bottom Row: Quantity and Price */}
                           <div className="flex justify-between items-end mt-4">
                             <div className="flex items-center border border-gray-200 rounded-lg">
                               <button 
@@ -512,7 +424,6 @@ export default function CartPage() {
                   })}
                 </motion.div>
               ) : (
-                // --- CHECKOUT FORM VIEW ---
                 <motion.div 
                   initial={{ opacity: 0, x: 20 }}
                   animate={{ opacity: 1, x: 0 }}
@@ -576,7 +487,6 @@ export default function CartPage() {
               )}
             </div>
 
-            {/* Right Column: Order Summary */}
             <div className="lg:col-span-1">
               <div className="bg-white rounded-3xl p-6 shadow-xl border border-gray-100 sticky top-24">
                 <h3 className="text-xl font-bold mb-6">Order Summary</h3>

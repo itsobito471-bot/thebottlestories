@@ -18,6 +18,8 @@ interface CartContextType {
   addToCart: (product: Product, quantity?: number, options?: { fragrances?: string[], message?: string }) => void;
   removeFromCart: (cartId: string) => void;
   updateQuantity: (cartId: string, change: number) => void;
+  // --- NEW: Function to update metadata (fragrance/message) ---
+  updateItemMetaData: (cartId: string, updates: { selectedFragrances?: string[], customMessage?: string }) => void;
   clearCart: () => void;
   startDirectCheckout: (items: CartItem[]) => void;
   clearDirectCart: () => void;
@@ -34,14 +36,11 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const [isInitialized, setIsInitialized] = useState(false);
   const router = useRouter();
   
-  // Ref to prevent auto-save loops
   const isSyncing = useRef(false);
 
-  // --- Helpers ---
   const formatBackendItems = (backendItems: any[]): CartItem[] => {
     return backendItems.map((item: any) => ({
       ...item.product, 
-      // If backend provides an _id for the cart item, use it, otherwise generate one
       cartId: item._id || `${item.product._id}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`, 
       quantity: item.quantity,
       selectedFragrances: item.selected_fragrances,
@@ -49,7 +48,6 @@ export function CartProvider({ children }: { children: ReactNode }) {
     }));
   };
 
-  // --- SYNC FUNCTION ---
   const syncCart = useCallback(async () => {
     if (typeof window === 'undefined') return;
     
@@ -61,7 +59,6 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
     try {
       if (token) {
-        // --- LOGGED IN USER ---
         if (localCart.length > 0) {
           console.log("Merging local cart with DB...");
           const mergedItems = await mergeCart(localCart);
@@ -73,7 +70,6 @@ export function CartProvider({ children }: { children: ReactNode }) {
           setCart(formatBackendItems(dbItems as any[]));
         }
       } else {
-        // --- GUEST ---
         setCart(localCart);
       }
     } catch (e) {
@@ -84,7 +80,6 @@ export function CartProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  // --- 1. INITIALIZE & CHECK FOR SOCIAL LOGIN TOKEN ---
   useEffect(() => {
     const initialize = async () => {
       const savedDirectCartStr = localStorage.getItem('thebottlestories_direct');
@@ -112,13 +107,15 @@ export function CartProvider({ children }: { children: ReactNode }) {
     initialize();
   }, [syncCart]);
 
-  // --- 2. AUTO-SAVE ---
+  // --- AUTO-SAVE EFFECT ---
+  // This watches 'cart'. Any update via updateItemMetaData triggers this.
   useEffect(() => {
     if (isInitialized && !isSyncing.current) {
       const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
       
       if (token) {
         if (cart.length > 0 || isInitialized) { 
+           // Debouncing could be added inside saveCart if needed, but usually this is fine
            saveCart(cart).catch(err => console.error("Auto-save failed", err));
         }
       } else {
@@ -129,25 +126,18 @@ export function CartProvider({ children }: { children: ReactNode }) {
     }
   }, [cart, directCart, isInitialized]);
 
-  // --- Actions ---
+  // --- ACTIONS ---
 
-  // *** UPDATED ADD TO CART LOGIC ***
   const addToCart = (product: Product, quantity: number = 1, options: { fragrances?: string[], message?: string } = {}) => {
     setCart((prev) => {
-      // 1. Generate a strictly unique ID. 
-      // We add Math.random() to ensure even fast clicks generate unique IDs.
       const uniqueCartId = `${product._id}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-
-      // 2. Create the new item
       const newItem: CartItem = {
         ...product,
         cartId: uniqueCartId,
-        quantity, // This takes the quantity selected on the product page (e.g., 1)
+        quantity, 
         selectedFragrances: options.fragrances || [],
         customMessage: options.message || ''
       };
-
-      // 3. Always append the new item, never merge.
       return [...prev, newItem];
     });
   };
@@ -168,6 +158,20 @@ export function CartProvider({ children }: { children: ReactNode }) {
     );
   };
 
+  // --- NEW: Update Metadata (Fragrance/Message) ---
+  const updateItemMetaData = (cartId: string, updates: { selectedFragrances?: string[], customMessage?: string }) => {
+    // We update both cart and directCart to ensure UI consistency regardless of mode
+    const updater = (prev: CartItem[]) => prev.map((item) => {
+      if (item.cartId === cartId) {
+        return { ...item, ...updates };
+      }
+      return item;
+    });
+
+    setCart(updater);
+    setDirectCart(updater);
+  };
+
   const clearCart = () => {
     setCart([]);
     localStorage.removeItem('thebottlestories_cart');
@@ -186,7 +190,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
   return (
     <CartContext.Provider value={{ 
       cart, directCart, 
-      addToCart, removeFromCart, updateQuantity, clearCart, 
+      addToCart, removeFromCart, updateQuantity, updateItemMetaData, clearCart, 
       startDirectCheckout, clearDirectCart, 
       syncCart, 
       cartTotal, cartCount 
