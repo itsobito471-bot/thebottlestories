@@ -20,7 +20,7 @@ const defaultProducts: Product[] = [
     description: "A sophisticated collection of evening fragrances with luxury packaging", 
     price: 199, 
     images: ["https://images.unsplash.com/photo-1541643600914-78b084683601?w=800&q=80"], 
-    tag: "Best Seller",
+    tag: ["luxury", "evening"],
     stock_quantity: 10,
     is_active: true,
     created_at: new Date().toISOString(),
@@ -256,7 +256,7 @@ export default function Products() {
                                 transition={{ duration: 0.5, delay: 0.3 + index * 0.1 }}
                                 className="px-4 py-2 bg-white/70 backdrop-blur-sm rounded-full text-sm font-semibold text-[#222222] shadow-md"
                               >
-                                {product.tag || 'New'}
+                                {product.tags?.[0]?.name || 'New'}
                               </motion.span>
                             </div>
                             <motion.div

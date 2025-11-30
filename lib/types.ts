@@ -45,10 +45,10 @@ export interface Product {
   features?: string[];
   
   // --- NEW FIELDS ---
-  tags?: string[]; // Array of Tag IDs
+  tags?: Tag[]; // Array of Tag IDs
   available_fragrances?: (string | Fragrance)[]; // Array of Fragrance IDs
   allow_custom_message?: boolean;
-  tag?: string; // Keep this for backward compatibility if needed, or remove
+  tag?: any[]; // Keep this for backward compatibility if needed, or remove
   // ------------------
 
   stock_quantity: number;

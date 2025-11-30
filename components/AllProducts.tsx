@@ -336,14 +336,14 @@ export default function AllProducts() {
                       />
                       <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
                       
-                      {product.tag && (
+                      {product.tags && (
                         <motion.div
                           initial={{ scale: 0, rotate: -45 }}
                           animate={{ scale: 1, rotate: 0 }}
                           transition={{ delay: 0.2 + (index % 10) * 0.05 }}
                           className="absolute top-4 right-4 px-3 sm:px-4 py-1.5 sm:py-2 bg-[#222222] text-white text-xs sm:text-sm font-bold rounded-full shadow-lg"
                         >
-                          {product.tag}
+                          {product.tags[0].name}
                         </motion.div>
                       )}
 
