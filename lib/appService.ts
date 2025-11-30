@@ -131,6 +131,7 @@ export const filterProducts = (params: FilterParams) => {
   const queryParams = new URLSearchParams();
   
   if (params.search) queryParams.append('search', params.search);
+  // We will now pass the Tag ID here
   if (params.tag) queryParams.append('tag', params.tag);
   if (params.minPrice) queryParams.append('minPrice', String(params.minPrice));
   if (params.maxPrice) queryParams.append('maxPrice', String(params.maxPrice));
@@ -141,7 +142,6 @@ export const filterProducts = (params: FilterParams) => {
 
   return api.get<FilterResponse>(`/products/filter?${queryParams.toString()}`);
 };
-
 export const getProductById = (id: string) => {
   return api.get<Product>(`/products/${id}`);
 };
@@ -254,4 +254,9 @@ export const markEnquiryAsRead = (id: string) => {
 
 export const submitEnquiry = (data: EnquiryData) => {
   return api.post('/enquiries', data);
+};
+
+
+export const getAllTags = () => {
+  return api.get<Tag[]>('/tags');
 };

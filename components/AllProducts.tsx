@@ -9,11 +9,9 @@ import { useRouter } from "next/navigation"
 import Swal from "sweetalert2" 
 
 // --- Imports from your project ---
-import { filterProducts } from "@/lib/appService"
-import { Product } from "@/lib/types"
+import { filterProducts, getAllTags } from "@/lib/appService"
+import { Product, Tag } from "@/lib/types"
 import { useCart } from "../app/context/CartContext" 
-
-const categories = ["All", "Evening", "Romance", "Business", "Celebration", "Travel", "Luxury"]
 
 const ProductSkeleton = () => (
   <div className="bg-white/70 backdrop-blur-xl rounded-2xl sm:rounded-3xl border border-white/40 shadow-xl overflow-hidden">
@@ -36,7 +34,11 @@ export default function AllProducts() {
 
   const [searchQuery, setSearchQuery] = useState("")
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("")
-  const [selectedCategory, setSelectedCategory] = useState("All")
+  
+  // --- Updated: State for Dynamic Tags ---
+  const [tags, setTags] = useState<Tag[]>([])
+  const [selectedTagId, setSelectedTagId] = useState<string>("all")
+  
   const [isFilterOpen, setIsFilterOpen] = useState(false)
   const [products, setProducts] = useState<Product[]>([])
   const [page, setPage] = useState(1)
@@ -45,6 +47,20 @@ export default function AllProducts() {
   const [isLoadingMore, setIsLoadingMore] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
+  // --- 1. Fetch Tags on Mount ---
+  useEffect(() => {
+    const fetchTags = async () => {
+      try {
+        const fetchedTags = await getAllTags();
+        setTags(fetchedTags);
+      } catch (err) {
+        console.error("Failed to load tags:", err);
+      }
+    };
+    fetchTags();
+  }, []);
+
+  // --- Debounce Search ---
   useEffect(() => {
     const handler = setTimeout(() => {
       setDebouncedSearchQuery(searchQuery)
@@ -52,19 +68,19 @@ export default function AllProducts() {
     return () => clearTimeout(handler)
   }, [searchQuery])
 
+  // --- Reset when Filters Change ---
   useEffect(() => {
     setProducts([])
     setPage(1)
     setHasMore(true)
     setError(null)
-  }, [debouncedSearchQuery, selectedCategory])
+  }, [debouncedSearchQuery, selectedTagId])
 
+  // --- Fetch Products ---
   useEffect(() => {
-    if (!hasMore) {
-      setIsLoading(false)
-      setIsLoadingMore(false)
-      return
-    }
+    // Guard: Prevent fetching if we've reached the end or haven't reset for new filters yet
+    // Note: We check if page > 1 to allow the initial load even if hasMore is potentially stale
+    if (!hasMore && page > 1) return;
 
     const fetchApiData = async () => {
       if (page === 1) setIsLoading(true)
@@ -72,7 +88,9 @@ export default function AllProducts() {
       setError(null)
 
       try {
-        const apiTag = selectedCategory === "All" ? undefined : selectedCategory
+        // Only send tag ID if it's not "all"
+        const apiTag = selectedTagId === "all" ? undefined : selectedTagId
+        
         const data = await filterProducts({
           search: debouncedSearchQuery,
           tag: apiTag,
@@ -80,8 +98,15 @@ export default function AllProducts() {
           limit: 10
         })
 
-        if (page === 1) setProducts(data.products)
-        else setProducts((prev) => [...prev, ...data.products])
+        if (page === 1) {
+          setProducts(data.products)
+        } else {
+          // Prevent duplicates
+          setProducts((prev) => {
+            const newIds = new Set(data.products.map(p => p._id));
+            return [...prev, ...data.products.filter(p => !newIds.has(p._id))];
+          })
+        }
         
         setHasMore(data.currentPage < data.totalPages)
       } catch (err) {
@@ -94,8 +119,9 @@ export default function AllProducts() {
     }
 
     fetchApiData()
-  }, [debouncedSearchQuery, selectedCategory, page, hasMore])
+  }, [debouncedSearchQuery, selectedTagId, page, hasMore])
 
+  // --- Infinite Scroll Observer ---
   const observer = useRef<IntersectionObserver>()
   const lastProductElementRef = useCallback((node: HTMLDivElement) => {
     if (isLoading || isLoadingMore) return
@@ -112,8 +138,8 @@ export default function AllProducts() {
   
   // --- Add to Cart Handler ---
   const handleAddToCart = (e: React.MouseEvent, product: Product) => {
-    e.preventDefault(); // Prevent Link navigation
-    e.stopPropagation(); // Stop bubbling
+    e.preventDefault(); 
+    e.stopPropagation(); 
     
     addToCart(product); 
 
@@ -135,9 +161,8 @@ export default function AllProducts() {
     })
   };
 
-  // --- Quick View Handler ---
   const handleQuickView = (e: React.MouseEvent, productId: string) => {
-    e.preventDefault(); // Prevent default Link behavior
+    e.preventDefault();
     e.stopPropagation();
     router.push(`/product/${productId}`);
   };
@@ -206,14 +231,14 @@ export default function AllProducts() {
                   placeholder="Search products, tags, or descriptions..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-12 sm:pl-16 pr-12 sm:pr-14 py-3 sm:py-4 lg:py-5 rounded-xl sm:rounded-2xl border-2 border-white/60 bg-white/80 backdrop-blur-sm text-[#222222] placeholder:text-[#444444] focus:outline-none focus:border-[#222222] transition-all duration-300 text-sm sm:text-base"
+                  className="w-full pl-12 sm:pl-16 pr-16 sm:pr-20 py-3 sm:py-4 lg:py-5 rounded-xl sm:rounded-2xl border-2 border-white/60 bg-white/80 backdrop-blur-sm text-[#222222] placeholder:text-[#444444] focus:outline-none focus:border-[#222222] transition-all duration-300 text-sm sm:text-base"
                 />
                 {searchQuery && (
                   <motion.button
                     initial={{ scale: 0 }}
                     animate={{ scale: 1 }}
                     onClick={() => setSearchQuery("")}
-                    className="absolute right-4 sm:right-6 top-1/2 -translate-y-1/2 w-8 h-8 sm:w-10 sm:h-10 bg-[#F2F2F2] hover:bg-[#DADADA] rounded-full flex items-center justify-center transition-all duration-300"
+                    className="absolute right-6 sm:right-8 top-1/2 -translate-y-1/2 w-8 h-8 sm:w-10 sm:h-10 bg-[#F2F2F2] hover:bg-[#DADADA] rounded-full flex items-center justify-center transition-all duration-300"
                   >
                     <X className="w-4 h-4 sm:w-5 sm:h-5 text-[#222222]" />
                   </motion.button>
@@ -233,19 +258,34 @@ export default function AllProducts() {
 
             <div className={`overflow-hidden lg:block ${isFilterOpen ? 'block' : 'hidden'}`}>
               <div className="flex flex-wrap gap-3 mt-6 pt-6 border-t border-white/40">
-                {categories.map((category) => (
+                {/* --- Static "All" Option --- */}
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => setSelectedTagId("all")}
+                  className={`px-4 sm:px-6 py-2 sm:py-3 rounded-full font-semibold transition-all duration-300 text-sm sm:text-base ${
+                    selectedTagId === "all"
+                      ? "bg-[#1C1C1C] text-white shadow-lg"
+                      : "bg-white/80 text-[#444444] hover:bg-white border border-white/60"
+                  }`}
+                >
+                  All
+                </motion.button>
+
+                {/* --- Dynamic Tags --- */}
+                {tags.map((tag) => (
                   <motion.button
-                    key={category}
+                    key={tag._id}
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
-                    onClick={() => setSelectedCategory(category)}
+                    onClick={() => setSelectedTagId(tag._id)}
                     className={`px-4 sm:px-6 py-2 sm:py-3 rounded-full font-semibold transition-all duration-300 text-sm sm:text-base ${
-                      selectedCategory === category
+                      selectedTagId === tag._id
                         ? "bg-[#1C1C1C] text-white shadow-lg"
                         : "bg-white/80 text-[#444444] hover:bg-white border border-white/60"
                     }`}
                   >
-                    {category}
+                    {tag.name}
                   </motion.button>
                 ))}
               </div>
@@ -272,7 +312,7 @@ export default function AllProducts() {
         </motion.div>
 
         {/* Product Grid */}
-        {isLoading ? (
+        {isLoading && page === 1 ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8 lg:gap-10">
             {[...Array(6)].map((_, i) => <ProductSkeleton key={i} />)}
           </div>
@@ -303,7 +343,7 @@ export default function AllProducts() {
               <Button
                 onClick={() => {
                   setSearchQuery("")
-                  setSelectedCategory("All")
+                  setSelectedTagId("all")
                 }}
                 className="bg-[#1C1C1C] text-white hover:bg-[#222222] rounded-full px-6 sm:px-8 py-3 sm:py-4"
               >
@@ -336,18 +376,18 @@ export default function AllProducts() {
                       />
                       <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
                       
-                      {product.tags && (
+                      {product.tags && product.tags.length > 0 && (
                         <motion.div
                           initial={{ scale: 0, rotate: -45 }}
                           animate={{ scale: 1, rotate: 0 }}
                           transition={{ delay: 0.2 + (index % 10) * 0.05 }}
                           className="absolute top-4 right-4 px-3 sm:px-4 py-1.5 sm:py-2 bg-[#222222] text-white text-xs sm:text-sm font-bold rounded-full shadow-lg"
                         >
-                          {product.tags[0].name}
+                          {/* Access tag name safely since we populated it */}
+                          {typeof product.tags[0] === 'object' ? product.tags[0].name : 'Tag'}
                         </motion.div>
                       )}
 
-                      {/* --- RESTORED: QUICK VIEW BUTTON --- */}
                       <motion.div
                         initial={{ opacity: 0, y: 20 }}
                         whileHover={{ opacity: 1, y: 0 }}
@@ -361,7 +401,6 @@ export default function AllProducts() {
                           Quick View
                         </Button>
                       </motion.div>
-                      {/* --- END RESTORED BUTTON --- */}
 
                     </div>
 
@@ -386,7 +425,6 @@ export default function AllProducts() {
                           )}
                         </div>
 
-                        {/* Add to Cart Button */}
                         <motion.button
                           whileHover={{ scale: 1.1 }}
                           whileTap={{ scale: 0.9 }}
