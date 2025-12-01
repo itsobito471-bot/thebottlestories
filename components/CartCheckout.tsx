@@ -1,8 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { motion, useInView } from 'framer-motion';
-import Link from 'next/link';
+import { motion } from 'framer-motion';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { 
   ShoppingBag, Trash2, Plus, Minus, ArrowLeft, ArrowRight, 
@@ -35,10 +34,10 @@ export default function CartPage() {
     cart, 
     directCart,
     updateQuantity, 
-    updateItemMetaData, // Use the new function
+    updateItemMetaData,
     removeFromCart, 
     clearCart, 
-    clearDirectCart,
+    clearDirectCart, // Ensure this is available in context
     startDirectCheckout 
   } = useCart();
 
@@ -89,7 +88,6 @@ export default function CartPage() {
     if (isBuyNow && activeItems.length > 0) {
       const token = localStorage.getItem('token');
       if (token) {
-        setShowCheckout(true);
         const userStr = localStorage.getItem('user');
         if (userStr) {
           try {
@@ -113,19 +111,21 @@ export default function CartPage() {
     setShippingInfo(prev => ({ ...prev, [name]: value }));
   };
 
-  // --- UPDATED HANDLERS: Call Context Directly ---
-  
+  const handleMessageChange = (cartId: string, message: string) => {
+    updateItemMetaData(cartId, { customMessage: message });
+  };
+
   const handleFragranceChange = (cartId: string, fragranceId: string) => {
-    // This updates the global state immediately, triggering the Context's auto-save effect
     updateItemMetaData(cartId, { selectedFragrances: [fragranceId] });
   };
 
-  const handleMessageChange = (cartId: string, message: string) => {
-    // Updates global state. 
-    // Note: If you want to prevent API calls on every keystroke, you could add debouncing here,
-    // but React state updates are fast enough for UI. The Context API call will fire rapidly.
-    // If that's an issue, use onBlur on the input instead of onChange.
-    updateItemMetaData(cartId, { customMessage: message });
+  // --- NEW: Handle "Back" / "Continue Shopping" Logic ---
+  const handleExit = () => {
+    if (isBuyNow) {
+      // If leaving a Buy Now session, clear the temporary items
+      clearDirectCart();
+    }
+    router.push('/products');
   };
 
   const handleRemoveItem = (cartId: string) => {
@@ -139,6 +139,8 @@ export default function CartPage() {
         if (isBuyNow) {
             const updatedDirectItems = directCart.filter(item => item.cartId !== cartId);
             startDirectCheckout(updatedDirectItems);
+            // If direct cart becomes empty after removal, consider redirecting?
+            // For now, let it show empty state so user knows.
         } else {
             removeFromCart(cartId);
         }
@@ -164,7 +166,7 @@ export default function CartPage() {
     setShowCheckout(true);
     
     const userStr = localStorage.getItem('user');
-    if (userStr) {
+    if (userStr && !shippingInfo.email) {
       try {
         const user = JSON.parse(userStr);
         setShippingInfo(prev => ({
@@ -192,7 +194,6 @@ export default function CartPage() {
     setIsPlacingOrder(true);
 
     try {
-      // Data is already in activeItems because we updated the context directly!
       await api.post('/orders', {
         items: activeItems,
         shippingAddress: shippingInfo,
@@ -277,17 +278,20 @@ export default function CartPage() {
 
       <div className="container mx-auto max-w-7xl relative z-10">
         
+        {/* --- UPDATED BACK BUTTON --- */}
         <motion.div 
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
           className="mb-8"
         >
-          <Link href="/products">
-            <Button variant="outline" className="rounded-full border-slate-200 hover:bg-white">
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              Continue Shopping
-            </Button>
-          </Link>
+          <Button 
+            variant="outline" 
+            onClick={handleExit}
+            className="rounded-full border-slate-200 hover:bg-white"
+          >
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Continue Shopping
+          </Button>
         </motion.div>
 
         <div className="text-center mb-12">
@@ -308,11 +312,10 @@ export default function CartPage() {
             <ShoppingBag className="w-16 h-16 text-gray-300 mx-auto mb-6" />
             <h2 className="text-2xl font-bold text-gray-800 mb-2">Your cart is empty</h2>
             <p className="text-gray-500 mb-8">Looks like you haven't added anything yet.</p>
-            <Link href="/products">
-              <Button size="lg" className="bg-[#1C1C1C] hover:bg-gray-800 text-white rounded-full px-8">
-                Start Shopping
-              </Button>
-            </Link>
+            {/* Exit button for empty state as well */}
+            <Button size="lg" onClick={handleExit} className="bg-[#1C1C1C] hover:bg-gray-800 text-white rounded-full px-8">
+              Start Shopping
+            </Button>
           </motion.div>
         ) : (
           <div className="grid lg:grid-cols-3 gap-8">
@@ -328,10 +331,10 @@ export default function CartPage() {
                     const hasFragrances = item.available_fragrances && item.available_fragrances.length > 0;
                     const hasCustomMsg = item.allow_custom_message;
 
-                    // Safely get the selected fragrance ID (it might be in array or string from API)
-                    const currentFragrance = item.selectedFragrances && item.selectedFragrances.length > 0 
-                      ? item.selectedFragrances[0] 
-                      : '';
+                    // Get currently selected ID
+                    const currentFragranceId = item.selectedFragrances && item.selectedFragrances.length > 0
+                        ? item.selectedFragrances[0]
+                        : "";
 
                     return (
                       <div key={item.cartId} className="bg-white rounded-2xl p-4 flex gap-4 items-start shadow-sm border border-gray-100">
@@ -351,22 +354,27 @@ export default function CartPage() {
                                  </span>
                               )}
                               
+                              {/* --- Single Select Dropdown --- */}
                               {hasFragrances && (
                                 <div className="mt-2">
                                   <label className="text-xs font-medium text-gray-500 flex items-center gap-1 mb-1">
-                                    <Sparkles className="w-3 h-3" /> Select Fragrance:
+                                    <Sparkles className="w-3 h-3" /> Selected Scent:
                                   </label>
-                                  <select 
+                                  <select
                                     className="w-full sm:w-64 text-sm bg-white border border-gray-200 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-slate-900/10 cursor-pointer"
-                                    value={currentFragrance}
+                                    value={currentFragranceId}
                                     onChange={(e) => handleFragranceChange(item.cartId, e.target.value)}
                                   >
-                                    <option value="" disabled>Choose a scent...</option>
-                                    {(item.available_fragrances || []).map((frag: any) => (
-                                      <option key={typeof frag === 'object' ? frag._id : frag} value={typeof frag === 'object' ? frag._id : frag}>
-                                        {typeof frag === 'object' ? frag.name : 'Unknown Fragrance'}
-                                      </option>
-                                    ))}
+                                    <option value="" disabled>Select Scent</option>
+                                    {item.available_fragrances?.map((frag: any) => {
+                                      const fragId = typeof frag === 'object' ? frag._id : frag;
+                                      const fragName = typeof frag === 'object' ? frag.name : 'Unknown Scent';
+                                      return (
+                                        <option key={fragId} value={fragId}>
+                                          {fragName}
+                                        </option>
+                                      );
+                                    })}
                                   </select>
                                 </div>
                               )}
@@ -379,8 +387,6 @@ export default function CartPage() {
                                   <Input 
                                     className="h-9 text-sm w-full sm:w-64 bg-slate-50 border-slate-200"
                                     placeholder="Add a note (optional)..."
-                                    // Use 'onBlur' for saving to context if you want to avoid too many writes, 
-                                    // or onChange for instant updates. Here using onChange for responsiveness.
                                     value={item.customMessage || ''}
                                     onChange={(e) => handleMessageChange(item.cartId, e.target.value)}
                                     maxLength={150}

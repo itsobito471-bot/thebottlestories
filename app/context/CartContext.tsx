@@ -16,9 +16,10 @@ interface CartContextType {
   cart: CartItem[];
   directCart: CartItem[];
   addToCart: (product: Product, quantity?: number, options?: { fragrances?: string[], message?: string }) => void;
+  // --- FIX: Added addToDirectCart to type definition ---
+  addToDirectCart: (product: Product, quantity?: number, options?: { fragrances?: string[], message?: string }) => void;
   removeFromCart: (cartId: string) => void;
   updateQuantity: (cartId: string, change: number) => void;
-  // --- NEW: Function to update metadata (fragrance/message) ---
   updateItemMetaData: (cartId: string, updates: { selectedFragrances?: string[], customMessage?: string }) => void;
   clearCart: () => void;
   startDirectCheckout: (items: CartItem[]) => void;
@@ -35,7 +36,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const [directCart, setDirectCart] = useState<CartItem[]>([]);
   const [isInitialized, setIsInitialized] = useState(false);
   const router = useRouter();
-  
+   
   const isSyncing = useRef(false);
 
   const formatBackendItems = (backendItems: any[]): CartItem[] => {
@@ -108,20 +109,19 @@ export function CartProvider({ children }: { children: ReactNode }) {
   }, [syncCart]);
 
   // --- AUTO-SAVE EFFECT ---
-  // This watches 'cart'. Any update via updateItemMetaData triggers this.
   useEffect(() => {
     if (isInitialized && !isSyncing.current) {
       const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
       
       if (token) {
         if (cart.length > 0 || isInitialized) { 
-           // Debouncing could be added inside saveCart if needed, but usually this is fine
            saveCart(cart).catch(err => console.error("Auto-save failed", err));
         }
       } else {
         localStorage.setItem('thebottlestories_cart', JSON.stringify(cart));
       }
 
+      // Save direct cart to local storage so it persists across the redirect
       localStorage.setItem('thebottlestories_direct', JSON.stringify(directCart));
     }
   }, [cart, directCart, isInitialized]);
@@ -142,25 +142,41 @@ export function CartProvider({ children }: { children: ReactNode }) {
     });
   };
 
+  // --- FIX: ADDED addToDirectCart ---
+  const addToDirectCart = (product: Product, quantity: number = 1, options: { fragrances?: string[], message?: string } = {}) => {
+    setDirectCart((prev) => {
+      const uniqueCartId = `${product._id}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+      const newItem: CartItem = {
+        ...product,
+        cartId: uniqueCartId,
+        quantity, 
+        selectedFragrances: options.fragrances || [],
+        customMessage: options.message || ''
+      };
+      // We append to allow multiple distinct items (different scents)
+      return [...prev, newItem];
+    });
+  };
+
   const removeFromCart = (cartId: string) => {
     setCart((prev) => prev.filter((item) => item.cartId !== cartId));
   };
 
   const updateQuantity = (cartId: string, change: number) => {
-    setCart((prev) =>
-      prev.map((item) => {
+    // Helper to update distinct list
+    const updater = (list: CartItem[]) => list.map((item) => {
         if (item.cartId === cartId) {
           const newQuantity = Math.max(1, item.quantity + change);
           return { ...item, quantity: newQuantity };
         }
         return item;
-      })
-    );
+    });
+
+    setCart(prev => updater(prev));
+    setDirectCart(prev => updater(prev));
   };
 
-  // --- NEW: Update Metadata (Fragrance/Message) ---
   const updateItemMetaData = (cartId: string, updates: { selectedFragrances?: string[], customMessage?: string }) => {
-    // We update both cart and directCart to ensure UI consistency regardless of mode
     const updater = (prev: CartItem[]) => prev.map((item) => {
       if (item.cartId === cartId) {
         return { ...item, ...updates };
@@ -190,7 +206,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
   return (
     <CartContext.Provider value={{ 
       cart, directCart, 
-      addToCart, removeFromCart, updateQuantity, updateItemMetaData, clearCart, 
+      addToCart, addToDirectCart, removeFromCart, updateQuantity, updateItemMetaData, clearCart, 
       startDirectCheckout, clearDirectCart, 
       syncCart, 
       cartTotal, cartCount 
