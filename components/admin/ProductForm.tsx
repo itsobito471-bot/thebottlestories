@@ -274,7 +274,9 @@ export default function ProductForm({ product, open, onClose, onSuccess }: Produ
         stock_quantity: Number(formData.stock_quantity),
         features: formData.features.split('\n').filter(f => f.trim() !== ''),
         images: finalImageUrls,
-        tags: selectedTag ? [selectedTag] : [],
+        // --- FIX START: Cast string[] to Tag[] to satisfy interface ---
+        tags: (selectedTag ? [selectedTag] : []) as unknown as Tag[], 
+        // --- FIX END ---
         available_fragrances: selectedFragrances,
       };
 
