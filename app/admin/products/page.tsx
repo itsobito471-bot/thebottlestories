@@ -3,13 +3,14 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { getAdminProducts, deleteAdminProduct } from '@/lib/appService';
-import { Product, Tag } from '@/lib/types'; // Ensure Tag is imported if defined
+import { Product } from '@/lib/types';
 import AdminNav from '@/components/admin/AdminNav';
 import ProductForm from '@/components/admin/ProductForm';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Edit, Trash2, Package, ImageOff, Loader2, ChevronDown } from 'lucide-react';
+// --- ADDED: AlertCircle, CheckCircle2 ---
+import { Plus, Edit, Trash2, Package, ImageOff, Loader2, ChevronDown, AlertCircle, CheckCircle2 } from 'lucide-react';
 import {
   Carousel,
   CarouselContent,
@@ -27,7 +28,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import Swal from 'sweetalert2';
 import { motion } from 'framer-motion';
 import { Skeleton } from '@/components/ui/skeleton';
 
@@ -97,16 +97,26 @@ export default function AdminProducts() {
   const [deleteProduct, setDeleteProduct] = useState<Product | null>(null);
   const router = useRouter();
 
+  // --- Alert Result State ---
+  const [resultAlert, setResultAlert] = useState<{
+    isOpen: boolean;
+    title: string;
+    description: string;
+    type: 'success' | 'error';
+  }>({
+    isOpen: false,
+    title: '',
+    description: '',
+    type: 'success',
+  });
+
   useEffect(() => {
     loadInitialData();
   }, []);
 
   const loadInitialData = async () => {
     try {
-      // Fetch Page 1
       const res = await getAdminProducts(1, 10);
-      // Handle the response structure { data: [], hasMore: boolean ... }
-      // If your API returns just an array, adjust accordingly, but we updated it to return an object.
       setProducts(res.data || []);
       setHasMore(res.hasMore);
       setPage(1);
@@ -151,13 +161,31 @@ export default function AdminProducts() {
     if (!deleteProduct) return;
     try {
       await deleteAdminProduct(deleteProduct._id);
-      // Re-fetch fresh data to ensure list is correct
-      loadInitialData();
+      
       setDeleteProduct(null);
-      Swal.fire('Deleted!', 'The product has been deleted.', 'success');
+      
+      setResultAlert({
+        isOpen: true,
+        title: 'Deleted!',
+        description: 'The product has been successfully removed from inventory.',
+        type: 'success'
+      });
+      
+      loadInitialData();
+      
     } catch (error: any) {
       console.error('Error deleting product:', error);
-      Swal.fire('Error', error.message || 'Failed to delete product.', 'error');
+      
+      setDeleteProduct(null);
+
+      const errorMessage = error.response?.data?.message || error.message || 'Failed to delete product.';
+
+      setResultAlert({
+        isOpen: true,
+        title: 'Cannot Delete Product',
+        description: errorMessage,
+        type: 'error'
+      });
     }
   };
 
@@ -238,11 +266,8 @@ export default function AdminProducts() {
                         </Carousel>
                       )}
 
-                      {/* Tag Badges (Multi-Tag Support) */}
+                      {/* Tag Badges */}
                       <div className="absolute top-3 right-3 flex flex-col gap-1 items-end">
-                        {/* product.tags is now an array of populated objects or IDs.
-                           We map them. We check type to be safe. 
-                        */}
                         {Array.isArray(product.tags) && product.tags.map((t: any, idx) => (
                           <Badge 
                             key={idx} 
@@ -354,11 +379,11 @@ export default function AdminProducts() {
         onClose={() => setShowForm(false)}
         onSuccess={() => {
           setShowForm(false);
-          // Refresh data from page 1
           loadInitialData();
         }}
       />
 
+      {/* --- 1. Delete Confirmation Dialog --- */}
       <AlertDialog open={!!deleteProduct} onOpenChange={() => setDeleteProduct(null)}>
          <AlertDialogContent>
           <AlertDialogHeader>
@@ -376,6 +401,43 @@ export default function AdminProducts() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* --- 2. Result (Success/Error) Dialog WITH ICONS --- */}
+      <AlertDialog open={resultAlert.isOpen} onOpenChange={(open) => {
+        if (!open) setResultAlert(prev => ({ ...prev, isOpen: false }));
+      }}>
+         <AlertDialogContent className="max-w-md text-center">
+          <AlertDialogHeader className="flex flex-col items-center gap-2">
+            
+            {/* ICON LOGIC */}
+            {resultAlert.type === 'success' ? (
+              <div className="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center mb-2">
+                <CheckCircle2 className="w-6 h-6 text-green-600" />
+              </div>
+            ) : (
+              <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center mb-2">
+                <AlertCircle className="w-6 h-6 text-red-600" />
+              </div>
+            )}
+
+            <AlertDialogTitle className={`text-xl ${resultAlert.type === 'error' ? 'text-red-600' : 'text-slate-900'}`}>
+              {resultAlert.title}
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-center text-slate-600">
+              {resultAlert.description}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="sm:justify-center">
+            <AlertDialogAction 
+              onClick={() => setResultAlert(prev => ({ ...prev, isOpen: false }))}
+              className={`w-full sm:w-auto ${resultAlert.type === 'error' ? 'bg-red-600 hover:bg-red-700' : 'bg-slate-900'}`}
+            >
+              {resultAlert.type === 'error' ? 'Close' : 'Continue'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
     </div>
   );
 }

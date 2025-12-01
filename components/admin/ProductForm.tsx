@@ -29,7 +29,8 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
-import { Upload, Loader2, X as XIcon, Check, ChevronDown } from 'lucide-react';
+// --- ADDED: AlertCircle, CheckCircle2 ---
+import { Loader2, X as XIcon, Check, ChevronDown, AlertCircle, CheckCircle2 } from 'lucide-react';
 
 interface ProductFormProps {
   product?: Product;
@@ -76,7 +77,7 @@ export default function ProductForm({ product, open, onClose, onSuccess }: Produ
   const [loadingMoreFragrances, setLoadingMoreFragrances] = useState(false);
   const [error, setError] = useState('');
 
-  // --- Alert Dialog State (Replaces SweetAlert) ---
+  // --- Alert Dialog State ---
   const [alertState, setAlertState] = useState<{
     isOpen: boolean;
     title: string;
@@ -112,8 +113,15 @@ export default function ProductForm({ product, open, onClose, onSuccess }: Produ
       setAvailableFragrances(fragrancesRes.data || []);
       setFragrancesHasMore(fragrancesRes.hasMore);
 
-    } catch (err) {
+    } catch (err: any) {
       console.error("Failed to load tags/fragrances", err);
+      // Optional: Trigger alert on load failure too if desired
+      setAlertState({
+        isOpen: true,
+        title: 'Error Loading Data',
+        description: 'Failed to load tags or fragrances. Please try refreshing.',
+        type: 'error'
+      });
     } finally {
       setLoadingData(false);
     }
@@ -152,7 +160,7 @@ export default function ProductForm({ product, open, onClose, onSuccess }: Produ
     }
   };
 
-  // --- 2. Populate Form (FIXED for Object/String Mismatch) ---
+  // --- 2. Populate Form ---
   useEffect(() => {
     if (open) {
       if (product) {
@@ -274,9 +282,10 @@ export default function ProductForm({ product, open, onClose, onSuccess }: Produ
         stock_quantity: Number(formData.stock_quantity),
         features: formData.features.split('\n').filter(f => f.trim() !== ''),
         images: finalImageUrls,
-        // --- FIX START: Cast string[] to Tag[] to satisfy interface ---
+        
+        // --- TYPE FIX ---
         tags: (selectedTag ? [selectedTag] : []) as unknown as Tag[], 
-        // --- FIX END ---
+        
         available_fragrances: selectedFragrances,
       };
 
@@ -297,6 +306,7 @@ export default function ProductForm({ product, open, onClose, onSuccess }: Produ
 
     } catch (err: any) {
       console.error('Failed to save product:', err);
+      // We set the generic error for the form UI
       setError(err.message || 'Failed to save product.');
       
       // Open Error Alert
@@ -516,21 +526,37 @@ export default function ProductForm({ product, open, onClose, onSuccess }: Produ
         </DialogContent>
       </Dialog>
 
-      {/* --- Shadcn Alert Dialog (Replaces SweetAlert) --- */}
+      {/* --- Shadcn Alert Dialog (UPDATED WITH ICONS) --- */}
       <AlertDialog open={alertState.isOpen} onOpenChange={(open) => {
         if (!open) handleAlertClose();
       }}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle className={alertState.type === 'error' ? 'text-red-600' : 'text-green-600'}>
+        <AlertDialogContent className="max-w-md text-center">
+          <AlertDialogHeader className="flex flex-col items-center gap-2">
+             
+             {/* Icon Logic */}
+             {alertState.type === 'success' ? (
+              <div className="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center mb-2">
+                <CheckCircle2 className="w-6 h-6 text-green-600" />
+              </div>
+            ) : (
+              <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center mb-2">
+                <AlertCircle className="w-6 h-6 text-red-600" />
+              </div>
+            )}
+
+            <AlertDialogTitle className={`text-xl ${alertState.type === 'error' ? 'text-red-600' : 'text-slate-900'}`}>
               {alertState.title}
             </AlertDialogTitle>
-            <AlertDialogDescription>
+            <AlertDialogDescription className="text-center text-slate-600">
               {alertState.description}
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogAction onClick={handleAlertClose} className={alertState.type === 'error' ? 'bg-red-600 hover:bg-red-700' : ''}>
+
+          <AlertDialogFooter className="sm:justify-center">
+            <AlertDialogAction 
+              onClick={handleAlertClose} 
+              className={`w-full sm:w-auto ${alertState.type === 'error' ? 'bg-red-600 hover:bg-red-700' : 'bg-slate-900'}`}
+            >
               {alertState.type === 'success' ? 'Continue' : 'Close'}
             </AlertDialogAction>
           </AlertDialogFooter>
