@@ -11,7 +11,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { 
   Search, CheckCircle, XCircle, Clock, Truck, 
   MapPin, Package, Loader2, ChevronDown, Calendar, Mail, Phone, ArrowUpRight, User,
-  AlertTriangle, Ban, Filter, StickyNote // Added StickyNote here
+  AlertTriangle, Ban, Filter, StickyNote 
 } from 'lucide-react';
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { 
@@ -461,24 +461,30 @@ export default function AdminOrders() {
                         </Button>
                       ))}
                       <div className="flex-1"></div>
-                      <Button 
-                        variant="destructive" 
-                        size="sm"
-                        className="h-8 text-xs"
-                        onClick={() => initiateStatusUpdate(selectedOrder._id, 'cancelled')}
-                        disabled={updating}
-                      >
-                        Cancel Order
-                      </Button>
-                      <Button 
-                        variant="destructive" 
-                        size="sm"
-                        className="h-8 text-xs"
-                        onClick={() => initiateStatusUpdate(selectedOrder._id, 'rejected')}
-                        disabled={updating}
-                      >
-                        Reject
-                      </Button>
+                      
+                      {/* Only show Destructive actions if order is PENDING */}
+                      {selectedOrder.status === 'pending' && (
+                        <>
+                          <Button 
+                            variant="destructive" 
+                            size="sm"
+                            className="h-8 text-xs"
+                            onClick={() => initiateStatusUpdate(selectedOrder._id, 'cancelled')}
+                            disabled={updating}
+                          >
+                            Cancel Order
+                          </Button>
+                          <Button 
+                            variant="destructive" 
+                            size="sm"
+                            className="h-8 text-xs"
+                            onClick={() => initiateStatusUpdate(selectedOrder._id, 'rejected')}
+                            disabled={updating}
+                          >
+                            Reject
+                          </Button>
+                        </>
+                      )}
                    </div>
                 </div>
               ) : (
@@ -566,7 +572,7 @@ export default function AdminOrders() {
                                </div>
                            </div>
 
-                           {/* Custom Note Section - UPDATED TO SHOW TEXT */}
+                           {/* Custom Note Section */}
                            {item.custom_message && item.custom_message.trim() !== "" && (
                              <div className="bg-amber-50/50 border border-amber-100 rounded-lg p-3 flex gap-3 items-start w-full">
                                <StickyNote className="w-4 h-4 text-amber-500 mt-0.5 shrink-0" />
