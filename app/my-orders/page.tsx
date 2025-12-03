@@ -4,13 +4,13 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { getUserOrders } from '@/lib/appService';
 import { Order } from '@/lib/types';
-import { useCart, CartItem } from '../context/CartContext'; // Import CartItem type
+import { useCart, CartItem } from '../context/CartContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { 
-  ShoppingBag, Calendar, MapPin, ArrowRight, Package, 
-  Loader2, RotateCcw, CheckCircle, Clock, XCircle, Truck 
+  ShoppingBag, Calendar, MapPin, Package, 
+  Loader2, RotateCcw, CheckCircle, Clock, XCircle, Truck, StickyNote 
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { motion } from 'framer-motion';
@@ -30,34 +30,30 @@ export default function MyOrdersPage() {
   const fetchMyOrders = async () => {
     try {
       const res = await getUserOrders();
-      // The response structure from getUserOrders is { data: Order[], pagination: {...} }
-      // We need to extract the data array
       setOrders(res.data || []);
     } catch (error: any) {
       if (error.message?.includes('Session expired')) {
         router.push('/login');
       }
-      // Don't show alert if it's just empty
     } finally {
       setLoading(false);
     }
   };
 
   const handleOrderAgain = (order: Order) => {
-    // 1. Construct Cart Items from the Order
     const itemsToBuy: CartItem[] = order.items.map((item: any) => ({
-      ...item.product, // Spread product details (name, price, images)
-      cartId: `${item.product._id}-${Date.now()}-${Math.random()}`, // Generate new temp ID
+      ...item.product,
+      cartId: `${item.product._id}-${Date.now()}-${Math.random()}`,
       quantity: item.quantity,
-      selectedFragrances: item.selected_fragrances?.map((f: any) => f._id) || [], // Extract IDs
+      // FIX: Handle populated objects to get IDs for the cart
+      selectedFragrances: item.selected_fragrances?.map((f: any) => 
+        typeof f === 'string' ? f : f._id
+      ) || [],
       customMessage: item.custom_message || ''
     }));
 
     if (itemsToBuy.length > 0) {
-      // 2. Save to Direct Cart (Does not affect main cart)
       startDirectCheckout(itemsToBuy);
-
-      // 3. Redirect to Checkout with a flag
       router.push('/cart?buy_now=true');
     } else {
        Swal.fire('Error', 'Product data no longer available', 'error');
@@ -71,6 +67,7 @@ export default function MyOrdersPage() {
       shipped: "bg-purple-50 text-purple-700 border-purple-200",
       delivered: "bg-green-50 text-green-700 border-green-200",
       cancelled: "bg-red-50 text-red-700 border-red-200",
+      rejected: "bg-red-50 text-red-700 border-red-200",
     };
     
     const icons: Record<string, any> = {
@@ -78,6 +75,7 @@ export default function MyOrdersPage() {
       shipped: Truck,
       delivered: CheckCircle,
       cancelled: XCircle,
+      rejected: XCircle,
     };
     
     const Icon = icons[status] || Package;
@@ -138,6 +136,7 @@ export default function MyOrdersPage() {
                 transition={{ delay: index * 0.1 }}
               >
                 <Card className="overflow-hidden border-slate-200 shadow-sm hover:shadow-md transition-shadow bg-white">
+                  {/* Order Header */}
                   <div className="border-b border-slate-100 bg-slate-50/50 p-4 sm:p-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                     <div className="flex flex-col sm:flex-row gap-4 sm:gap-8">
                       <div>
@@ -168,9 +167,11 @@ export default function MyOrdersPage() {
                   </div>
 
                   <CardContent className="p-4 sm:p-6">
-                    <div className="space-y-4">
+                    <div className="space-y-6">
                       {order.items?.map((item: any, idx: number) => (
-                        <div key={idx} className="flex gap-4 items-center">
+                        <div key={idx} className="flex flex-col sm:flex-row gap-4 items-start border-b border-slate-50 last:border-0 pb-4 last:pb-0">
+                          
+                          {/* Image */}
                           <div className="w-20 h-20 bg-slate-100 rounded-lg overflow-hidden flex-shrink-0 border border-slate-200">
                              {item.product?.images?.[0] ? (
                                <img src={item.product.images[0]} alt={item.product.name} className="w-full h-full object-cover" />
@@ -178,17 +179,39 @@ export default function MyOrdersPage() {
                                <div className="w-full h-full flex items-center justify-center"><Package className="w-6 h-6 text-slate-300"/></div>
                              )}
                           </div>
-                          <div className="flex-1 min-w-0">
-                            <h4 className="font-bold text-slate-900 truncate">{item.product?.name || 'Product Unavailable'}</h4>
-                            <p className="text-sm text-slate-500 mt-1">Quantity: {item.quantity}</p>
-                            {item.selected_fragrances?.length > 0 && (
-                              <p className="text-xs text-slate-400 mt-1">
-                                Scents: {item.selected_fragrances.map((f: any) => f.name).join(', ')}
-                              </p>
+
+                          {/* Details */}
+                          <div className="flex-1 min-w-0 w-full">
+                            <div className="flex justify-between items-start">
+                              <div>
+                                <h4 className="font-bold text-slate-900 truncate">{item.product?.name || 'Product Unavailable'}</h4>
+                                <p className="text-sm text-slate-500 mt-1">Quantity: {item.quantity}</p>
+                              </div>
+                              <p className="font-medium text-slate-900">₹{item.price_at_purchase.toLocaleString()}</p>
+                            </div>
+
+                            {/* -- FIXED: Show Fragrance Name -- */}
+                            {item.selected_fragrances && item.selected_fragrances.length > 0 && (
+                              <div className="mt-2 flex flex-wrap gap-1">
+                                {item.selected_fragrances.map((f: any, i: number) => (
+                                  <span key={i} className="inline-flex text-[10px] uppercase font-semibold bg-slate-100 px-2 py-0.5 rounded text-slate-600 border border-slate-200">
+                                    {/* Simply access the name property */}
+                                    {f.name || 'Unknown Scent'}
+                                  </span>
+                                ))}
+                              </div>
                             )}
-                          </div>
-                          <div className="text-right">
-                             <p className="font-medium text-slate-900">₹{item.price_at_purchase.toLocaleString()}</p>
+
+                            {/* -- Custom Message -- */}
+                            {item.custom_message && (
+                                <div className="mt-3 bg-amber-50 rounded-lg p-3 flex gap-3 items-start border border-amber-100/50">
+                                    <StickyNote className="w-3.5 h-3.5 text-amber-500 mt-0.5 shrink-0" />
+                                    <div className="flex-1">
+                                        <p className="text-[10px] font-bold text-amber-600 uppercase tracking-wide mb-0.5">Note Attached</p>
+                                        <p className="text-xs text-slate-700 italic">"{item.custom_message}"</p>
+                                    </div>
+                                </div>
+                            )}
                           </div>
                         </div>
                       ))}
