@@ -7,7 +7,7 @@ import {
   updateUserProfileData, 
   addUserAddress, 
   deleteUserAddress,
-  uploadUserProfilePicture // Import this
+  uploadUserProfilePicture 
 } from '@/lib/appService';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -35,7 +35,7 @@ export default function UserSettings() {
   const [loading, setLoading] = useState(true);
   const [userData, setUserData] = useState<any>(null);
   const [addresses, setAddresses] = useState<any[]>([]);
-  const [uploading, setUploading] = useState(false); // New state for image upload
+  const [uploading, setUploading] = useState(false); 
   
   // --- Alert State ---
   const [alertState, setAlertState] = useState<{
@@ -76,7 +76,7 @@ export default function UserSettings() {
     }
   };
 
-  // --- NEW: Handle Image Upload ---
+  // --- Handle Image Upload ---
   const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
@@ -86,11 +86,8 @@ export default function UserSettings() {
       setUploading(true);
       try {
         const updatedUser: any = await uploadUserProfilePicture(formData);
-        setUserData(updatedUser); // Update local state immediately
-        
-        // Update localStorage so Navbar updates too
+        setUserData(updatedUser); 
         localStorage.setItem('user', JSON.stringify(updatedUser));
-        
         showAlert('success', 'Looking Good!', 'Profile picture updated successfully.');
       } catch (error) {
         showAlert('error', 'Upload Failed', 'Could not upload image. Try a smaller file.');
@@ -223,14 +220,13 @@ export default function UserSettings() {
            </div>
         </motion.div>
 
-        {/* --- Tabs & Content (Same as before) --- */}
         <Tabs defaultValue="profile" className="w-full">
           <TabsList className="w-full justify-start bg-slate-50/50 p-1 rounded-2xl border border-slate-100 mb-8 overflow-x-auto flex-nowrap">
             <TabsTrigger value="profile" className="rounded-xl flex-1 md:flex-none px-8 py-3 data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-slate-900 text-slate-500 font-medium">Profile Details</TabsTrigger>
             <TabsTrigger value="addresses" className="rounded-xl flex-1 md:flex-none px-8 py-3 data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-slate-900 text-slate-500 font-medium">Address Book</TabsTrigger>
           </TabsList>
 
-          {/* Profile Tab */}
+          {/* --- PROFILE TAB --- */}
           <TabsContent value="profile">
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.3 }}>
               <div className="max-w-2xl">
@@ -257,7 +253,10 @@ export default function UserSettings() {
                       <Calendar className="absolute left-4 top-3.5 h-5 w-5 text-slate-400" />
                       <Input id="dob" type="date" value={profileForm.dob} onChange={e => setProfileForm({...profileForm, dob: e.target.value})} className="pl-12 h-12 rounded-xl bg-slate-50 border-transparent focus:bg-white focus:border-slate-200 transition-all" />
                     </div>
-                    <p className="text-xs text-slate-400 mt-1">We'll send you a special surprise on your birthday!</p>
+                    {/* --- UPDATED TEXT HERE --- */}
+                    <p className="text-xs text-slate-400 mt-1">
+                      Your privacy is important. We never share your data with third parties. Used for future reference.
+                    </p>
                   </div>
 
                   <div className="pt-4">
@@ -270,14 +269,23 @@ export default function UserSettings() {
             </motion.div>
           </TabsContent>
 
-          {/* Addresses Tab (Same as before) */}
+          {/* --- ADDRESSES TAB --- */}
           <TabsContent value="addresses">
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.3 }}>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                 <button onClick={() => setIsAddingAddress(true)} className="h-full min-h-[200px] border-2 border-dashed border-slate-200 rounded-2xl flex flex-col items-center justify-center text-slate-400 hover:text-slate-600 hover:border-slate-300 hover:bg-slate-50 transition-all group">
-                    <div className="w-12 h-12 rounded-full bg-slate-50 group-hover:bg-white flex items-center justify-center mb-3 transition-colors shadow-sm"><Plus className="w-6 h-6" /></div>
+                 
+                 {/* Add New Button */}
+                 <button 
+                   onClick={() => setIsAddingAddress(true)}
+                   className="h-full min-h-[200px] border-2 border-dashed border-slate-200 rounded-2xl flex flex-col items-center justify-center text-slate-400 hover:text-slate-600 hover:border-slate-300 hover:bg-slate-50 transition-all group"
+                 >
+                    <div className="w-12 h-12 rounded-full bg-slate-50 group-hover:bg-white flex items-center justify-center mb-3 transition-colors shadow-sm">
+                      <Plus className="w-6 h-6" />
+                    </div>
                     <span className="font-medium">Add New Address</span>
                  </button>
+
+                 {/* Address List */}
                  {addresses.map((addr) => (
                    <div key={addr._id} className="relative p-6 rounded-2xl border border-slate-100 bg-white shadow-sm hover:shadow-md transition-all group">
                       <div className="flex justify-between items-start mb-4">
@@ -290,7 +298,12 @@ export default function UserSettings() {
                               <p className="text-xs text-slate-400 font-medium">SAVED ADDRESS</p>
                             </div>
                          </div>
-                         <button onClick={() => handleDeleteAddress(addr._id)} className="text-slate-300 hover:text-red-500 transition-colors p-2"><Trash2 className="w-4 h-4" /></button>
+                         <button 
+                           onClick={() => handleDeleteAddress(addr._id)}
+                           className="text-slate-300 hover:text-red-500 transition-colors p-2"
+                         >
+                           <Trash2 className="w-4 h-4" />
+                         </button>
                       </div>
                       <div className="text-sm text-slate-600 leading-relaxed space-y-1">
                         <p className="font-medium text-slate-900">{addr.street}</p>
@@ -300,25 +313,50 @@ export default function UserSettings() {
                    </div>
                  ))}
               </div>
+
+              {/* Add Address Form Modal (Inline) */}
               <AnimatePresence>
                 {isAddingAddress && (
-                  <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="overflow-hidden mt-8">
+                  <motion.div 
+                    initial={{ opacity: 0, height: 0 }} 
+                    animate={{ opacity: 1, height: 'auto' }} 
+                    exit={{ opacity: 0, height: 0 }}
+                    className="overflow-hidden mt-8"
+                  >
                     <div className="max-w-2xl bg-slate-50 p-6 sm:p-8 rounded-3xl border border-slate-100">
                        <div className="flex justify-between items-center mb-6">
                           <h3 className="text-lg font-bold text-slate-900">Add New Address</h3>
                           <Button variant="ghost" size="sm" onClick={() => setIsAddingAddress(false)}>Cancel</Button>
                        </div>
+                       
                        <form onSubmit={handleAddressSubmit} className="space-y-4">
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                             <div className="space-y-2"><Label>Label</Label><Input required placeholder="e.g. Home, Office" value={addressForm.label} onChange={e => setAddressForm({...addressForm, label: e.target.value})} className="bg-white border-transparent" /></div>
-                             <div className="space-y-2"><Label>Street Address</Label><Input required placeholder="Flat / House No / Street" value={addressForm.street} onChange={e => setAddressForm({...addressForm, street: e.target.value})} className="bg-white border-transparent" /></div>
+                             <div className="space-y-2">
+                               <Label>Label</Label>
+                               <Input required placeholder="e.g. Home, Office" value={addressForm.label} onChange={e => setAddressForm({...addressForm, label: e.target.value})} className="bg-white border-transparent" />
+                             </div>
+                             <div className="space-y-2">
+                               <Label>Street Address</Label>
+                               <Input required placeholder="Flat / House No / Street" value={addressForm.street} onChange={e => setAddressForm({...addressForm, street: e.target.value})} className="bg-white border-transparent" />
+                             </div>
                           </div>
                           <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                             <div className="space-y-2"><Label>City</Label><Input required placeholder="City" value={addressForm.city} onChange={e => setAddressForm({...addressForm, city: e.target.value})} className="bg-white border-transparent" /></div>
-                             <div className="space-y-2"><Label>State</Label><Input required placeholder="State" value={addressForm.state} onChange={e => setAddressForm({...addressForm, state: e.target.value})} className="bg-white border-transparent" /></div>
-                             <div className="space-y-2 col-span-2 md:col-span-1"><Label>Zip Code</Label><Input required placeholder="Zip" value={addressForm.zip} onChange={e => setAddressForm({...addressForm, zip: e.target.value})} className="bg-white border-transparent" /></div>
+                             <div className="space-y-2">
+                               <Label>City</Label>
+                               <Input required placeholder="City" value={addressForm.city} onChange={e => setAddressForm({...addressForm, city: e.target.value})} className="bg-white border-transparent" />
+                             </div>
+                             <div className="space-y-2">
+                               <Label>State</Label>
+                               <Input required placeholder="State" value={addressForm.state} onChange={e => setAddressForm({...addressForm, state: e.target.value})} className="bg-white border-transparent" />
+                             </div>
+                             <div className="space-y-2 col-span-2 md:col-span-1">
+                               <Label>Zip Code</Label>
+                               <Input required placeholder="Zip" value={addressForm.zip} onChange={e => setAddressForm({...addressForm, zip: e.target.value})} className="bg-white border-transparent" />
+                             </div>
                           </div>
-                          <div className="pt-2"><Button type="submit" className="w-full md:w-auto bg-slate-900 text-white rounded-xl h-11 px-8">Save Address</Button></div>
+                          <div className="pt-2">
+                            <Button type="submit" className="w-full md:w-auto bg-slate-900 text-white rounded-xl h-11 px-8">Save Address</Button>
+                          </div>
                        </form>
                     </div>
                   </motion.div>
