@@ -45,7 +45,6 @@ export default function MyOrdersPage() {
       ...item.product,
       cartId: `${item.product._id}-${Date.now()}-${Math.random()}`,
       quantity: item.quantity,
-      // FIX: Handle populated objects to get IDs for the cart
       selectedFragrances: item.selected_fragrances?.map((f: any) => 
         typeof f === 'string' ? f : f._id
       ) || [],
@@ -96,16 +95,16 @@ export default function MyOrdersPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#F8F8F8] pt-28 pb-20 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-[#F8F8F8] pt-24 pb-20 px-4 sm:px-6 lg:px-8">
       <div className="max-w-4xl mx-auto">
         
-        <div className="flex items-center justify-between mb-8">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-8 gap-4">
            <div>
-             <h1 className="text-3xl font-bold text-[#222222]">My Orders</h1>
-             <p className="text-slate-500 mt-1">Track and manage your purchase history</p>
+             <h1 className="text-2xl sm:text-3xl font-bold text-[#222222]">My Orders</h1>
+             <p className="text-slate-500 mt-1 text-sm sm:text-base">Track and manage your purchase history</p>
            </div>
            <Link href="/products">
-             <Button variant="outline" className="rounded-full">
+             <Button variant="outline" className="rounded-full w-full sm:w-auto">
                Continue Shopping
              </Button>
            </Link>
@@ -136,31 +135,33 @@ export default function MyOrdersPage() {
                 transition={{ delay: index * 0.1 }}
               >
                 <Card className="overflow-hidden border-slate-200 shadow-sm hover:shadow-md transition-shadow bg-white">
-                  {/* Order Header */}
-                  <div className="border-b border-slate-100 bg-slate-50/50 p-4 sm:p-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                    <div className="flex flex-col sm:flex-row gap-4 sm:gap-8">
+                  
+                  {/* --- Responsive Order Header --- */}
+                  <div className="border-b border-slate-100 bg-slate-50/50 p-4 sm:p-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 w-full md:w-auto">
                       <div>
-                        <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Order Placed</p>
-                        <div className="flex items-center gap-2 text-sm font-medium text-slate-700">
-                          <Calendar className="w-4 h-4 text-slate-400" />
-                          {format(new Date(order?.createdAt || order?.created_at || new Date()), 'MMMM dd, yyyy')}
+                        <p className="text-[10px] sm:text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Order Placed</p>
+                        <div className="flex items-center gap-1.5 text-xs sm:text-sm font-medium text-slate-700">
+                          <Calendar className="w-3.5 h-3.5 text-slate-400" />
+                          {format(new Date(order?.createdAt || order?.created_at || new Date()), 'MMM dd, yyyy')}
                         </div>
                       </div>
                       <div>
-                        <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Total</p>
-                        <p className="text-sm font-bold text-[#222222]">₹{order.total_amount.toLocaleString()}</p>
+                        <p className="text-[10px] sm:text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Total</p>
+                        <p className="text-xs sm:text-sm font-bold text-[#222222]">₹{order.total_amount.toLocaleString()}</p>
                       </div>
-                      <div>
-                        <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Ship To</p>
-                        <div className="flex items-center gap-2 text-sm font-medium text-slate-700">
-                           <MapPin className="w-4 h-4 text-slate-400" />
+                      <div className="col-span-2 sm:col-span-1">
+                        <p className="text-[10px] sm:text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Ship To</p>
+                        <div className="flex items-center gap-1.5 text-xs sm:text-sm font-medium text-slate-700 truncate">
+                           <MapPin className="w-3.5 h-3.5 text-slate-400" />
                            {order.customer_name}
                         </div>
                       </div>
                     </div>
-                    <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-end">
-                       <div className="flex flex-col items-end">
-                         <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Order # {order._id.slice(-6).toUpperCase()}</p>
+                    
+                    <div className="flex items-center justify-between w-full md:w-auto mt-2 md:mt-0 border-t md:border-t-0 border-slate-200 pt-3 md:pt-0">
+                       <div className="flex flex-row md:flex-col items-center md:items-end justify-between w-full gap-3">
+                         <p className="text-xs font-bold text-slate-400 uppercase tracking-wider md:mb-1">#{order._id.slice(-6).toUpperCase()}</p>
                          {getStatusBadge(order.status)}
                        </div>
                     </div>
@@ -169,10 +170,10 @@ export default function MyOrdersPage() {
                   <CardContent className="p-4 sm:p-6">
                     <div className="space-y-6">
                       {order.items?.map((item: any, idx: number) => (
-                        <div key={idx} className="flex flex-col sm:flex-row gap-4 items-start border-b border-slate-50 last:border-0 pb-4 last:pb-0">
+                        <div key={idx} className="flex gap-4 items-start border-b border-slate-50 last:border-0 pb-4 last:pb-0">
                           
-                          {/* Image */}
-                          <div className="w-20 h-20 bg-slate-100 rounded-lg overflow-hidden flex-shrink-0 border border-slate-200">
+                          {/* Image (Smaller on Mobile) */}
+                          <div className="w-16 h-16 sm:w-20 sm:h-20 bg-slate-100 rounded-lg overflow-hidden flex-shrink-0 border border-slate-200">
                              {item.product?.images?.[0] ? (
                                <img src={item.product.images[0]} alt={item.product.name} className="w-full h-full object-cover" />
                              ) : (
@@ -182,29 +183,32 @@ export default function MyOrdersPage() {
 
                           {/* Details */}
                           <div className="flex-1 min-w-0 w-full">
-                            <div className="flex justify-between items-start">
-                              <div>
-                                <h4 className="font-bold text-slate-900 truncate">{item.product?.name || 'Product Unavailable'}</h4>
-                                <p className="text-sm text-slate-500 mt-1">Quantity: {item.quantity}</p>
+                            <div className="flex flex-col sm:flex-row justify-between items-start gap-2">
+                              <div className="pr-0 sm:pr-4">
+                                <h4 className="font-bold text-slate-900 text-sm sm:text-base break-words leading-snug">
+                                  {item.product?.name || 'Product Unavailable'}
+                                </h4>
+                                <p className="text-xs sm:text-sm text-slate-500 mt-1">Qty: {item.quantity}</p>
                               </div>
-                              <p className="font-medium text-slate-900">₹{item.price_at_purchase.toLocaleString()}</p>
+                              <p className="font-medium text-slate-900 text-sm sm:text-base mt-1 sm:mt-0 whitespace-nowrap">
+                                ₹{item.price_at_purchase.toLocaleString()}
+                              </p>
                             </div>
 
-                            {/* -- FIXED: Show Fragrance Name -- */}
+                            {/* Fragrances */}
                             {item.selected_fragrances && item.selected_fragrances.length > 0 && (
-                              <div className="mt-2 flex flex-wrap gap-1">
+                              <div className="mt-2 flex flex-wrap gap-1.5">
                                 {item.selected_fragrances.map((f: any, i: number) => (
-                                  <span key={i} className="inline-flex text-[10px] uppercase font-semibold bg-slate-100 px-2 py-0.5 rounded text-slate-600 border border-slate-200">
-                                    {/* Simply access the name property */}
+                                  <span key={i} className="inline-flex text-[10px] sm:text-xs uppercase font-semibold bg-slate-100 px-2 py-0.5 rounded text-slate-600 border border-slate-200">
                                     {f.name || 'Unknown Scent'}
                                   </span>
                                 ))}
                               </div>
                             )}
 
-                            {/* -- Custom Message -- */}
+                            {/* Custom Message */}
                             {item.custom_message && (
-                                <div className="mt-3 bg-amber-50 rounded-lg p-3 flex gap-3 items-start border border-amber-100/50">
+                                <div className="mt-3 bg-amber-50 rounded-lg p-3 flex gap-2 sm:gap-3 items-start border border-amber-100/50">
                                     <StickyNote className="w-3.5 h-3.5 text-amber-500 mt-0.5 shrink-0" />
                                     <div className="flex-1">
                                         <p className="text-[10px] font-bold text-amber-600 uppercase tracking-wide mb-0.5">Note Attached</p>
@@ -220,7 +224,7 @@ export default function MyOrdersPage() {
                     <div className="mt-6 pt-6 border-t border-slate-100 flex justify-end">
                        <Button 
                          onClick={() => handleOrderAgain(order)}
-                         className="bg-white border-2 border-[#1C1C1C] text-[#1C1C1C] hover:bg-[#1C1C1C] hover:text-white transition-all rounded-full"
+                         className="w-full sm:w-auto bg-white border-2 border-[#1C1C1C] text-[#1C1C1C] hover:bg-[#1C1C1C] hover:text-white transition-all rounded-full"
                        >
                          <RotateCcw className="w-4 h-4 mr-2" />
                          Order Again
