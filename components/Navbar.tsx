@@ -21,6 +21,7 @@ import {
 export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false)
   const [isScrolled, setIsScrolled] = useState(false)
+  
   // --- User State ---
   const [user, setUser] = useState<any>(null);
   const [mounted, setMounted] = useState(false);
@@ -29,12 +30,6 @@ export default function Navbar() {
   const router = useRouter()
   const pathname = usePathname()
   const { cartCount } = useCart(); 
-
-  const backgroundColor = useTransform(
-    scrollY,
-    [0, 100],
-    ["rgba(248, 248, 248, 0)", "rgba(248, 248, 248, 0.95)"]
-  )
 
   useEffect(() => {
     setMounted(true);
@@ -68,20 +63,44 @@ export default function Navbar() {
   const navLinks = [
     { name: "Home", href: "/", section: null },
     { name: "About", href: "/#about", section: "about" },
-    { name: "Products", href: "/products", section: "products" },
+    { name: "Products", href: "#products", section: "products" },
     { name: "Testimonials", href: "/#testimonials", section: "testimonials" },
     { name: "Contact", href: "/#contact", section: "contact" }
   ]
 
-  const handleNavClick = (e: any, link: any) => {
-    // Only handle scrolling for hash links on the home page
-    if (link.href.includes('#')) {
-        // Allow default behavior or handle scroll logic if needed
-        // For simplicity in Next.js, Link usually handles this well
+  // --- SMOOTH SCROLL HANDLER ---
+  const handleNavClick = (e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
+    // 1. Check if it's a hash link intended for the home page sections
+    if (href.includes('/#')) {
+      e.preventDefault();
+      
+      // If we are NOT on the home page, push to home first
+      if (pathname !== '/') {
+        router.push(href);
+        return;
+      }
+
+      // If we ARE on home page, find the element and scroll
+      const targetId = href.replace('/', '').replace('#', '');
+      const element = document.getElementById(targetId);
+      
+      if (element) {
+        element.scrollIntoView({ behavior: 'smooth' });
         setIsOpen(false);
+      }
+    } else if (href === '/') {
+      // Handle clicking "Home" while on home page (scroll to top)
+      if (pathname === '/') {
+        e.preventDefault();
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        setIsOpen(false);
+      } else {
+        router.push('/');
+      }
     } else {
-        router.push(link.href);
-        setIsOpen(false);
+      // Normal navigation
+      setIsOpen(false);
+      router.push(href);
     }
   }
 
@@ -116,11 +135,13 @@ export default function Navbar() {
               </div>
             </Link>
 
+            {/* --- Desktop Navigation --- */}
             <div className="hidden lg:flex items-center gap-6 xl:gap-8">
               {navLinks.map((link, index) => (
                 <Link
                   key={index}
                   href={link.href}
+                  onClick={(e) => handleNavClick(e, link.href)} // Applied Handler Here
                   className="text-[#444444] hover:text-[#222222] font-medium transition-all duration-300 relative group px-2 py-1 cursor-pointer"
                 >
                   {link.name}
@@ -229,7 +250,7 @@ export default function Navbar() {
             <Link
               key={index}
               href={link.href}
-              onClick={() => setIsOpen(false)}
+              onClick={(e) => handleNavClick(e, link.href)} // Applied Handler Here
               className="block text-[#444444] hover:text-[#222222] font-medium py-3 px-4 hover:bg-white/60 rounded-xl transition-all duration-300 cursor-pointer"
             >
               {link.name}
