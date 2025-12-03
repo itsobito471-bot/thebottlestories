@@ -307,3 +307,27 @@ export const approveTestimonial = (id: string) => {
 export const deleteTestimonial = (id: string) => {
   return api.delete(`/admin/testimonials/${id}`);
 };
+
+
+
+export const getUserProfileData = () => {
+  return api.get<{ user: any, addresses: any[] }>('/user/profile');
+};
+
+export const updateUserProfileData = (data: { name: string; phone: string; dob: string }) => {
+  return api.put('/user/profile', data);
+};
+
+export const addUserAddress = (data: any) => {
+  return api.post('/user/address', data);
+};
+
+export const deleteUserAddress = (id: string) => {
+  return api.delete(`/user/address/${id}`);
+};
+
+
+export const uploadUserProfilePicture = (formData: FormData) => {
+  // Uses postFormData which handles multipart/form-data headers
+  return api.postFormData('/user/avatar', formData);
+};

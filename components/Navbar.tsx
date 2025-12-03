@@ -3,7 +3,7 @@
 import { motion, useScroll, useTransform } from "framer-motion"
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
-import { Menu, X, ShoppingBag, User, LogOut, Package } from "lucide-react"
+import { Menu, X, ShoppingBag, User, LogOut, Package, Settings } from "lucide-react"
 import { useRouter, usePathname } from "next/navigation"
 import Image from "next/image"
 import Link from "next/link" 
@@ -193,10 +193,19 @@ export default function Navbar() {
                     <DropdownMenuContent className="w-56 bg-white/95 backdrop-blur-xl border-slate-200 shadow-xl rounded-xl p-2" align="end">
                       <DropdownMenuLabel className="text-xs font-bold text-slate-400 uppercase tracking-wider">My Account</DropdownMenuLabel>
                       <DropdownMenuSeparator className="bg-slate-100" />
+
                       <DropdownMenuItem onClick={() => router.push('/my-orders')} className="cursor-pointer rounded-lg focus:bg-slate-50">
                         <Package className="mr-2 h-4 w-4" />
                         <span>My Orders</span>
                       </DropdownMenuItem>
+
+                      {/* --- NEW SETTINGS LINK --- */}
+                      <DropdownMenuItem onClick={() => router.push('/settings')} className="cursor-pointer rounded-lg focus:bg-slate-50">
+                        <Settings className="mr-2 h-4 w-4" />
+                        <span>Settings & Address</span>
+                      </DropdownMenuItem>
+                      {/* ------------------------- */}
+
                       <DropdownMenuSeparator className="bg-slate-100" />
                       <DropdownMenuItem onClick={handleLogout} className="cursor-pointer text-red-600 focus:text-red-700 focus:bg-red-50 rounded-lg">
                         <LogOut className="mr-2 h-4 w-4" />
