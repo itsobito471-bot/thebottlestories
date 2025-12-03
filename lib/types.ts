@@ -146,6 +146,25 @@ export interface OrdersResponse {
 
 
 // Optional: Define the type here or import it if you have it elsewhere
+// export interface StoreSettings {
+//   contact_email: string;
+//   contact_phone: string;
+//   address: {
+//     street: string;
+//     city: string;
+//     state: string;
+//     zip: string;
+//     country: string;
+//   };
+// }
+
+export interface SocialLinks {
+  facebook: string;
+  instagram: string;
+  twitter: string;
+  linkedin: string;
+}
+
 export interface StoreSettings {
   contact_email: string;
   contact_phone: string;
@@ -156,6 +175,7 @@ export interface StoreSettings {
     zip: string;
     country: string;
   };
+  socialLinks: SocialLinks; // Add this
 }
 
 export interface EnquiryData {
