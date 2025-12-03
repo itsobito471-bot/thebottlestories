@@ -174,3 +174,14 @@ export interface UserRatingStatus {
   hasRated: boolean;
   rating: number;
 }
+
+export interface Testimonial {
+  _id: string;
+  name: string;
+  role: string;
+  content: string;
+  rating: number;
+  image: string;
+  isApproved: boolean; // Added this to fix the error
+  createdAt?: string;  // Optional: Added this since your fallback data uses it
+}

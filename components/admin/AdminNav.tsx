@@ -33,6 +33,7 @@ const navItems = [
   { href: '/admin/fragrances', label: 'Fragrances', icon: Wind },
   { href: '/admin/enquiries', label: 'Enquiries', icon: FileQuestion },
   { href: '/admin/settings', label: 'Settings', icon: Settings },
+  { href: '/admin/testimonials', label: 'Testimonials', icon: Settings },
 ];
 
 export default function AdminNav() {

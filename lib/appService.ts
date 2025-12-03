@@ -16,7 +16,8 @@ import {
   StoreSettings,
   EnquiryData,
   RatingResponse,
-  UserRatingStatus
+  UserRatingStatus,
+  Testimonial
 } from './types';
 
 
@@ -280,4 +281,29 @@ export const submitProductRating = (productId: string, rating: number) => {
  */
 export const checkUserRating = (productId: string) => {
   return api.get<UserRatingStatus>(`/products/${productId}/user-rating`);
+};
+
+
+export const getApprovedTestimonials = (limit = 10) => {
+  return api.get<Testimonial[]>(`/testimonials/approved?limit=${limit}`);
+};
+
+export const submitTestimonial = (formData: FormData) => {
+  // Use postFormData if you set that up in the previous step, 
+  // or standard api.post depending on how you handle images.
+  return api.postFormData('/testimonials', formData);
+};
+
+
+
+export const getAdminTestimonials = (page = 1, limit = 10, status = 'all') => {
+  return api.get(`/admin/testimonials?page=${page}&limit=${limit}&status=${status}`);
+};
+
+export const approveTestimonial = (id: string) => {
+  return api.patch(`/admin/testimonials/${id}/approve`, {});
+};
+
+export const deleteTestimonial = (id: string) => {
+  return api.delete(`/admin/testimonials/${id}`);
 };
