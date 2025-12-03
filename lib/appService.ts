@@ -67,8 +67,22 @@ export const getAdminOrders = (page = 1, limit = 10, search = '', status = 'all'
 /**
  * Updates an order's status.
  */
-export const updateOrderStatus = (orderId: string, status: string) => {
-  return api.put<Order>(`/admin/orders/${orderId}/status`, { status });
+export const updateOrderStatus = (
+  orderId: string, 
+  status: string, 
+  trackingData?: { trackingId: string; trackingUrl: string }
+) => {
+  // 1. Create a flat payload object
+  const payload: any = { status };
+
+  // 2. Merge tracking data if it exists
+  if (trackingData) {
+    payload.trackingId = trackingData.trackingId;
+    payload.trackingUrl = trackingData.trackingUrl;
+  }
+
+  // 3. Send payload directly (do NOT wrap it in { status: ... } again)
+  return api.put<Order>(`/admin/orders/${orderId}/status`, payload);
 };
 
 // --- Product Endpoints ---

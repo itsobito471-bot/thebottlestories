@@ -7,13 +7,14 @@ import { Order } from '@/lib/types';
 import AdminNav from '@/components/admin/AdminNav';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label'; // Added Label
 import { Card, CardContent } from '@/components/ui/card';
 import { 
   Search, CheckCircle, XCircle, Clock, Truck, 
   MapPin, Package, Loader2, ChevronDown, Calendar, Mail, Phone, ArrowUpRight, User,
   AlertTriangle, Ban, Filter, StickyNote 
 } from 'lucide-react';
-import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogTitle, DialogDescription, DialogFooter, DialogHeader } from '@/components/ui/dialog';
 import { 
   AlertDialog,
   AlertDialogAction,
@@ -113,6 +114,11 @@ export default function AdminOrders() {
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
 
+  // --- Tracking State ---
+  const [shippingModalOpen, setShippingModalOpen] = useState(false);
+  const [trackingData, setTrackingData] = useState({ id: '', url: '' });
+  const [shippingOrderId, setShippingOrderId] = useState<string | null>(null);
+
   // --- Dialog States for Shadcn AlertDialog ---
   const [confirmDialog, setConfirmDialog] = useState<{
     open: boolean;
@@ -187,6 +193,14 @@ export default function AdminOrders() {
        return;
     }
 
+    // --- NEW: Handle Shipped Status specifically ---
+    if (status === 'shipped') {
+        setShippingOrderId(orderId);
+        setTrackingData({ id: '', url: '' }); // Reset fields
+        setShippingModalOpen(true);
+        return;
+    }
+
     // Require confirmation for destructive/terminal actions
     if (['cancelled', 'rejected', 'completed'].includes(status)) {
       const isDestructive = ['cancelled', 'rejected'].includes(status);
@@ -199,23 +213,31 @@ export default function AdminOrders() {
         onConfirm: () => executeStatusUpdate(orderId, status)
       });
     } else {
-      // Immediate update for workflow steps (crafting, shipping, etc)
+      // Immediate update for workflow steps (crafting, preparing, etc)
       executeStatusUpdate(orderId, status);
     }
   };
 
-  // 2. Execute API Call
-  const executeStatusUpdate = async (orderId: string, status: string) => {
+  // 2. Execute API Call (Accepts optional tracking data)
+  const executeStatusUpdate = async (orderId: string, status: string, trackingInfo?: { trackingId: string; trackingUrl: string }) => {
     setUpdating(true);
     setConfirmDialog(prev => ({ ...prev, open: false }));
+    setShippingModalOpen(false);
 
     try {
-      const updatedOrder = await updateOrderStatus(orderId, status);
+      
+      const updatedOrder = await updateOrderStatus(orderId, status, trackingInfo);
       
       // 1. Update List State
       setOrders(prev => prev.map(o => 
         o._id === orderId 
-          ? { ...o, status: updatedOrder.status, updatedAt: updatedOrder.updatedAt || new Date().toISOString() } 
+          ? { 
+              ...o, 
+              status: updatedOrder.status, 
+              updatedAt: updatedOrder.updatedAt || new Date().toISOString(),
+              trackingId: updatedOrder.trackingId, // Update local tracking info
+              trackingUrl: updatedOrder.trackingUrl
+            } 
           : o
       ));
       
@@ -224,7 +246,9 @@ export default function AdminOrders() {
         setSelectedOrder(prev => prev ? ({
           ...prev, // Keep existing populated items
           status: updatedOrder.status, 
-          updatedAt: updatedOrder?.updatedAt || new Date().toISOString()
+          updatedAt: updatedOrder?.updatedAt || new Date().toISOString(),
+          trackingId: updatedOrder.trackingId,
+          trackingUrl: updatedOrder.trackingUrl
         }) : null);
       }
 
@@ -528,6 +552,25 @@ export default function AdminOrders() {
                          )}
                       </div>
                     </section>
+
+                    {/* --- TRACKING INFO (If Shipped) --- */}
+                    {(selectedOrder.trackingId || selectedOrder.trackingUrl) && (
+                      <section>
+                        <h4 className="text-sm font-bold text-slate-900 mb-3 flex items-center gap-2">
+                          <Truck className="w-4 h-4 text-slate-400" /> Tracking Information
+                        </h4>
+                        <div className="bg-blue-50 rounded-xl p-4 border border-blue-100 text-sm text-blue-900">
+                           {selectedOrder.trackingId && (
+                             <p><strong>Tracking ID:</strong> {selectedOrder.trackingId}</p>
+                           )}
+                           {selectedOrder.trackingUrl && (
+                             <a href={selectedOrder.trackingUrl} target="_blank" rel="noreferrer" className="text-blue-600 underline mt-1 block">
+                               Track Package
+                             </a>
+                           )}
+                        </div>
+                      </section>
+                    )}
                  </div>
 
                  <section>
@@ -572,7 +615,7 @@ export default function AdminOrders() {
                                </div>
                            </div>
 
-                           {/* Custom Note Section */}
+                           {/* Custom Note Section - UPDATED TO SHOW TEXT */}
                            {item.custom_message && item.custom_message.trim() !== "" && (
                              <div className="bg-amber-50/50 border border-amber-100 rounded-lg p-3 flex gap-3 items-start w-full">
                                <StickyNote className="w-4 h-4 text-amber-500 mt-0.5 shrink-0" />
@@ -601,6 +644,48 @@ export default function AdminOrders() {
 
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* --- SHIPPING INFO DIALOG --- */}
+      <Dialog open={shippingModalOpen} onOpenChange={setShippingModalOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Shipping Information</DialogTitle>
+            <DialogDescription>Enter tracking details for the customer.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>Tracking ID</Label>
+              <Input 
+                value={trackingData.id} 
+                onChange={(e) => setTrackingData(prev => ({...prev, id: e.target.value}))}
+                placeholder="e.g. AWB123456789"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Tracking URL</Label>
+              <Input 
+                value={trackingData.url} 
+                onChange={(e) => setTrackingData(prev => ({...prev, url: e.target.value}))}
+                placeholder="https://track.courier.com/..."
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShippingModalOpen(false)}>Cancel</Button>
+            <Button 
+              onClick={() => shippingOrderId && executeStatusUpdate(shippingOrderId, 'shipped', { 
+                trackingId: trackingData.id, 
+                trackingUrl: trackingData.url 
+              })}
+              disabled={updating}
+              className="bg-blue-600 hover:bg-blue-700 text-white"
+            >
+              {updating ? <Loader2 className="animate-spin w-4 h-4 mr-2" /> : <Truck className="w-4 h-4 mr-2" />}
+              Confirm Shipment
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 

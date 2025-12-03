@@ -80,6 +80,9 @@ export interface Order {
   };
   // Fallback for old schema compatibility
   customer_address?: string; 
+
+  trackingId?: string;
+  trackingUrl?: string;
   
   total_amount: number;
   status: 'pending' | 'approved' | 'rejected' | 'completed';
