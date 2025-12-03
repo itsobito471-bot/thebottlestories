@@ -14,7 +14,9 @@ import {
   PaginatedProductResponse, 
   OrdersResponse, 
   StoreSettings,
-  EnquiryData
+  EnquiryData,
+  RatingResponse,
+  UserRatingStatus
 } from './types';
 
 
@@ -264,4 +266,18 @@ export const getAllTags = () => {
 
 export const getGeneralStoreSettings = () => {
   return api.get<StoreSettings>('/settings');
+};
+
+/**
+ * Submits a rating (1-5) for a specific product.
+ */
+export const submitProductRating = (productId: string, rating: number) => {
+  return api.post<RatingResponse>(`/products/${productId}/rate`, { rating });
+};
+
+/**
+ * Checks if the logged-in user has already rated a specific product.
+ */
+export const checkUserRating = (productId: string) => {
+  return api.get<UserRatingStatus>(`/products/${productId}/user-rating`);
 };

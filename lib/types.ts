@@ -165,3 +165,12 @@ export interface EnquiryData {
   phone: string;
   message: string;
 }
+
+export interface RatingResponse {
+  message: string;
+}
+
+export interface UserRatingStatus {
+  hasRated: boolean;
+  rating: number;
+}
