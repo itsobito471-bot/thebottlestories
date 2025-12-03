@@ -7,7 +7,7 @@ export default function CartPage() {
     <main className="min-h-screen">
       {/* <Navbar /> */}
       <CartCheckout />
-      <Footer />
+      {/* <Footer /> */}
     </main>
   )
 }
