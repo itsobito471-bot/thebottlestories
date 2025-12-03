@@ -3,7 +3,7 @@
 import { motion, useScroll, useTransform } from "framer-motion"
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
-import { Menu, X, ShoppingBag, User, LogOut, Package, Settings } from "lucide-react"
+import { Menu, X, ShoppingBag, User, LogOut, Package, Settings } from "lucide-react" // Ensure Settings is imported
 import { useRouter, usePathname } from "next/navigation"
 import Image from "next/image"
 import Link from "next/link" 
@@ -63,24 +63,21 @@ export default function Navbar() {
   const navLinks = [
     { name: "Home", href: "/", section: null },
     { name: "About", href: "/#about", section: "about" },
-    { name: "Products", href: "#products", section: "products" },
+    { name: "Products", href: "/#products", section: "products" },
     { name: "Testimonials", href: "/#testimonials", section: "testimonials" },
     { name: "Contact", href: "/#contact", section: "contact" }
   ]
 
   // --- SMOOTH SCROLL HANDLER ---
   const handleNavClick = (e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
-    // 1. Check if it's a hash link intended for the home page sections
     if (href.includes('/#')) {
       e.preventDefault();
       
-      // If we are NOT on the home page, push to home first
       if (pathname !== '/') {
         router.push(href);
         return;
       }
 
-      // If we ARE on home page, find the element and scroll
       const targetId = href.replace('/', '').replace('#', '');
       const element = document.getElementById(targetId);
       
@@ -89,7 +86,6 @@ export default function Navbar() {
         setIsOpen(false);
       }
     } else if (href === '/') {
-      // Handle clicking "Home" while on home page (scroll to top)
       if (pathname === '/') {
         e.preventDefault();
         window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -98,7 +94,6 @@ export default function Navbar() {
         router.push('/');
       }
     } else {
-      // Normal navigation
       setIsOpen(false);
       router.push(href);
     }
@@ -141,7 +136,7 @@ export default function Navbar() {
                 <Link
                   key={index}
                   href={link.href}
-                  onClick={(e) => handleNavClick(e, link.href)} // Applied Handler Here
+                  onClick={(e) => handleNavClick(e, link.href)} 
                   className="text-[#444444] hover:text-[#222222] font-medium transition-all duration-300 relative group px-2 py-1 cursor-pointer"
                 >
                   {link.name}
@@ -199,12 +194,10 @@ export default function Navbar() {
                         <span>My Orders</span>
                       </DropdownMenuItem>
 
-                      {/* --- NEW SETTINGS LINK --- */}
                       <DropdownMenuItem onClick={() => router.push('/settings')} className="cursor-pointer rounded-lg focus:bg-slate-50">
                         <Settings className="mr-2 h-4 w-4" />
                         <span>Settings & Address</span>
                       </DropdownMenuItem>
-                      {/* ------------------------- */}
 
                       <DropdownMenuSeparator className="bg-slate-100" />
                       <DropdownMenuItem onClick={handleLogout} className="cursor-pointer text-red-600 focus:text-red-700 focus:bg-red-50 rounded-lg">
@@ -259,7 +252,7 @@ export default function Navbar() {
             <Link
               key={index}
               href={link.href}
-              onClick={(e) => handleNavClick(e, link.href)} // Applied Handler Here
+              onClick={(e) => handleNavClick(e, link.href)} 
               className="block text-[#444444] hover:text-[#222222] font-medium py-3 px-4 hover:bg-white/60 rounded-xl transition-all duration-300 cursor-pointer"
             >
               {link.name}
@@ -274,6 +267,15 @@ export default function Navbar() {
                       <Package className="w-4 h-4 mr-2" /> My Orders
                     </Button>
                   </Link>
+
+                  {/* --- NEW: Settings Link for Mobile --- */}
+                  <Link href="/settings" onClick={() => setIsOpen(false)}>
+                    <Button variant="outline" className="w-full justify-start rounded-xl border-2 border-white/40">
+                      <Settings className="w-4 h-4 mr-2" /> Settings & Address
+                    </Button>
+                  </Link>
+                  {/* ----------------------------------- */}
+
                   <Button variant="ghost" onClick={handleLogout} className="w-full justify-start text-red-600 hover:bg-red-50 rounded-xl">
                     <LogOut className="w-4 h-4 mr-2" /> Sign Out
                   </Button>
