@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Mail, Phone, MapPin, Send, Loader2, CheckCircle2 } from "lucide-react"
 // Import API services
-import { getStoreSettings, submitEnquiry} from "@/lib/appService"
+import { getGeneralStoreSettings, submitEnquiry} from "@/lib/appService"
 import { StoreSettings } from "@/lib/types"
 
 export default function Contact() {
@@ -33,7 +33,7 @@ export default function Contact() {
   useEffect(() => {
     const loadSettings = async () => {
       try {
-        const data = await getStoreSettings();
+        const data = await getGeneralStoreSettings();
         // @ts-ignore - Handle potential response wrapper
         setSettings(data.result || data); 
       } catch (error) {

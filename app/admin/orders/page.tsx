@@ -11,8 +11,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { 
   Search, CheckCircle, XCircle, Clock, Truck, 
   MapPin, Package, Loader2, ChevronDown, Calendar, Mail, Phone, ArrowUpRight, User,
-  AlertTriangle, Ban,
-  Filter
+  AlertTriangle, Ban, Filter, StickyNote // Added StickyNote here
 } from 'lucide-react';
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { 
@@ -205,15 +204,13 @@ export default function AdminOrders() {
     }
   };
 
-  // 2. Execute API Call (FIXED)
+  // 2. Execute API Call
   const executeStatusUpdate = async (orderId: string, status: string) => {
     setUpdating(true);
     setConfirmDialog(prev => ({ ...prev, open: false }));
 
     try {
       const updatedOrder = await updateOrderStatus(orderId, status);
-      
-      // --- FIX: Merge new status with existing populated data ---
       
       // 1. Update List State
       setOrders(prev => prev.map(o => 
@@ -233,7 +230,7 @@ export default function AdminOrders() {
 
       // Reload stats if necessary
       if (['completed', 'cancelled', 'rejected'].includes(status)) {
-         loadOrders(1, true);
+          loadOrders(1, true);
       }
     } catch (error) {
       setInfoDialog({
@@ -284,7 +281,7 @@ export default function AdminOrders() {
           </Card>
 
           <Card className="bg-slate-900 border-none shadow-lg hover:shadow-xl transition-shadow rounded-2xl overflow-hidden relative group text-white">
-             <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+              <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
               <CheckCircle className="w-24 h-24 text-emerald-400 transform rotate-12" />
             </div>
             <CardContent className="p-6 relative z-10">
@@ -359,7 +356,7 @@ export default function AdminOrders() {
 
                     {/* Middle: Details */}
                     <div className="p-5 flex-1 grid grid-cols-1 sm:grid-cols-2 gap-6 items-center">
-                       <div>
+                        <div>
                           <div className="flex items-center gap-3 mb-1">
                              <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center font-bold text-slate-600">
                                 <User className="w-4 h-4" />
@@ -369,16 +366,16 @@ export default function AdminOrders() {
                                 <p className="text-xs text-slate-500">{order.customer_email}</p>
                              </div>
                           </div>
-                       </div>
-                       
-                       <div>
+                        </div>
+                        
+                        <div>
                           <div className="flex items-center gap-2 mb-1">
                              {getStatusBadge(order.status)}
                           </div>
                           <p className="text-xs text-slate-500 mt-1 truncate">
                             {order.items?.length} items • {order.items?.map((i:any) => i.product?.name).join(', ')}
                           </p>
-                       </div>
+                        </div>
                     </div>
 
                     {/* Right: Total & Action */}
@@ -531,45 +528,59 @@ export default function AdminOrders() {
                     <h4 className="text-sm font-bold text-slate-900 mb-3">Items ({selectedOrder.items?.length})</h4>
                     <div className="space-y-3">
                       {selectedOrder.items?.map((item: any, idx: number) => (
-                        <div key={idx} className="flex gap-4 p-3 rounded-xl border border-slate-100 bg-white hover:border-slate-200 transition-colors">
+                        <div key={idx} className="flex flex-col gap-3 p-3 rounded-xl border border-slate-100 bg-white hover:border-slate-200 transition-colors">
                            
-                           <div className="w-14 h-14 bg-slate-100 rounded-lg overflow-hidden flex-shrink-0 flex items-center justify-center border border-slate-200">
-                              {item.product?.images?.[0] ? (
-                                <img 
-                                  src={item.product.images[0]} 
-                                  className="w-full h-full object-cover" 
-                                  alt={item.product?.name || "Product Image"}
-                                  onError={(e) => {
-                                    const target = e.target as HTMLImageElement;
-                                    target.onerror = null;
-                                    target.src = "https://placehold.co/100x100?text=No+Img";
-                                  }}
-                                />
-                              ) : (
-                                <Package className="w-6 h-6 text-slate-300" />
-                              )}
+                           {/* Product Main Row */}
+                           <div className="flex gap-4">
+                               <div className="w-14 h-14 bg-slate-100 rounded-lg overflow-hidden flex-shrink-0 flex items-center justify-center border border-slate-200">
+                                 {item.product?.images?.[0] ? (
+                                   <img 
+                                     src={item.product.images[0]} 
+                                     className="w-full h-full object-cover" 
+                                     alt={item.product?.name || "Product Image"}
+                                     onError={(e) => {
+                                       const target = e.target as HTMLImageElement;
+                                       target.onerror = null;
+                                       target.src = "https://placehold.co/100x100?text=No+Img";
+                                     }}
+                                   />
+                                 ) : (
+                                   <Package className="w-6 h-6 text-slate-300" />
+                                 )}
+                               </div>
+
+                               <div className="flex-1 min-w-0">
+                                 <div className="flex justify-between items-start mb-1">
+                                    <p className="font-medium text-slate-900 text-sm truncate pr-2">{item.product?.name || "Unknown Product"}</p>
+                                    <p className="font-semibold text-slate-900 text-sm">₹{(item.price_at_purchase * item.quantity).toLocaleString()}</p>
+                                 </div>
+                                 <p className="text-xs text-slate-500 mb-2">Qty: {item.quantity} × ₹{item.price_at_purchase}</p>
+                                 
+                                 <div className="flex flex-wrap gap-1.5">
+                                   {item.selected_fragrances?.map((f: any, i: number) => (
+                                     <span key={i} className="inline-flex text-[10px] bg-slate-100 px-1.5 py-0.5 rounded text-slate-600">
+                                       {f.name}
+                                     </span>
+                                   ))}
+                                 </div>
+                               </div>
                            </div>
 
-                           <div className="flex-1 min-w-0">
-                              <div className="flex justify-between items-start mb-1">
-                                 <p className="font-medium text-slate-900 text-sm truncate pr-2">{item.product?.name}</p>
-                                 <p className="font-semibold text-slate-900 text-sm">₹{(item.price_at_purchase * item.quantity).toLocaleString()}</p>
-                              </div>
-                              <p className="text-xs text-slate-500 mb-2">Qty: {item.quantity} × ₹{item.price_at_purchase}</p>
-                              
-                              <div className="flex flex-wrap gap-1.5">
-                                {item.selected_fragrances?.map((f: any, i: number) => (
-                                  <span key={i} className="inline-flex text-[10px] bg-slate-100 px-1.5 py-0.5 rounded text-slate-600">
-                                    {f.name}
-                                  </span>
-                                ))}
-                                {item.custom_message && (
-                                  <span className="inline-flex text-[10px] bg-blue-50 px-1.5 py-0.5 rounded text-blue-600 border border-blue-100">
-                                    Note attached
-                                  </span>
-                                )}
-                              </div>
-                           </div>
+                           {/* Custom Note Section - UPDATED TO SHOW TEXT */}
+                           {item.custom_message && item.custom_message.trim() !== "" && (
+                             <div className="bg-amber-50/50 border border-amber-100 rounded-lg p-3 flex gap-3 items-start w-full">
+                               <StickyNote className="w-4 h-4 text-amber-500 mt-0.5 shrink-0" />
+                               <div className="flex-1">
+                                 <p className="text-[10px] font-bold text-amber-600 uppercase tracking-wide mb-1">
+                                   Attached Note
+                                 </p>
+                                 <p className="text-sm text-slate-700 italic leading-snug">
+                                   "{item.custom_message}"
+                                 </p>
+                               </div>
+                             </div>
+                           )}
+
                         </div>
                       ))}
                     </div>

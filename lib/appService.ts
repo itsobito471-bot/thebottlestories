@@ -260,3 +260,8 @@ export const submitEnquiry = (data: EnquiryData) => {
 export const getAllTags = () => {
   return api.get<Tag[]>('/tags');
 };
+
+
+export const getGeneralStoreSettings = () => {
+  return api.get<StoreSettings>('/settings');
+};
