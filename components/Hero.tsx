@@ -67,7 +67,8 @@ export default function Hero() {
             transition={{ duration: 0.6, delay: 0.6 }}
             className="text-sm sm:text-base md:text-lg lg:text-xl text-[#444444] max-w-xl leading-relaxed"
           >
-            Crafting unforgettable moments with luxury perfume gift hampers. Every bottle tells a story, every fragrance creates a memory.
+            {/* Crafting unforgettable moments with luxury perfume gift hampers. Every bottle tells a story, every fragrance creates a memory. */}
+            The Story is Inside.
           </motion.p>
 
           <motion.div

@@ -345,3 +345,50 @@ export const uploadUserProfilePicture = (formData: FormData) => {
   // Uses postFormData which handles multipart/form-data headers
   return api.postFormData('/user/avatar', formData);
 };
+
+
+// --- Updated Types based on your Schema ---
+
+export interface Address {
+  _id: string;
+  label: string;      // e.g. "Home", "Office"
+  street: string;
+  city: string;
+  state: string;
+  zip: string;
+  country: string;
+  isDefault: boolean;
+}
+
+export interface User {
+  _id: string;
+  name: string;
+  email: string;
+  role: 'admin' | 'worker' | 'customer';
+  phone?: string;
+  dob?: string;
+  profilePicture?: string;
+  createdAt: string;
+  
+  // The aggregated field from the backend
+  addressDetails: Address[]; 
+  
+  // Optional birthday field
+  daysUntilBirthday?: number; 
+}
+
+export interface PaginatedUserResponse {
+  users: User[];
+  pagination: {
+    total: number;
+    page: number;
+    pages: number;
+    hasMore: boolean;
+  };
+}
+
+export const getAdminUsers = (page = 1, limit = 10, search = '', filterBirthday = false) => {
+  return api.get<PaginatedUserResponse>(
+    `/admin/users?page=${page}&limit=${limit}&search=${search}&filterBirthday=${filterBirthday}`
+  );
+};

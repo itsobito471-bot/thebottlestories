@@ -34,6 +34,7 @@ const navItems = [
   { href: '/admin/enquiries', label: 'Enquiries', icon: FileQuestion },
   { href: '/admin/settings', label: 'Settings', icon: Settings },
   { href: '/admin/testimonials', label: 'Testimonials', icon: Star },
+  { href: '/admin/users', label: 'Users', icon: Star },
 ];
 
 export default function AdminNav() {
