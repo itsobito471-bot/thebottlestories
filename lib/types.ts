@@ -214,3 +214,19 @@ export interface Testimonial {
   isApproved: boolean; // Added this to fix the error
   createdAt?: string;  // Optional: Added this since your fallback data uses it
 }
+
+
+export interface SelectedFragrance {
+  fragranceId: string;
+  fragranceName: string; // Helper for UI display
+  size: string;
+  label?: string; // "Bottle 1", "Bottle 2"
+}
+
+export interface CartItem extends Product {
+  cartId: string;
+  quantity: number;
+  // UPDATED
+  selectedFragrances?: SelectedFragrance[]; 
+  customMessage?: string;
+}

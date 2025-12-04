@@ -20,7 +20,7 @@ const defaultProducts: Product[] = [
     description: "A sophisticated collection of evening fragrances with luxury packaging", 
     price: 199, 
     images: ["https://images.unsplash.com/photo-1541643600914-78b084683601?w=800&q=80"], 
-    tag: ["luxury", "evening"],
+    tags: [{ _id: "tag-1", name: "luxury" }, { _id: "tag-2", name: "evening" }],
     stock_quantity: 10,
     is_active: true,
     created_at: new Date().toISOString(),

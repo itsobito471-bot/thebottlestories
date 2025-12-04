@@ -1,18 +1,18 @@
 "use client";
 
 import { motion, useScroll, useTransform, useInView } from "framer-motion";
-import { useRef, useState, useEffect } from "react";
+import { useRef, useState, useEffect, useMemo } from "react";
 import { 
-  Star, ShoppingBag, Package, Truck, Shield, 
-  Check, ArrowLeft, PenLine, AlertCircle, CheckCircle2, User as UserIcon
+  Star, ShoppingBag, Package, Truck, Shield, Check, ArrowLeft, 
+  PenLine, AlertCircle, CheckCircle2, User as UserIcon, Sparkles, AlertTriangle
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Product } from "@/lib/types";
+import { Product, SelectedFragrance } from "@/lib/types"; // Make sure types are updated
 import { useCart } from "../app/context/CartContext";
 import { Textarea } from "@/components/ui/textarea";
-import { checkUserRating, submitProductRating } from "@/lib/appService"; // Import new services
+import { checkUserRating, submitProductRating } from "@/lib/appService";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -30,13 +30,9 @@ interface ProductViewProps {
 export default function ProductView({ product }: ProductViewProps) {
   const router = useRouter();
   const { addToCart, addToDirectCart } = useCart();
-  
-  // -- Auth Check (Simple logic based on localStorage token existence) --
-  // Ideally use a real AuthContext here
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   useEffect(() => {
-    // Check if token exists in localStorage to determine auth status
     if (typeof window !== 'undefined') {
         const token = localStorage.getItem('token');
         setIsAuthenticated(!!token);
@@ -49,16 +45,36 @@ export default function ProductView({ product }: ProductViewProps) {
   // --- State ---
   const [selectedImage, setSelectedImage] = useState(0);
   const [quantity, setQuantity] = useState(1);
-  const [selectedFragrances, setSelectedFragrances] = useState<string[]>([]); 
   const [customMessage, setCustomMessage] = useState("");
   
-  // --- Rating Logic State ---
-  const [userRating, setUserRating] = useState(0); // The actual rating saved in DB
-  const [hoverRating, setHoverRating] = useState(0); // Visual hover state
-  const [hasRated, setHasRated] = useState(false); // Lock state
+  // --- NEW: Slot Selection State ---
+  // Tracks selection for each bottle slot: { 0: "fragranceId", 1: "fragranceId" }
+  const [slotSelections, setSlotSelections] = useState<Record<number, string>>({});
+
+  // --- Calculate Slots from BottleConfig ---
+  const bottleSlots = useMemo(() => {
+    if (!product.bottleConfig || product.bottleConfig.length === 0) {
+      // Fallback: If no config, assume 1 generic slot
+      return [{ size: 'Standard', label: 'Perfume Selection' }];
+    }
+    const slots: { size: string, label: string }[] = [];
+    product.bottleConfig.forEach((config) => {
+      for (let i = 0; i < config.quantity; i++) {
+        slots.push({
+          size: config.size,
+          label: `${config.size} Bottle`
+        });
+      }
+    });
+    return slots;
+  }, [product.bottleConfig]);
+
+  // --- Rating State ---
+  const [userRating, setUserRating] = useState(0);
+  const [hoverRating, setHoverRating] = useState(0);
+  const [hasRated, setHasRated] = useState(false);
   const [isRatingSubmitting, setIsRatingSubmitting] = useState(false);
 
-  // --- Check User Rating on Mount ---
   useEffect(() => {
     if (isAuthenticated && product._id) {
         checkUserRating(product._id)
@@ -68,9 +84,7 @@ export default function ProductView({ product }: ProductViewProps) {
                     setUserRating(res.rating);
                 }
             })
-            .catch(() => {
-                // Fail silently or handle error
-            });
+            .catch(() => {});
     }
   }, [isAuthenticated, product._id]);
 
@@ -85,17 +99,10 @@ export default function ProductView({ product }: ProductViewProps) {
   const showAlert = (type: 'success' | 'warning' | 'error', title: string, message: string) => {
     setAlertState({ isOpen: true, type, title, message });
   };
-
-  const closeAlert = () => {
-    setAlertState((prev) => ({ ...prev, isOpen: false }));
-  };
+  const closeAlert = () => setAlertState((prev) => ({ ...prev, isOpen: false }));
 
   // --- Animation Hooks ---
-  const { scrollYProgress } = useScroll({
-    target: ref,
-    offset: ["start end", "end start"]
-  });
-
+  const { scrollYProgress } = useScroll({ target: ref, offset: ["start end", "end start"] });
   const y = useTransform(scrollYProgress, [0, 1], [100, -100]);
   const opacity = useTransform(scrollYProgress, [0, 0.3, 0.7, 1], [0, 1, 1, 0]);
 
@@ -109,86 +116,91 @@ export default function ProductView({ product }: ProductViewProps) {
 
   // --- Handlers ---
 
-  const toggleFragrance = (fragranceId: string) => {
-    if (selectedFragrances.includes(fragranceId)) {
-      setSelectedFragrances((prev) => prev.filter((f) => f !== fragranceId));
-    } else {
-      setSelectedFragrances((prev) => [...prev, fragranceId]);
+  // Helper to validate and format the user's selections
+  const getFormattedSelections = (): SelectedFragrance[] | null => {
+    const hasFragrances = product.available_fragrances && product.available_fragrances.length > 0;
+    
+    // If product has no fragrances to choose from, return empty array
+    if (!hasFragrances) return []; 
+
+    // Validate: Ensure every slot has a selection
+    if (Object.keys(slotSelections).length < bottleSlots.length) {
+      return null;
     }
+
+    return bottleSlots.map((slot, index) => {
+        const fragId = slotSelections[index];
+        const fragObj = product.available_fragrances?.find((f: any) => 
+            (typeof f === 'object' ? f._id : f) === fragId
+        );
+        // Safely extract name
+        const fragName = typeof fragObj === 'object' ? fragObj.name : 'Selected Scent';
+        
+        return {
+            fragranceId: fragId,
+            fragranceName: fragName,
+            size: slot.size,
+            label: slot.label
+        };
+    });
+  };
+
+  const handleSlotChange = (index: number, value: string) => {
+    setSlotSelections(prev => ({ ...prev, [index]: value }));
   };
 
   const handleAddToCart = () => {
-    const hasFragrances = product.available_fragrances && product.available_fragrances.length > 0;
-    if (hasFragrances && selectedFragrances.length === 0) {
-        showAlert('warning', 'Select a Scent', 'Please select at least one fragrance to proceed.');
+    const selections = getFormattedSelections();
+
+    if (selections === null) {
+        showAlert('warning', 'Incomplete Selection', `Please select a fragrance for all ${bottleSlots.length} bottles.`);
         return;
     }
 
-    if (hasFragrances) {
-        selectedFragrances.forEach((fragId) => {
-            addToCart(product, quantity, { fragrances: [fragId], message: customMessage });
-        });
-    } else {
-        addToCart(product, quantity, { fragrances: [], message: customMessage });
-    }
+    addToCart(product, quantity, { fragrances: selections, message: customMessage });
     
-    const totalItemsAdded = hasFragrances ? (selectedFragrances.length * quantity) : quantity;
-    showAlert('success', 'Added to Cart', hasFragrances ? `Successfully added ${totalItemsAdded} items.` : `${product.name} has been added to your cart.`);
-    setSelectedFragrances([]);
+    showAlert('success', 'Added to Cart', `${product.name} has been added to your cart.`);
+    // Optional: Reset selections
+    setSlotSelections({});
+    setCustomMessage("");
   };
 
   const handleBuyNow = () => {
-    const hasFragrances = product.available_fragrances && product.available_fragrances.length > 0;
-    if (hasFragrances && selectedFragrances.length === 0) {
-        showAlert('warning', 'Select a Scent', 'Please select at least one fragrance.');
+    const selections = getFormattedSelections();
+
+    if (selections === null) {
+        showAlert('warning', 'Incomplete Selection', `Please select a fragrance for all ${bottleSlots.length} bottles.`);
         return;
     }
 
     const cartFn = addToDirectCart || addToCart;
-    
-    if (hasFragrances) {
-        selectedFragrances.forEach((fragId) => {
-            cartFn(product, quantity, { fragrances: [fragId], message: customMessage });
-        });
-    } else {
-        cartFn(product, quantity, { fragrances: [], message: customMessage });
-    }
+    cartFn(product, quantity, { fragrances: selections, message: customMessage });
 
     router.push('/cart?buy_now=true');
   };
 
-  // --- Handle Rating Submission ---
   const handleRateProduct = async (ratingValue: number) => {
     if (!isAuthenticated) {
         showAlert('warning', 'Login Required', 'Please log in to rate this product.');
         return;
     }
-
     setIsRatingSubmitting(true);
     try {
         await submitProductRating(product._id, ratingValue);
         setUserRating(ratingValue);
         setHasRated(true);
         showAlert('success', 'Thank You!', 'Your rating has been submitted successfully.');
-        
-        // Optional: You could trigger a re-fetch of the product here to update the average stars immediately
-        // but typically the UI update of userRating is enough feedback.
     } catch (error: any) {
-        const msg = error.message || 'Failed to submit rating';
-        showAlert('error', 'Error', msg);
+        showAlert('error', 'Error', error.message || 'Failed to submit rating');
     } finally {
         setIsRatingSubmitting(false);
     }
   };
 
-  // Render variables
-  const totalItemsToAdd = (product.available_fragrances?.length && selectedFragrances.length > 0)
-    ? selectedFragrances.length * quantity
-    : quantity;
-
-  const tagName = product?.tags || (product.tags && product.tags.length > 0 
-    ? (typeof product.tags[0] === 'object' ? (product.tags[0] as any).name : product.tags[0]) 
-    : null);
+  // Safe tag name extraction
+  const tagName = product?.tags && product.tags.length > 0 
+    ? (typeof product.tags[0] === 'object' ? (product.tags[0] as any).name : 'Featured') 
+    : null;
 
   return (
     <section ref={ref} className="pt-28 sm:pt-32 lg:pt-36 pb-16 sm:pb-20 lg:pb-24 px-4 sm:px-6 lg:px-8 bg-gradient-to-b from-white via-[#F8F8F8] to-white relative overflow-hidden">
@@ -202,13 +214,13 @@ export default function ProductView({ product }: ProductViewProps) {
               alertState.type === 'error' ? 'bg-red-50 text-red-600' : 
               'bg-amber-50 text-amber-600'
             }`}>
-              {alertState.type === 'success' ? <CheckCircle2 className="w-6 h-6" /> : <AlertCircle className="w-6 h-6" />}
+              {alertState.type === 'success' ? <CheckCircle2 className="w-6 h-6" /> : <AlertTriangle className="w-6 h-6" />}
             </div>
             <AlertDialogTitle className="text-xl font-bold text-slate-900">{alertState.title}</AlertDialogTitle>
             <AlertDialogDescription className="text-slate-600 mt-2">{alertState.message}</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="sm:justify-center mt-4">
-            <AlertDialogAction onClick={closeAlert} className={`w-full sm:w-auto rounded-xl px-8 h-11 font-medium text-white ${alertState.type === 'success' ? 'bg-green-600' : 'bg-slate-900'}`}>Okay, got it</AlertDialogAction>
+            <AlertDialogAction onClick={closeAlert} className={`w-full sm:w-auto rounded-xl px-8 h-11 font-medium text-white ${alertState.type === 'success' ? 'bg-green-600' : 'bg-slate-900'}`}>Okay</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
@@ -228,7 +240,7 @@ export default function ProductView({ product }: ProductViewProps) {
 
         <div className="grid lg:grid-cols-2 gap-8 sm:gap-12 lg:gap-16 items-start">
           
-          {/* Images */}
+          {/* --- LEFT: IMAGES --- */}
           <motion.div initial={{ opacity: 0, x: -50 }} animate={isInView ? { opacity: 1, x: 0 } : {}} transition={{ duration: 0.8 }} className="lg:sticky lg:top-24">
             <div className="relative mb-4 sm:mb-6">
               <motion.div whileHover={{ scale: 1.02 }} className="relative aspect-square rounded-2xl sm:rounded-3xl overflow-hidden bg-white border border-[#DADADA] shadow-2xl">
@@ -249,32 +261,24 @@ export default function ProductView({ product }: ProductViewProps) {
             </div>
           </motion.div>
 
-          {/* Info */}
+          {/* --- RIGHT: INFO & ACTIONS --- */}
           <motion.div initial={{ opacity: 0, x: 50 }} animate={isInView ? { opacity: 1, x: 0 } : {}} transition={{ duration: 0.8, delay: 0.2 }} className="space-y-6 sm:space-y-8">
             
             {/* Title & Price */}
             <div>
-                <motion.div className="flex items-center gap-2 text-sm text-[#444444] mb-2">
-                    <span>Home</span>/<span>Products</span>/<span className="text-[#222222] font-semibold">{product.name}</span>
-                </motion.div>
-                <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-[#222222] leading-tight mb-4">
-                    {product.name}
-                </h1>
+                <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-[#222222] leading-tight mb-4">{product.name}</h1>
                 
-                {/* --- Display Rating (Top) --- */}
+                {/* Rating Stars */}
                 <div className="flex items-center gap-4 mb-4">
                   <div className="flex items-center gap-2 bg-yellow-50 px-3 py-1.5 rounded-full border border-yellow-100">
                     <div className="flex gap-0.5">
                       {[...Array(5)].map((_, i) => (
-                        // This shows the aggregate rating from the DB
                         <Star key={i} className={`w-4 h-4 ${i < Math.round(product.rating || 0) ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300'}`} />
                       ))}
                     </div>
                     <span className="font-bold text-[#222222]">{product.rating ? product.rating.toFixed(1) : "0.0"}</span>
                   </div>
-                  <span className="text-[#444444] text-sm font-medium">
-                    {product.reviews || 0} customer reviews
-                  </span>
+                  <span className="text-[#444444] text-sm font-medium">{product.reviews || 0} reviews</span>
                 </div>
 
                 <div className="flex flex-wrap items-center gap-3 sm:gap-4">
@@ -292,45 +296,58 @@ export default function ProductView({ product }: ProductViewProps) {
 
             <p className="text-lg text-[#444444] leading-relaxed">{product.description}</p>
             
-            {/* Fragrance Selector ... (Existing Code) */}
+            {/* --- SLOT CONFIGURATION SECTION --- */}
             {product.available_fragrances && product.available_fragrances.length > 0 && (
-                <div className="space-y-3">
-                    <h3 className="font-semibold text-[#222222]">Select Fragrance:</h3>
-                    <div className="flex flex-wrap gap-2">
-                        {product.available_fragrances.map((fragrance: any) => {
-                            const fragranceId = typeof fragrance === 'object' ? fragrance._id : fragrance;
-                            const fragranceName = typeof fragrance === 'object' ? fragrance.name : 'Unknown Scent';
-                            const inStock = typeof fragrance === 'object' ? fragrance.in_stock : true;
-                            const isSelected = selectedFragrances.includes(fragranceId);
-                            
-                            return (
-                                <button
-                                    key={fragranceId}
-                                    onClick={() => inStock && toggleFragrance(fragranceId)}
-                                    disabled={!inStock}
-                                    className={`px-4 py-2 rounded-full border transition-all duration-200 text-sm font-medium flex items-center gap-2
-                                        ${!inStock ? 'opacity-50 cursor-not-allowed bg-gray-100 border-gray-200 text-gray-400' : 
-                                          isSelected 
-                                            ? 'bg-[#222222] text-white border-[#222222] shadow-md transform scale-105' 
-                                            : 'bg-white text-[#444444] border-[#DADADA] hover:border-[#222222]'
-                                        }`}
-                                >
-                                    {fragranceName}
-                                    {!inStock && <span className="text-[10px] text-red-500">(Out of Stock)</span>}
-                                    {isSelected && <Check className="w-3 h-3 ml-1" />}
-                                </button>
-                            );
-                        })}
+                <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+                    <div className="flex items-center gap-2 pb-2 border-b border-slate-100">
+                        <Sparkles className="w-5 h-5 text-slate-900" />
+                        <h3 className="font-bold text-slate-900">Customize Your Hamper</h3>
+                    </div>
+                    
+                    <div className="grid gap-3">
+                        {bottleSlots.map((slot, index) => (
+                            <div key={index} className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-3 bg-slate-50 rounded-xl border border-slate-100 hover:border-slate-300 transition-colors">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center text-xs font-bold text-slate-700">
+                                        {index + 1}
+                                    </div>
+                                    <div className="flex flex-col">
+                                        <span className="font-semibold text-sm text-slate-900">{slot.label}</span>
+                                        <span className="text-[10px] uppercase tracking-wider text-slate-500 font-medium">{slot.size}</span>
+                                    </div>
+                                </div>
+                                
+                                <div className="w-full sm:w-auto">
+                                    <select 
+                                        className="w-full sm:w-[200px] h-10 px-3 rounded-lg border border-slate-200 bg-white text-sm focus:ring-2 focus:ring-slate-900 focus:border-transparent outline-none cursor-pointer"
+                                        value={slotSelections[index] || ""}
+                                        onChange={(e) => handleSlotChange(index, e.target.value)}
+                                    >
+                                        <option value="" disabled>Select a Scent</option>
+                                        {product.available_fragrances?.map((frag: any) => {
+                                            const fragId = typeof frag === 'object' ? frag._id : frag;
+                                            const fragName = typeof frag === 'object' ? frag.name : 'Unknown Scent';
+                                            const isStock = typeof frag === 'object' ? frag.in_stock : true;
+                                            
+                                            return (
+                                                <option key={fragId} value={fragId} disabled={!isStock}>
+                                                    {fragName} {!isStock ? '(Out of Stock)' : ''}
+                                                </option>
+                                            );
+                                        })}
+                                    </select>
+                                </div>
+                            </div>
+                        ))}
                     </div>
                 </div>
             )}
 
-            {/* Custom Message ... (Existing Code) */}
+            {/* Custom Message */}
             {(product.allow_custom_message || product.allow_custom_message === undefined) && (
               <div className="space-y-3">
                   <h3 className="font-semibold text-[#222222] flex items-center gap-2">
-                      <PenLine className="w-4 h-4" /> 
-                      Custom Message <span className="text-xs font-normal text-gray-500">(Optional)</span>
+                      <PenLine className="w-4 h-4" /> Custom Message <span className="text-xs font-normal text-gray-500">(Optional)</span>
                   </h3>
                   <Textarea 
                       placeholder="Write your heartfelt message here..."
@@ -343,10 +360,10 @@ export default function ProductView({ product }: ProductViewProps) {
               </div>
             )}
 
-            {/* Features ... (Existing Code) */}
+            {/* Features List */}
             {product.features && product.features.length > 0 && (
                 <div className="bg-gradient-to-br from-pink-50 to-rose-50 rounded-2xl sm:rounded-3xl p-6 sm:p-8 border border-[#DADADA]">
-                  <h3 className="text-lg sm:text-xl font-bold text-[#222222] mb-4 sm:mb-6">What&apos;s Included:</h3>
+                  <h3 className="text-lg sm:text-xl font-bold text-[#222222] mb-4">What&apos;s Included:</h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
                     {product.features.map((feature, index) => (
                       <div key={index} className="flex items-center gap-3">
@@ -360,6 +377,7 @@ export default function ProductView({ product }: ProductViewProps) {
                 </div>
             )}
 
+            {/* Benefits Icons */}
             <div className="flex flex-wrap gap-4 py-4 border-t border-b border-[#f0f0f0]">
               {benefits.map((benefit, index) => {
                 const Icon = benefit.icon;
@@ -383,7 +401,7 @@ export default function ProductView({ product }: ProductViewProps) {
 
                 <Button onClick={handleAddToCart} size="lg" className="flex-1 bg-[#1C1C1C] text-white hover:bg-[#222222] rounded-xl sm:rounded-2xl py-7 text-base sm:text-lg shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-[1.02]">
                     <ShoppingBag className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
-                    {totalItemsToAdd > 1 ? `Add ${totalItemsToAdd} Items` : 'Add to Cart'}
+                    Add to Cart
                 </Button>
               </div>
 
@@ -392,10 +410,9 @@ export default function ProductView({ product }: ProductViewProps) {
               </Button>
             </div>
 
-            {/* --- CUSTOMER RATING UI --- */}
+            {/* Rating UI */}
             <div className="mt-8 pt-8 border-t border-slate-200">
                 <h3 className="text-lg font-bold text-[#222222] mb-3">Rate this Product</h3>
-                
                 {!isAuthenticated ? (
                     <div className="bg-slate-50 rounded-xl p-4 border border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-3">
                         <div className="flex items-center gap-3">
@@ -427,13 +444,7 @@ export default function ProductView({ product }: ProductViewProps) {
                                     disabled={isRatingSubmitting}
                                     className="transition-transform hover:scale-110 active:scale-95 focus:outline-none"
                                 >
-                                    <Star 
-                                        className={`w-8 h-8 transition-colors duration-200 ${
-                                            star <= (hoverRating || userRating) 
-                                            ? 'fill-yellow-400 text-yellow-400' 
-                                            : 'text-gray-200'
-                                        }`} 
-                                    />
+                                    <Star className={`w-8 h-8 transition-colors duration-200 ${star <= (hoverRating || userRating) ? 'fill-yellow-400 text-yellow-400' : 'text-gray-200'}`} />
                                 </button>
                             ))}
                         </div>
