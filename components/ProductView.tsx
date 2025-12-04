@@ -186,7 +186,7 @@ export default function ProductView({ product }: ProductViewProps) {
     ? selectedFragrances.length * quantity
     : quantity;
 
-  const tagName = product.tag || (product.tags && product.tags.length > 0 
+  const tagName = product?.tags || (product.tags && product.tags.length > 0 
     ? (typeof product.tags[0] === 'object' ? (product.tags[0] as any).name : product.tags[0]) 
     : null);
 

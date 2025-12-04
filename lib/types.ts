@@ -33,6 +33,11 @@ export interface Fragrance {
   in_stock: boolean;
 }
 
+export interface BottleConfig {
+  quantity: number;
+  size: string;
+}
+
 export interface Product {
   _id: string;
   name: string;
@@ -44,13 +49,14 @@ export interface Product {
   images: string[];
   features?: string[];
   
-  // --- NEW FIELDS ---
-  tags?: Tag[]; // Array of Tag IDs
-  available_fragrances?: (string | Fragrance)[]; // Array of Fragrance IDs
+  // --- NEW FIELD ---
+  bottleConfig?: BottleConfig[]; 
+  // ----------------
+  
+  tags?: Tag[]; 
+  available_fragrances?: (string | Fragrance)[]; 
   allow_custom_message?: boolean;
-  tag?: any[]; // Keep this for backward compatibility if needed, or remove
-  // ------------------
-
+  
   stock_quantity: number;
   is_active: boolean;
   created_at: string;

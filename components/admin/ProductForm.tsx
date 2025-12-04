@@ -1,9 +1,7 @@
-// components/admin/ProductForm.tsx
-
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Product, Tag, Fragrance } from '@/lib/types';
+import { Product, Tag, Fragrance, BottleConfig } from '@/lib/types'; // Added BottleConfig
 import { 
   createAdminProduct, 
   updateAdminProduct, 
@@ -29,8 +27,8 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
-// --- ADDED: AlertCircle, CheckCircle2 ---
-import { Loader2, X as XIcon, Check, ChevronDown, AlertCircle, CheckCircle2 } from 'lucide-react';
+// Added Plus and Trash2 icons
+import { Loader2, X as XIcon, Check, ChevronDown, AlertCircle, CheckCircle2, Plus, Trash2 } from 'lucide-react';
 
 interface ProductFormProps {
   product?: Product;
@@ -50,13 +48,15 @@ export default function ProductForm({ product, open, onClose, onSuccess }: Produ
     stock_quantity: 0,
     is_active: true,
     allow_custom_message: false,
+    // --- NEW: Bottle Config State ---
+    bottleConfig: [] as BottleConfig[], 
   });
 
   // --- Selection State ---
   const [selectedTag, setSelectedTag] = useState<string>("");
   const [selectedFragrances, setSelectedFragrances] = useState<string[]>([]);
   
-  // --- Data Source State (Paginated) ---
+  // --- Data Source State ---
   const [availableTags, setAvailableTags] = useState<Tag[]>([]);
   const [availableFragrances, setAvailableFragrances] = useState<Fragrance[]>([]);
   
@@ -106,28 +106,17 @@ export default function ProductForm({ product, open, onClose, onSuccess }: Produ
         getTags(1, 10),
         getFragrances(1, 10)
       ]);
-
       setAvailableTags(tagsRes.data || []);
       setTagsHasMore(tagsRes.hasMore);
-
       setAvailableFragrances(fragrancesRes.data || []);
       setFragrancesHasMore(fragrancesRes.hasMore);
-
     } catch (err: any) {
       console.error("Failed to load tags/fragrances", err);
-      // Optional: Trigger alert on load failure too if desired
-      setAlertState({
-        isOpen: true,
-        title: 'Error Loading Data',
-        description: 'Failed to load tags or fragrances. Please try refreshing.',
-        type: 'error'
-      });
     } finally {
       setLoadingData(false);
     }
   };
 
-  // --- Load More Handlers ---
   const handleLoadMoreTags = async () => {
     if (loadingMoreTags || !tagsHasMore) return;
     setLoadingMoreTags(true);
@@ -137,11 +126,7 @@ export default function ProductForm({ product, open, onClose, onSuccess }: Produ
       setAvailableTags(prev => [...prev, ...res.data]);
       setTagsPage(nextPage);
       setTagsHasMore(res.hasMore);
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoadingMoreTags(false);
-    }
+    } catch (err) { console.error(err); } finally { setLoadingMoreTags(false); }
   };
 
   const handleLoadMoreFragrances = async () => {
@@ -153,11 +138,7 @@ export default function ProductForm({ product, open, onClose, onSuccess }: Produ
       setAvailableFragrances(prev => [...prev, ...res.data]);
       setFragrancesPage(nextPage);
       setFragrancesHasMore(res.hasMore);
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoadingMoreFragrances(false);
-    }
+    } catch (err) { console.error(err); } finally { setLoadingMoreFragrances(false); }
   };
 
   // --- 2. Populate Form ---
@@ -173,29 +154,26 @@ export default function ProductForm({ product, open, onClose, onSuccess }: Produ
           stock_quantity: product.stock_quantity || 0,
           is_active: product.is_active ?? true,
           allow_custom_message: product.allow_custom_message ?? false,
+          // --- Populate Config ---
+          bottleConfig: product.bottleConfig || [], 
         });
         setCurrentImageUrls(product.images || []);
 
-        // --- TAG HANDLING ---
         if (product.tags && product.tags.length > 0) {
           const firstTag: any = product.tags[0]; 
-          const tagId = (typeof firstTag === 'object' && firstTag !== null) 
-            ? firstTag._id 
-            : firstTag;
+          const tagId = (typeof firstTag === 'object' && firstTag !== null) ? firstTag._id : firstTag;
           setSelectedTag(tagId); 
         } else {
           setSelectedTag("");
         }
 
-        // --- FRAGRANCE HANDLING ---
         const existingFragrances = product.available_fragrances?.map((frag: any) => {
            return (typeof frag === 'object' && frag !== null) ? frag._id : frag;
         }) || [];
-        
         setSelectedFragrances(existingFragrances);
 
       } else {
-        // Reset form for new product
+        // Reset form
         setFormData({
           name: '',
           description: '',
@@ -205,6 +183,7 @@ export default function ProductForm({ product, open, onClose, onSuccess }: Produ
           stock_quantity: 0,
           is_active: true,
           allow_custom_message: false,
+          bottleConfig: [], 
         });
         setCurrentImageUrls([]);
         setSelectedTag("");
@@ -222,33 +201,48 @@ export default function ProductForm({ product, open, onClose, onSuccess }: Produ
       e.target.value = ""; 
     }
   };
-
   const removePendingFile = (index: number) => {
     setPendingFiles(prev => prev.filter((_, i) => i !== index));
   };
-
   const removeCurrentImage = (urlToRemove: string) => {
     setCurrentImageUrls(prev => prev.filter(url => url !== urlToRemove));
   };
-
   const handleSelectTag = (tagId: string) => {
-    if (selectedTag === tagId) {
-      setSelectedTag("");
-    } else {
-      setSelectedTag(tagId);
-    }
+    if (selectedTag === tagId) setSelectedTag(""); else setSelectedTag(tagId);
   };
-
   const toggleFragrance = (fragranceId: string) => {
     setSelectedFragrances(prev => 
       prev.includes(fragranceId) ? prev.filter(id => id !== fragranceId) : [...prev, fragranceId]
     );
   };
 
+  // --- NEW: Bottle Configuration Handlers ---
+  const addBottleSlot = () => {
+    setFormData(prev => ({
+      ...prev,
+      bottleConfig: [...prev.bottleConfig, { quantity: 1, size: '' }]
+    }));
+  };
+
+  const removeBottleSlot = (index: number) => {
+    setFormData(prev => ({
+      ...prev,
+      bottleConfig: prev.bottleConfig.filter((_, i) => i !== index)
+    }));
+  };
+
+  const handleBottleChange = (index: number, field: keyof BottleConfig, value: string | number) => {
+    setFormData(prev => {
+      const newConfig = [...prev.bottleConfig];
+      newConfig[index] = { ...newConfig[index], [field]: value };
+      return { ...prev, bottleConfig: newConfig };
+    });
+  };
+  // ------------------------------------------
+
   // --- Alert Helper ---
   const handleAlertClose = () => {
     setAlertState(prev => ({ ...prev, isOpen: false }));
-    // If it was a success message, we close the form and refresh data
     if (alertState.type === 'success') {
       onSuccess();
       onClose();
@@ -263,18 +257,17 @@ export default function ProductForm({ product, open, onClose, onSuccess }: Produ
     try {
       let finalImageUrls: string[] = [...currentImageUrls];
 
-      // 1. Upload Pending Files
+      // Upload Pending Files
       if (pendingFiles.length > 0) {
         const uploadFormData = new FormData();
         pendingFiles.forEach(file => {
           uploadFormData.append('images', file);
         });
-        
         const uploadResponse = await uploadAdminImages(uploadFormData);
         finalImageUrls.push(...uploadResponse.urls);
       }
 
-      // 2. Prepare Product Data
+      // Prepare Product Data
       const productData = {
         ...formData,
         price: Number(formData.price),
@@ -282,21 +275,17 @@ export default function ProductForm({ product, open, onClose, onSuccess }: Produ
         stock_quantity: Number(formData.stock_quantity),
         features: formData.features.split('\n').filter(f => f.trim() !== ''),
         images: finalImageUrls,
-        
-        // --- TYPE FIX ---
         tags: (selectedTag ? [selectedTag] : []) as unknown as Tag[], 
-        
         available_fragrances: selectedFragrances,
+        // bottleConfig is already in formData
       };
 
-      // 3. Save
       if (product) {
         await updateAdminProduct(product._id, productData);
       } else {
         await createAdminProduct(productData);
       }
       
-      // Open Success Alert
       setAlertState({
         isOpen: true,
         title: 'Success!',
@@ -306,10 +295,7 @@ export default function ProductForm({ product, open, onClose, onSuccess }: Produ
 
     } catch (err: any) {
       console.error('Failed to save product:', err);
-      // We set the generic error for the form UI
       setError(err.message || 'Failed to save product.');
-      
-      // Open Error Alert
       setAlertState({
         isOpen: true,
         title: 'Error',
@@ -334,6 +320,7 @@ export default function ProductForm({ product, open, onClose, onSuccess }: Produ
 
           <form onSubmit={handleSubmit} className="space-y-6">
             
+            {/* 1. Basic Info */}
             <div className="grid grid-cols-1 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="name">Product Name</Label>
@@ -344,6 +331,8 @@ export default function ProductForm({ product, open, onClose, onSuccess }: Produ
                 <Textarea id="description" value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} rows={3} disabled={uploading} />
               </div>
             </div>
+
+            {/* 2. Price & Stock */}
             <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="price">Price</Label>
@@ -358,12 +347,75 @@ export default function ProductForm({ product, open, onClose, onSuccess }: Produ
                 <Input id="stock_quantity" type="number" value={formData.stock_quantity} onChange={(e) => setFormData({ ...formData, stock_quantity: parseInt(e.target.value) || 0 })} required disabled={uploading} />
               </div>
             </div>
+
+            {/* --- NEW SECTION: Bottle Configuration --- */}
+            <div className="space-y-3 border p-4 rounded-lg bg-slate-50">
+              <div className="flex justify-between items-center">
+                <div>
+                  <Label className="text-base font-semibold">Bottle Configuration</Label>
+                  <p className="text-xs text-slate-500">Define the size and quantity of bottles.</p>
+                </div>
+                <Button type="button" size="sm" variant="secondary" onClick={addBottleSlot} disabled={uploading}>
+                  <Plus className="w-3 h-3 mr-1" /> Add Size
+                </Button>
+              </div>
+
+              {formData.bottleConfig.length === 0 ? (
+                 <div className="text-sm text-slate-400 italic text-center py-2 border border-dashed rounded bg-white/50">
+                    No bottle sizes configured yet. Click "Add Size" to start.
+                 </div>
+              ) : (
+                <div className="space-y-2">
+                  <div className="grid grid-cols-10 gap-2 text-xs font-medium text-slate-500 uppercase px-1">
+                    <div className="col-span-3">Qty</div>
+                    <div className="col-span-6">Size (e.g. 100ml)</div>
+                    <div className="col-span-1"></div>
+                  </div>
+                  {formData.bottleConfig.map((config, index) => (
+                    <div key={index} className="grid grid-cols-10 gap-2 items-center">
+                      <div className="col-span-3">
+                         <Input 
+                           type="number" 
+                           min="1"
+                           value={config.quantity} 
+                           onChange={(e) => handleBottleChange(index, 'quantity', parseInt(e.target.value) || 1)}
+                           className="bg-white h-9"
+                         />
+                      </div>
+                      <div className="col-span-6">
+                         <Input 
+                           type="text" 
+                           placeholder="e.g. 100ml"
+                           value={config.size} 
+                           onChange={(e) => handleBottleChange(index, 'size', e.target.value)}
+                           className="bg-white h-9"
+                         />
+                      </div>
+                      <div className="col-span-1 text-right">
+                         <Button 
+                           type="button" 
+                           variant="ghost" 
+                           size="icon" 
+                           className="h-9 w-9 text-slate-400 hover:text-red-500 hover:bg-red-50"
+                           onClick={() => removeBottleSlot(index)}
+                         >
+                           <Trash2 className="w-4 h-4" />
+                         </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+            {/* ------------------------------------------ */}
+
+            {/* 3. Features */}
             <div className="space-y-2">
               <Label htmlFor="features">Features (one per line)</Label>
               <Textarea id="features" value={formData.features} onChange={(e) => setFormData({ ...formData, features: e.target.value })} rows={4} disabled={uploading} />
             </div>
 
-            {/* --- Tags with Pagination --- */}
+            {/* 4. Tags */}
             <div className="space-y-3 border p-4 rounded-lg bg-slate-50">
               <div className="flex justify-between items-center">
                 <Label className="text-base font-semibold">Product Tag</Label>
@@ -401,7 +453,7 @@ export default function ProductForm({ product, open, onClose, onSuccess }: Produ
               )}
             </div>
 
-            {/* --- Fragrances with Pagination --- */}
+            {/* 5. Fragrances */}
             <div className="space-y-3 border p-4 rounded-lg bg-slate-50">
               <div className="flex justify-between items-center">
                 <Label className="text-base font-semibold">Available Fragrances</Label>
@@ -437,7 +489,7 @@ export default function ProductForm({ product, open, onClose, onSuccess }: Produ
               )}
             </div>
 
-            {/* --- Toggles --- */}
+            {/* 6. Toggles */}
             <div className="flex flex-col gap-4 border-t pt-4">
               <div className="flex items-center justify-between">
                 <Label htmlFor="is_active">Active (Visible to customers)</Label>
@@ -452,11 +504,9 @@ export default function ProductForm({ product, open, onClose, onSuccess }: Produ
               </div>
             </div>
 
-            {/* --- Image Upload Section --- */}
+            {/* 7. Images */}
             <div className="space-y-2">
               <Label>Images</Label>
-              
-              {/* File Input */}
               <div className="flex items-center gap-4">
                 <Input 
                   id="image" 
@@ -475,8 +525,7 @@ export default function ProductForm({ product, open, onClose, onSuccess }: Produ
               {/* Preview Grid */}
               {(currentImageUrls.length > 0 || pendingFiles.length > 0) && (
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 mt-4">
-                  
-                  {/* 1. Existing Images from DB */}
+                  {/* Saved Images */}
                   {currentImageUrls.map((url) => (
                     <div key={url} className="relative group">
                       <img src={url} alt="Product" className="w-full h-24 object-cover rounded-md border border-slate-200" />
@@ -488,8 +537,7 @@ export default function ProductForm({ product, open, onClose, onSuccess }: Produ
                       <div className="absolute top-1 left-1 bg-black/60 text-white text-[10px] px-1 rounded">Saved</div>
                     </div>
                   ))}
-
-                  {/* 2. New Pending Images */}
+                  {/* New Images */}
                   {pendingFiles.map((file, index) => (
                     <div key={`new-${index}`} className="relative group">
                       <img src={URL.createObjectURL(file)} alt="New Upload" className="w-full h-24 object-cover rounded-md border border-green-200 ring-2 ring-green-500/20" />
@@ -526,14 +574,12 @@ export default function ProductForm({ product, open, onClose, onSuccess }: Produ
         </DialogContent>
       </Dialog>
 
-      {/* --- Shadcn Alert Dialog (UPDATED WITH ICONS) --- */}
+      {/* Result Alert Dialog */}
       <AlertDialog open={alertState.isOpen} onOpenChange={(open) => {
         if (!open) handleAlertClose();
       }}>
         <AlertDialogContent className="max-w-md text-center">
           <AlertDialogHeader className="flex flex-col items-center gap-2">
-             
-             {/* Icon Logic */}
              {alertState.type === 'success' ? (
               <div className="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center mb-2">
                 <CheckCircle2 className="w-6 h-6 text-green-600" />
@@ -543,7 +589,6 @@ export default function ProductForm({ product, open, onClose, onSuccess }: Produ
                 <AlertCircle className="w-6 h-6 text-red-600" />
               </div>
             )}
-
             <AlertDialogTitle className={`text-xl ${alertState.type === 'error' ? 'text-red-600' : 'text-slate-900'}`}>
               {alertState.title}
             </AlertDialogTitle>
@@ -551,7 +596,6 @@ export default function ProductForm({ product, open, onClose, onSuccess }: Produ
               {alertState.description}
             </AlertDialogDescription>
           </AlertDialogHeader>
-
           <AlertDialogFooter className="sm:justify-center">
             <AlertDialogAction 
               onClick={handleAlertClose} 
