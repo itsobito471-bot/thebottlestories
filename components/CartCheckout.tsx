@@ -1,12 +1,12 @@
 'use client';
 
-import { useState, useRef, useEffect, useMemo } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { 
   ShoppingBag, Trash2, Plus, Minus, ArrowLeft, ArrowRight, 
   CreditCard, Truck, Shield, Loader2, AlertCircle, CheckCircle2, 
-  PenLine, Sparkles, MapPin, Home, Briefcase, AlertTriangle
+  PenLine, Sparkles, MapPin, Home, Briefcase
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useCart, CartItem, SelectedFragrance } from '../app/context/CartContext'; 
@@ -21,8 +21,6 @@ import {
 import {
   Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger,
 } from "@/components/ui/dialog";
-
-// --- Import Select Components ---
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export default function CartPage() {
@@ -45,6 +43,9 @@ export default function CartPage() {
   const [showCheckout, setShowCheckout] = useState(false);
   const [isPlacingOrder, setIsPlacingOrder] = useState(false);
   
+  // --- NEW: Validation State (Fixes the red border issue) ---
+  const [showValidationErrors, setShowValidationErrors] = useState(false);
+
   // Address & User State
   const [savedAddresses, setSavedAddresses] = useState<any[]>([]);
   const [isAddressModalOpen, setIsAddressModalOpen] = useState(false);
@@ -138,7 +139,6 @@ export default function CartPage() {
     const slots = calculateSlots(item);
     const currentSelections = item.selectedFragrances ? [...item.selectedFragrances] : [];
     
-    // Create new selection object
     const fragObj = item.available_fragrances?.find((f: any) => (typeof f === 'object' ? f._id : f) === fragranceId);
     // @ts-ignore
     const fragName = typeof fragObj === 'object' ? fragObj.name : 'Selected Scent';
@@ -146,7 +146,6 @@ export default function CartPage() {
         fragranceId, fragranceName: fragName, size: slots[slotIndex].size, label: slots[slotIndex].label
     };
 
-    // Update or Insert at index
     currentSelections[slotIndex] = newSelection;
     updateItemMetaData(item.cartId, { selectedFragrances: currentSelections });
   };
@@ -156,9 +155,7 @@ export default function CartPage() {
     for (const item of activeItems) {
         const slots = calculateSlots(item);
         const selections = item.selectedFragrances || [];
-        // Check if item requires configuration (has slots) but selections count mismatch
         if (slots.length > 0) {
-            // Check if any slot is undefined or empty
             for(let i=0; i<slots.length; i++) {
                 if(!selections[i] || !selections[i].fragranceId) {
                     return { valid: false, message: `Please select all fragrances for ${item.name}` };
@@ -170,12 +167,14 @@ export default function CartPage() {
   };
 
   const handleProceedToCheckout = () => {
+    // 1. Enable Validation Visuals (Inputs will turn red NOW, if empty)
+    setShowValidationErrors(true);
+
     if (!localStorage.getItem('token')) {
         showAlert({ title: 'Please Login', description: 'Login required.', actionLabel: 'Login', onConfirm: () => router.push('/login?redirect=/cart') });
         return;
     }
     
-    // Validate Configurations
     const check = validateCartBeforeCheckout();
     if (!check.valid) {
         showAlert({ title: 'Incomplete Selection', description: check.message || "Select all scents.", variant: 'destructive', showCancel: false });
@@ -280,14 +279,27 @@ export default function CartPage() {
                                             </div>
                                             <div className="flex-1">
                                                 <Select value={currentVal} onValueChange={(val) => handleFragranceUpdate(item, idx, val)}>
-                                                    <SelectTrigger className={`h-8 text-xs w-full ${!currentVal ? 'border-red-300 bg-red-50 text-red-600' : 'bg-white'}`}>
+                                                    
+                                                    {/* --- FIX 1: Conditional Red Border --- */}
+                                                    <SelectTrigger 
+                                                        className={`h-8 text-xs w-full transition-colors ${
+                                                            (!currentVal && showValidationErrors) 
+                                                                ? 'border-red-300 bg-red-50 text-red-600 focus:ring-red-200' 
+                                                                : 'bg-white border-slate-200'
+                                                        }`}
+                                                    >
                                                         <SelectValue placeholder="Select Scent" />
                                                     </SelectTrigger>
+                                                    
                                                     <SelectContent>
                                                         {item.available_fragrances?.map((frag: any) => {
                                                             const fragId = typeof frag === 'object' ? frag._id : frag;
                                                             const fragName = typeof frag === 'object' ? frag.name : 'Unknown';
-                                                            const inStock = typeof frag === 'object' ? frag.in_stock : true;
+                                                            
+                                                            // --- FIX 2: Safer Stock Check ---
+                                                            // Defaults to true if in_stock is missing/undefined
+                                                            const inStock = (typeof frag === 'object' && frag.in_stock !== false);
+                                                            
                                                             return (
                                                                 <SelectItem key={fragId} value={fragId} disabled={!inStock}>
                                                                     {fragName} {!inStock && '(OOS)'}
@@ -302,7 +314,6 @@ export default function CartPage() {
                                    })}
                                 </div>
                               )}
-                              {/* ------------------------------------- */}
 
                               {item.allow_custom_message && (
                                 <div className="mt-3">
@@ -340,7 +351,7 @@ export default function CartPage() {
                 </motion.div>
               ) : (
                 <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="bg-white rounded-3xl p-6 md:p-8 shadow-lg border border-gray-100">
-                  {/* ... Address & Payment ... */}
+                  {/* Address Section */}
                    <div className="mb-8 p-4 bg-slate-50 rounded-xl border border-slate-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                      <div><h4 className="font-bold text-slate-900">Saved Addresses</h4><p className="text-sm text-slate-500">Quickly fill details.</p></div>
                      <Dialog open={isAddressModalOpen} onOpenChange={setIsAddressModalOpen}>

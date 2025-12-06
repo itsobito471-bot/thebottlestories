@@ -10,7 +10,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { 
   ShoppingBag, Calendar, MapPin, Package, 
-  Loader2, RotateCcw, CheckCircle, Clock, XCircle, Truck, StickyNote 
+  Loader2, RotateCcw, CheckCircle, Clock, XCircle, Truck, StickyNote, Sparkles 
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { motion } from 'framer-motion';
@@ -32,7 +32,7 @@ export default function MyOrdersPage() {
       const res = await getUserOrders();
       setOrders(res.data || []);
     } catch (error: any) {
-      if (error.message?.includes('Session expired')) {
+      if (error.message?.includes('Session expired') || error.response?.status === 401) {
         router.push('/login');
       }
     } finally {
@@ -41,21 +41,35 @@ export default function MyOrdersPage() {
   };
 
   const handleOrderAgain = (order: Order) => {
-    const itemsToBuy: CartItem[] = order.items.map((item: any) => ({
-      ...item.product,
-      cartId: `${item.product._id}-${Date.now()}-${Math.random()}`,
-      quantity: item.quantity,
-      selectedFragrances: item.selected_fragrances?.map((f: any) => 
-        typeof f === 'string' ? f : f._id
-      ) || [],
-      customMessage: item.custom_message || ''
-    }));
+    try {
+      const itemsToBuy: CartItem[] = order.items.map((item: any) => ({
+        ...item.product,
+        // Generate a new unique ID so it doesn't conflict in the cart
+        cartId: `${item.product._id}-${Date.now()}-${Math.random()}`,
+        quantity: item.quantity,
+        
+        // --- CRITICAL FIX: Reconstruct specific bottle selections from backend history ---
+        selectedFragrances: item.selected_fragrances?.map((sf: any) => ({
+          // Check if populated object or raw ID
+          fragranceId: typeof sf.fragrance === 'object' ? sf.fragrance._id : sf.fragrance,
+          fragranceName: typeof sf.fragrance === 'object' ? sf.fragrance.name : 'Unknown Scent',
+          size: sf.size || 'Standard',
+          label: sf.label || 'Bottle'
+        })) || [],
+        // -------------------------------------------------------------------------------
 
-    if (itemsToBuy.length > 0) {
-      startDirectCheckout(itemsToBuy);
-      router.push('/cart?buy_now=true');
-    } else {
-       Swal.fire('Error', 'Product data no longer available', 'error');
+        customMessage: item.custom_message || ''
+      }));
+
+      if (itemsToBuy.length > 0) {
+        startDirectCheckout(itemsToBuy);
+        router.push('/cart?buy_now=true');
+      } else {
+         Swal.fire('Error', 'Product data no longer available', 'error');
+      }
+    } catch (error) {
+      console.error("Order Again Error:", error);
+      Swal.fire('Error', 'Failed to re-order items. Some products may be discontinued.', 'error');
     }
   };
 
@@ -63,8 +77,11 @@ export default function MyOrdersPage() {
     const styles: Record<string, string> = {
       pending: "bg-yellow-50 text-yellow-700 border-yellow-200",
       processing: "bg-blue-50 text-blue-700 border-blue-200",
+      crafting: "bg-indigo-50 text-indigo-700 border-indigo-200", // Added crafting
+      packaging: "bg-pink-50 text-pink-700 border-pink-200",     // Added packaging
       shipped: "bg-purple-50 text-purple-700 border-purple-200",
       delivered: "bg-green-50 text-green-700 border-green-200",
+      completed: "bg-green-50 text-green-700 border-green-200",
       cancelled: "bg-red-50 text-red-700 border-red-200",
       rejected: "bg-red-50 text-red-700 border-red-200",
     };
@@ -73,6 +90,7 @@ export default function MyOrdersPage() {
       pending: Clock,
       shipped: Truck,
       delivered: CheckCircle,
+      completed: CheckCircle,
       cancelled: XCircle,
       rejected: XCircle,
     };
@@ -136,7 +154,7 @@ export default function MyOrdersPage() {
               >
                 <Card className="overflow-hidden border-slate-200 shadow-sm hover:shadow-md transition-shadow bg-white">
                   
-                  {/* --- Responsive Order Header --- */}
+                  {/* --- Order Header --- */}
                   <div className="border-b border-slate-100 bg-slate-50/50 p-4 sm:p-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 w-full md:w-auto">
                       <div>
@@ -172,7 +190,7 @@ export default function MyOrdersPage() {
                       {order.items?.map((item: any, idx: number) => (
                         <div key={idx} className="flex gap-4 items-start border-b border-slate-50 last:border-0 pb-4 last:pb-0">
                           
-                          {/* Image (Smaller on Mobile) */}
+                          {/* Product Image */}
                           <div className="w-16 h-16 sm:w-20 sm:h-20 bg-slate-100 rounded-lg overflow-hidden flex-shrink-0 border border-slate-200">
                              {item.product?.images?.[0] ? (
                                <img src={item.product.images[0]} alt={item.product.name} className="w-full h-full object-cover" />
@@ -195,16 +213,31 @@ export default function MyOrdersPage() {
                               </p>
                             </div>
 
-                            {/* Fragrances */}
+                            {/* --- CRITICAL FIX: Render Structured Fragrances --- */}
                             {item.selected_fragrances && item.selected_fragrances.length > 0 && (
-                              <div className="mt-2 flex flex-wrap gap-1.5">
-                                {item.selected_fragrances.map((f: any, i: number) => (
-                                  <span key={i} className="inline-flex text-[10px] sm:text-xs uppercase font-semibold bg-slate-100 px-2 py-0.5 rounded text-slate-600 border border-slate-200">
-                                    {f.name || 'Unknown Scent'}
-                                  </span>
-                                ))}
+                              <div className="mt-3 bg-slate-50 p-2.5 rounded-lg border border-slate-100 inline-block w-full sm:w-auto">
+                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5 flex items-center gap-1">
+                                   <Sparkles className="w-3 h-3"/> Selected Scents
+                                </p>
+                                <div className="space-y-1">
+                                  {item.selected_fragrances.map((sf: any, i: number) => (
+                                    <div key={i} className="flex items-center text-xs gap-1">
+                                      <div className="w-1 h-1 rounded-full bg-slate-300"></div>
+                                      
+                                      <span className="text-slate-500 font-medium">
+                                        {sf.size || 'Bottle'} <span className="opacity-70">({sf.label || 'Standard'})</span>:
+                                      </span>
+                                      
+                                      <span className="text-slate-900 font-semibold">
+                                        {/* Handle both populated object and fallback */}
+                                        {typeof sf.fragrance === 'object' ? sf.fragrance.name : 'Unknown Scent'}
+                                      </span>
+                                    </div>
+                                  ))}
+                                </div>
                               </div>
                             )}
+                            {/* ------------------------------------------------ */}
 
                             {/* Custom Message */}
                             {item.custom_message && (
