@@ -25,7 +25,7 @@ export interface Fragrance {
   _id: string;
   name: string;
   // Updated structure
-  notes: {
+  notes?: {
     top: string[];
     middle: string[];
     base: string[];

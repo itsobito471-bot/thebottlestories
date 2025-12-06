@@ -1,16 +1,17 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { getFragranceById } from '@/lib/appService';
 import { Fragrance } from '@/lib/types';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
-import { FlaskConical, Wind, Flower2, Mountain } from 'lucide-react';
+import { FlaskConical, Wind, Flower2, Mountain, ArrowLeft } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 export default function FragranceDetails() {
     const params = useParams();
+    const router = useRouter();
     const [fragrance, setFragrance] = useState<Fragrance | null>(null);
     const [loading, setLoading] = useState(true);
 
@@ -55,7 +56,14 @@ export default function FragranceDetails() {
         <div className="min-h-screen bg-white">
             <Navbar />
 
-            <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
+            <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-28 sm:pt-32 lg:pt-36 pb-16 sm:pb-20 lg:pb-24">
+                <motion.div initial={{ opacity: 0, x: -30 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.5 }} className="mb-8">
+                    <button onClick={() => router.back()} className="inline-flex items-center gap-2 px-4 py-2 bg-slate-50 hover:bg-slate-100 rounded-full text-sm font-medium text-slate-700 transition-colors duration-200">
+                        <ArrowLeft className="w-4 h-4" />
+                        Back to Product
+                    </button>
+                </motion.div>
+
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-24 items-center">
 
                     {/* Image Section */}

@@ -49,6 +49,7 @@ export default function ProductView({ product }: ProductViewProps) {
   // --- State ---
   const [selectedImage, setSelectedImage] = useState(0);
   const [quantity, setQuantity] = useState(1);
+  const [selectedFragrance, setSelectedFragrance] = useState<string>("");
 
   const [customMessage, setCustomMessage] = useState("");
 
@@ -112,13 +113,32 @@ export default function ProductView({ product }: ProductViewProps) {
 
 
   const handleAddToCart = () => {
-    addToCart(product, quantity, { message: customMessage });
+    if (product.available_fragrances && product.available_fragrances.length > 0 && !selectedFragrance) {
+      showAlert('warning', 'Select Scent', 'Please select a fragrance to proceed.');
+      return;
+    }
+
+    // We pass the full fragrance object or ID. The CartContext usually expects just the ID or object depending on implementation.
+    // Assuming we pass the ID or the object. Let's pass the object if possible or ID.
+    // Based on `useCart` usage in this file, let's see `addToCart` signature.
+    // For now, I will pass it as part of the options or if `addToCart` supports it.
+    // Looking at previous patterns, often it is passed in the options object.
+
+    const selectedFragObj = product.available_fragrances?.find((f: any) => f._id === selectedFragrance) as any;
+
+    addToCart(product, quantity, { message: customMessage, selected_fragrance: selectedFragObj });
     showAlert('success', 'Added to Cart', `${product.name} has been added to your cart.`);
   };
 
   const handleBuyNow = () => {
+    if (product.available_fragrances && product.available_fragrances.length > 0 && !selectedFragrance) {
+      showAlert('warning', 'Select Scent', 'Please select a fragrance to proceed.');
+      return;
+    }
+    const selectedFragObj = product.available_fragrances?.find((f: any) => f._id === selectedFragrance) as any;
+
     const cartFn = addToDirectCart || addToCart;
-    cartFn(product, quantity, { message: customMessage });
+    cartFn(product, quantity, { message: customMessage, selected_fragrance: selectedFragObj });
     router.push('/cart?buy_now=true');
   };
 
@@ -254,7 +274,96 @@ export default function ProductView({ product }: ProductViewProps) {
 
             <p className="text-lg text-[#444444] leading-relaxed">{product.description}</p>
 
-            {/* Fragrance Selector ... (Existing Code) */}
+            {/* Fragrance Selector */}
+            {product.available_fragrances && product.available_fragrances.length > 0 && (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="font-semibold text-[#222222] flex items-center gap-2">
+                    <span className="w-1.5 h-1.5 rounded-full bg-[#222222]"></span>
+                    Select Fragrance
+                  </h3>
+                  {selectedFragrance && (
+                    <Link href={`/fragrance/${selectedFragrance}`} className="text-xs text-[#666666] hover:text-[#222222] underline decoration-1 underline-offset-2">
+                      View Details
+                    </Link>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {(product.available_fragrances as any[]).map((frag) => (
+                    <button
+                      key={frag._id}
+                      onClick={() => setSelectedFragrance(frag._id)}
+                      className={`relative p-3 rounded-xl border text-left transition-all duration-300 group overflow-hidden ${selectedFragrance === frag._id
+                        ? 'border-[#222222] bg-slate-50 shadow-md scale-[1.02]'
+                        : 'border-[#E5E5E5] hover:border-[#CCCCCC] hover:shadow-sm'
+                        }`}
+                    >
+                      <div className="flex gap-3 items-center z-10 relative">
+                        {/* Thumbnail */}
+                        <div className={`w-10 h-10 rounded-lg flex-shrink-0 bg-white border border-slate-100 overflow-hidden flex items-center justify-center ${selectedFragrance === frag._id ? 'shadow-inner' : ''}`}>
+                          {frag.image ? (
+                            <img src={frag.image} alt={frag.name} className="w-full h-full object-cover" />
+                          ) : (
+                            <div className="w-full h-full bg-slate-100" />
+                          )}
+                        </div>
+
+                        <div>
+                          <span className="block text-sm font-bold text-[#222222] group-hover:text-black">{frag.name}</span>
+                          <span className={`text-[10px] uppercase font-bold tracking-wider ${frag.in_stock ? 'text-green-600' : 'text-red-500'}`}>
+                            {frag.in_stock ? 'In Stock' : 'Sold Out'}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Check Icon */}
+                      {selectedFragrance === frag._id && (
+                        <div className="absolute top-2 right-2 text-[#222222]">
+                          <div className="w-4 h-4 bg-[#222222] rounded-full flex items-center justify-center">
+                            <Check className="w-2.5 h-2.5 text-white" />
+                          </div>
+                        </div>
+                      )}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Selected Fragrance Details */}
+                {selectedFragrance && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="p-4 bg-slate-50/80 rounded-2xl border border-slate-200/50 mt-4 backdrop-blur-sm"
+                  >
+                    {(() => {
+                      const frag = (product.available_fragrances as any[]).find(f => f._id === selectedFragrance);
+                      if (!frag) return null;
+                      return (
+                        <div className="flex gap-4 items-start">
+                          {frag.image && (
+                            <div className="w-16 h-16 rounded-xl overflow-hidden flex-shrink-0 border border-white shadow-sm">
+                              <img src={frag.image} alt={frag.name} className="w-full h-full object-cover" />
+                            </div>
+                          )}
+                          <div>
+                            <h4 className="text-sm font-bold text-[#222222] mb-1">{frag.name}</h4>
+                            <p className="text-xs text-[#555555] leading-relaxed line-clamp-2">
+                              {frag.description || "A premium scent profile selected for this product."}
+                            </p>
+                            {frag.notes?.method && (
+                              <div className="flex gap-1 mt-2">
+                                {/* You could render notes pills here if available in the populated data */}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )
+                    })()}
+                  </motion.div>
+                )}
+              </div>
+            )}
 
 
             {/* Custom Message ... (Existing Code) */}

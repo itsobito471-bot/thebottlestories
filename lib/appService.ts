@@ -210,6 +210,11 @@ export const updateFragranceStock = (id: string, in_stock: boolean) => {
   return api.put<Fragrance>(`/admin/fragrances/${id}`, { in_stock });
 };
 
+// Generic update for all fragrance fields
+export const updateFragrance = (id: string, data: Partial<Fragrance>) => {
+  return api.put<Fragrance>(`/admin/fragrances/${id}`, data);
+};
+
 export const getFragranceById = (id: string) => {
   return api.get<Fragrance>(`/fragrances/${id}`);
 };

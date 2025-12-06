@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { getFragrances, createFragrance, deleteFragrance, updateFragranceStock, uploadAdminImages } from '@/lib/appService';
+import { getFragrances, createFragrance, deleteFragrance, updateFragranceStock, uploadAdminImages, updateFragrance } from '@/lib/appService';
 import { Fragrance } from '@/lib/types';
 import AdminNav from '@/components/admin/AdminNav';
 import { Button } from '@/components/ui/button';
@@ -19,7 +19,8 @@ import {
   Flower2,
   Mountain,
   ImageIcon,
-  X
+  X,
+  Pencil
 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
@@ -30,6 +31,7 @@ export default function AdminFragrances() {
   const [fragrances, setFragrances] = useState<Fragrance[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
 
   // Form State
   const [form, setForm] = useState({
@@ -59,7 +61,28 @@ export default function AdminFragrances() {
     }
   };
 
-  const handleCreate = async (e: React.FormEvent) => {
+  const resetForm = () => {
+    setForm({ name: '', description: '', topNotes: '', middleNotes: '', baseNotes: '', in_stock: true, image: '' });
+    setImageFile(null);
+    setEditingId(null);
+    setShowModal(false);
+  };
+
+  const handleEdit = (frag: Fragrance) => {
+    setEditingId(frag._id);
+    setForm({
+      name: frag.name,
+      description: frag.description || '',
+      topNotes: frag.notes?.top?.join(', ') || '',
+      middleNotes: frag.notes?.middle?.join(', ') || '',
+      baseNotes: frag.notes?.base?.join(', ') || '',
+      in_stock: frag.in_stock,
+      image: frag.image || ''
+    });
+    setShowModal(true);
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setCreating(true);
     try {
@@ -74,18 +97,43 @@ export default function AdminFragrances() {
         }
       }
 
-      await createFragrance({ ...form, image: finalImageUrl } as any);
-      setForm({ name: '', description: '', topNotes: '', middleNotes: '', baseNotes: '', in_stock: true, image: '' });
-      setImageFile(null);
-      setShowModal(false);
+      // Prepare notes object
+      const notes = {
+        top: form.topNotes.split(',').map(s => s.trim()).filter(Boolean),
+        middle: form.middleNotes.split(',').map(s => s.trim()).filter(Boolean),
+        base: form.baseNotes.split(',').map(s => s.trim()).filter(Boolean)
+      };
+
+      const payload = {
+        name: form.name,
+        description: form.description,
+        notes,
+        in_stock: form.in_stock,
+        image: finalImageUrl
+      };
+
+      if (editingId) {
+        await updateFragrance(editingId, payload);
+        Swal.fire({
+          icon: 'success',
+          title: 'Updated!',
+          text: 'Fragrance profile updated.',
+          timer: 1500,
+          showConfirmButton: false
+        });
+      } else {
+        await createFragrance(payload as any);
+        Swal.fire({
+          icon: 'success',
+          title: 'Added!',
+          text: 'Fragrance profile created.',
+          timer: 1500,
+          showConfirmButton: false
+        });
+      }
+
+      resetForm();
       fetchFragrances();
-      Swal.fire({
-        icon: 'success',
-        title: 'Added!',
-        text: 'Fragrance profile created.',
-        timer: 1500,
-        showConfirmButton: false
-      });
     } catch (error: any) {
       Swal.fire('Error', error.message, 'error');
     } finally {
@@ -144,7 +192,7 @@ export default function AdminFragrances() {
             <p className="text-slate-500 mt-2 text-sm">Manage scent profiles, notes, and availability.</p>
           </div>
           <Button
-            onClick={() => setShowModal(true)}
+            onClick={() => { resetForm(); setShowModal(true); }}
             className="bg-slate-900 text-white hover:bg-slate-800 shadow-lg hover:shadow-xl transition-all rounded-full px-6"
           >
             <Plus className="w-4 h-4 mr-2" />
@@ -193,14 +241,24 @@ export default function AdminFragrances() {
                         </span>
                       </div>
                     </div>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="text-slate-300 hover:text-red-500 hover:bg-red-50 -mr-2 -mt-2 transition-colors"
-                      onClick={() => handleDelete(frag._id)}
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
+                    <div className="flex -mr-2 -mt-2">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="text-slate-300 hover:text-slate-900 hover:bg-slate-50 transition-colors"
+                        onClick={() => handleEdit(frag)}
+                      >
+                        <Pencil className="w-4 h-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="text-slate-300 hover:text-red-500 hover:bg-red-50 transition-colors"
+                        onClick={() => handleDelete(frag._id)}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
                   </div>
 
                   {/* Olfactory Pyramid (Notes) */}
@@ -213,8 +271,8 @@ export default function AdminFragrances() {
                         <span className="text-xs font-bold text-sky-700 uppercase tracking-wide">Top Notes</span>
                       </div>
                       <div className="flex flex-wrap gap-1.5">
-                        {frag.notes?.top?.length > 0 ? (
-                          frag.notes.top.map((note, i) => (
+                        {(frag.notes?.top?.length || 0) > 0 ? (
+                          frag.notes?.top?.map((note, i) => (
                             <span key={i} className="px-2 py-1 bg-white rounded-md text-xs text-sky-900 border border-sky-100 shadow-sm">
                               {note}
                             </span>
@@ -230,8 +288,8 @@ export default function AdminFragrances() {
                         <span className="text-xs font-bold text-pink-700 uppercase tracking-wide">Heart Notes</span>
                       </div>
                       <div className="flex flex-wrap gap-1.5">
-                        {frag.notes?.middle?.length > 0 ? (
-                          frag.notes.middle.map((note, i) => (
+                        {(frag.notes?.middle?.length || 0) > 0 ? (
+                          frag.notes?.middle?.map((note, i) => (
                             <span key={i} className="px-2 py-1 bg-white rounded-md text-xs text-pink-900 border border-pink-100 shadow-sm">
                               {note}
                             </span>
@@ -247,8 +305,8 @@ export default function AdminFragrances() {
                         <span className="text-xs font-bold text-amber-800 uppercase tracking-wide">Base Notes</span>
                       </div>
                       <div className="flex flex-wrap gap-1.5">
-                        {frag.notes?.base?.length > 0 ? (
-                          frag.notes.base.map((note, i) => (
+                        {(frag.notes?.base?.length || 0) > 0 ? (
+                          frag.notes?.base?.map((note, i) => (
                             <span key={i} className="px-2 py-1 bg-white rounded-md text-xs text-amber-900 border border-amber-100 shadow-sm">
                               {note}
                             </span>
@@ -282,7 +340,7 @@ export default function AdminFragrances() {
               transition={{ duration: 0.3, delay: 0.1 }}
             >
               <button
-                onClick={() => setShowModal(true)}
+                onClick={() => { resetForm(); setShowModal(true); }}
                 className="w-full h-full min-h-[300px] rounded-2xl border-2 border-dashed border-slate-200 hover:border-slate-400 hover:bg-slate-50 transition-all flex flex-col items-center justify-center gap-4 group cursor-pointer p-8"
               >
                 <div className="w-16 h-16 rounded-full bg-slate-100 group-hover:bg-white group-hover:shadow-md flex items-center justify-center transition-all">
@@ -298,20 +356,20 @@ export default function AdminFragrances() {
         )}
       </main>
 
-      {/* Create Modal */}
+      {/* Create/Edit Modal */}
       <Dialog open={showModal} onOpenChange={setShowModal}>
         <DialogContent className="sm:max-w-[550px] p-0 overflow-hidden rounded-2xl">
           <div className="bg-slate-900 p-6 text-white">
             <DialogTitle className="text-xl font-bold flex items-center gap-2">
               <FlaskConical className="w-5 h-5" />
-              New Fragrance Profile
+              {editingId ? 'Edit Fragrance Profile' : 'New Fragrance Profile'}
             </DialogTitle>
             <DialogDescription className="text-slate-300 mt-1">
-              Define the olfactory structure for this new scent.
+              Define the olfactory structure for this {editingId ? 'existing' : 'new'} scent.
             </DialogDescription>
           </div>
 
-          <form onSubmit={handleCreate} className="p-6 space-y-6 max-h-[70vh] overflow-y-auto">
+          <form onSubmit={handleSubmit} className="p-6 space-y-6 max-h-[70vh] overflow-y-auto">
 
             {/* Image Upload */}
             <div className="flex flex-col gap-2">
@@ -320,12 +378,14 @@ export default function AdminFragrances() {
                 <div className="w-24 h-24 border-2 border-dashed border-slate-200 rounded-xl flex items-center justify-center bg-slate-50 relative overflow-hidden group">
                   {imageFile ? (
                     <img src={URL.createObjectURL(imageFile)} className="w-full h-full object-cover" />
+                  ) : form.image ? (
+                    <img src={form.image} className="w-full h-full object-cover" />
                   ) : (
                     <ImageIcon className="w-8 h-8 text-slate-300" />
                   )}
-                  {imageFile && (
+                  {(imageFile || form.image) && (
                     <div className="absolute inset-0 bg-black/40 hidden group-hover:flex items-center justify-center">
-                      <button type="button" onClick={() => setImageFile(null)} className="text-white hover:text-red-400"><X className="w-6 h-6" /></button>
+                      <button type="button" onClick={() => { setImageFile(null); setForm({ ...form, image: '' }); }} className="text-white hover:text-red-400"><X className="w-6 h-6" /></button>
                     </div>
                   )}
                 </div>
@@ -426,8 +486,8 @@ export default function AdminFragrances() {
             <div className="flex justify-end gap-3 pt-2">
               <Button type="button" variant="outline" onClick={() => setShowModal(false)} className="h-11 px-6">Cancel</Button>
               <Button type="submit" disabled={creating} className="h-11 px-6 bg-slate-900 hover:bg-slate-800">
-                {creating ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Plus className="w-4 h-4 mr-2" />}
-                {creating ? 'Creating...' : 'Create Profile'}
+                {creating ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : editingId ? <Pencil className="w-4 h-4 mr-2" /> : <Plus className="w-4 h-4 mr-2" />}
+                {creating ? (editingId ? 'Updating...' : 'Creating...') : (editingId ? 'Update Profile' : 'Create Profile')}
               </Button>
             </div>
           </form>

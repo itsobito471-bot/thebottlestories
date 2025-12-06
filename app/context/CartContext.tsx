@@ -1,7 +1,7 @@
 'use client';
 
 import { createContext, useContext, useState, useEffect, ReactNode, useRef, useCallback } from 'react';
-import { Product } from '@/lib/types';
+import { Product, Fragrance } from '@/lib/types';
 import { saveCart, mergeCart, fetchCart } from '@/lib/appService';
 import { useRouter } from 'next/navigation';
 
@@ -10,15 +10,15 @@ export interface CartItem extends Product {
   quantity: number;
 
   customMessage?: string;
-  selectedFragrances?: string[];
+  selectedFragrances?: Fragrance[];
 }
 
 interface CartContextType {
   cart: CartItem[];
   directCart: CartItem[];
-  addToCart: (product: Product, quantity?: number, options?: { message?: string; fragrances?: string[] }) => void;
+  addToCart: (product: Product, quantity?: number, options?: { message?: string; fragrances?: Fragrance[]; selected_fragrance?: Fragrance }) => void;
   // --- FIX: Added addToDirectCart to type definition ---
-  addToDirectCart: (product: Product, quantity?: number, options?: { message?: string; fragrances?: string[] }) => void;
+  addToDirectCart: (product: Product, quantity?: number, options?: { message?: string; fragrances?: Fragrance[]; selected_fragrance?: Fragrance }) => void;
   removeFromCart: (cartId: string) => void;
   updateQuantity: (cartId: string, change: number) => void;
   updateItemMetaData: (cartId: string, updates: { customMessage?: string }) => void;
@@ -46,7 +46,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
       cartId: item._id || `${item.product._id}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       quantity: item.quantity,
 
-      customMessage: item.custom_message
+      customMessage: item.custom_message,
+      selectedFragrances: item.selected_fragrances // Ensure backend returns full objects or handle accordingly
     }));
   };
 
@@ -129,32 +130,38 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   // --- ACTIONS ---
 
-  const addToCart = (product: Product, quantity: number = 1, options: { message?: string; fragrances?: string[] } = {}) => {
+  const addToCart = (product: Product, quantity: number = 1, options: { message?: string; fragrances?: Fragrance[]; selected_fragrance?: Fragrance } = {}) => {
     setCart((prev) => {
       const uniqueCartId = `${product._id}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+
+      const fragrances = options.fragrances || (options.selected_fragrance ? [options.selected_fragrance] : []);
+
       const newItem: CartItem = {
         ...product,
         cartId: uniqueCartId,
         quantity,
 
         customMessage: options.message || '',
-        selectedFragrances: options.fragrances || []
+        selectedFragrances: fragrances
       };
       return [...prev, newItem];
     });
   };
 
   // --- FIX: ADDED addToDirectCart ---
-  const addToDirectCart = (product: Product, quantity: number = 1, options: { message?: string; fragrances?: string[] } = {}) => {
+  const addToDirectCart = (product: Product, quantity: number = 1, options: { message?: string; fragrances?: Fragrance[]; selected_fragrance?: Fragrance } = {}) => {
     setDirectCart((prev) => {
       const uniqueCartId = `${product._id}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+
+      const fragrances = options.fragrances || (options.selected_fragrance ? [options.selected_fragrance] : []);
+
       const newItem: CartItem = {
         ...product,
         cartId: uniqueCartId,
         quantity,
 
         customMessage: options.message || '',
-        selectedFragrances: options.fragrances || []
+        selectedFragrances: fragrances
       };
       // We append to allow multiple distinct items (different scents)
       return [...prev, newItem];
