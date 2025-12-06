@@ -10,7 +10,7 @@ export default function About() {
   const statsRef = useRef(null)
   const isInView = useInView(ref, { once: true, margin: "-100px" })
   const statsInView = useInView(statsRef, { once: true, margin: "-50px" })
-  
+
   const { scrollYProgress } = useScroll({
     target: ref,
     offset: ["start end", "end start"]
@@ -23,7 +23,7 @@ export default function About() {
     {
       icon: Heart,
       title: "Crafted with Love",
-      description: "Each hamper is thoughtfully curated with premium perfumes and elegant packaging to create an unforgettable gifting experience.",
+      description: "Each bottle is thoughtfully curated with premium inspired essences and elegant packaging to create an unforgettable gifting experience.",
       color: "from-pink-50 to-rose-50"
     },
     {
@@ -35,14 +35,14 @@ export default function About() {
     {
       icon: Sparkles,
       title: "Personalized Touch",
-      description: "Customize your hampers with personal messages, special packaging, and unique combinations tailored to your loved ones.",
+      description: "Customize your fragrance with personal messages, special packaging, and unique combinations tailored to your loved ones.",
       color: "from-pink-50 to-rose-50"
     }
   ]
 
   const stats = [
     { icon: Users, value: "5000+", label: "Happy Customers" },
-    { icon: Gift, value: "50+", label: "Unique Hampers" },
+    { icon: Gift, value: "50+", label: "Signature Scents" },
     { icon: Star, value: "4.9/5", label: "Customer Rating" }
   ]
 
@@ -107,7 +107,7 @@ export default function About() {
             <Sparkles className="w-3 h-3 sm:w-4 sm:h-4" />
             ABOUT US
           </motion.div>
-          
+
           <motion.h2
             initial={{ opacity: 0, y: 20 }}
             animate={isInView ? { opacity: 1, y: 0 } : {}}
@@ -119,14 +119,14 @@ export default function About() {
               a Story
             </span>
           </motion.h2>
-          
+
           <motion.p
             initial={{ opacity: 0, y: 20 }}
             animate={isInView ? { opacity: 1, y: 0 } : {}}
             transition={{ duration: 0.5, delay: 0.3 }}
             className="text-sm sm:text-base md:text-lg lg:text-xl text-[#444444] max-w-3xl mx-auto leading-relaxed px-4"
           >
-            At The Bottle Stories, we believe that fragrance is more than just a scent—it's a memory, an emotion, a story waiting to be told. We specialize in creating luxurious perfume gift hampers that transform special moments into lasting memories.
+            At The Bottle Stories, we believe that fragrance is more than just a scent—it's a memory, an emotion, a story waiting to be told. We specialize in creating luxurious inspired fragrances that transform special moments into lasting memories.
           </motion.p>
         </motion.div>
 
@@ -146,7 +146,7 @@ export default function About() {
                 <div className="h-full bg-white rounded-2xl sm:rounded-3xl p-6 sm:p-8 border border-[#DADADA] shadow-xl hover:shadow-2xl transition-shadow duration-300 overflow-hidden">
                   {/* Gradient Background on Hover - Desktop only */}
                   <div className="hidden md:block absolute inset-0 bg-gradient-to-br from-pink-50 to-rose-50 opacity-0 group-hover:opacity-60 transition-opacity duration-500" />
-                  
+
                   {/* Icon Container */}
                   <motion.div
                     whileHover={{ scale: 1.05 }}
@@ -154,7 +154,7 @@ export default function About() {
                     className="relative w-16 h-16 sm:w-20 sm:h-20 bg-gradient-to-br from-[#222222] to-[#444444] rounded-xl sm:rounded-2xl flex items-center justify-center mb-4 sm:mb-6 shadow-lg"
                   >
                     <Icon className="w-8 h-8 sm:w-10 sm:h-10 text-white" />
-                    
+
                     {/* Glow Effect - Desktop only */}
                     <motion.div
                       animate={{
@@ -170,7 +170,7 @@ export default function About() {
                       className="hidden md:block absolute inset-0 bg-gradient-to-br from-pink-200 to-rose-200 rounded-2xl blur-xl"
                     />
                   </motion.div>
-                  
+
                   <h3 className="text-xl sm:text-2xl font-bold text-[#222222] mb-3 sm:mb-4">
                     {feature.title}
                   </h3>

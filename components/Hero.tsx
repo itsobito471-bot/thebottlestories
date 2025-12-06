@@ -48,7 +48,7 @@ export default function Hero() {
             className="inline-flex items-center gap-2 px-3 sm:px-4 py-1.5 sm:py-2 bg-[#F2F2F2] rounded-full border border-[#DADADA] shadow-sm"
           >
             <Sparkles className="w-3 h-3 sm:w-4 sm:h-4 text-[#444444]" />
-            <span className="text-xs sm:text-sm text-[#444444] font-medium">Premium Gift Hampers</span>
+            <span className="text-xs sm:text-sm text-[#444444] font-medium">Premium Inspired Perfumes</span>
           </motion.div>
 
           <motion.h1
@@ -82,7 +82,7 @@ export default function Hero() {
               className="bg-[#1C1C1C] text-[#F8F8F8] hover:bg-[#222222] rounded-2xl px-6 sm:px-8 py-5 sm:py-6 text-sm sm:text-base lg:text-lg shadow-lg hover:shadow-xl transition-all duration-300 w-full sm:w-auto"
             >
               <Gift className="mr-2 w-4 h-4 sm:w-5 sm:h-5" />
-              Explore Hampers
+              Explore Collection
             </Button>
             <Button
               size="lg"
@@ -105,7 +105,7 @@ export default function Hero() {
             </div>
             <div>
               <p className="text-2xl sm:text-3xl lg:text-3xl font-bold text-[#222222]">50+</p>
-              <p className="text-xs sm:text-sm text-[#444444] mt-0.5 sm:mt-1">Unique Hampers</p>
+              <p className="text-xs sm:text-sm text-[#444444] mt-0.5 sm:mt-1">Signature Scents</p>
             </div>
             <div>
               <p className="text-2xl sm:text-3xl lg:text-3xl font-bold text-[#222222]">4.9/5</p>
@@ -118,8 +118,8 @@ export default function Hero() {
           ref={bottleRef}
           initial={{ opacity: 0, scale: 0.9, y: 30 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
-          transition={{ 
-            duration: 1.2, 
+          transition={{
+            duration: 1.2,
             delay: 0.3,
             ease: [0.25, 0.1, 0.25, 1]
           }}
@@ -129,19 +129,19 @@ export default function Hero() {
             <div className="absolute inset-0 bg-gradient-to-br from-[#F2F2F2] to-[#DADADA] rounded-[2rem] sm:rounded-[2.5rem] lg:rounded-[3rem] shadow-2xl" />
             <div className="absolute inset-3 sm:inset-4 bg-gradient-to-br from-[#F8F8F8] via-[#FFFFFF] to-[#F2F2F2] rounded-[1.7rem] sm:rounded-[2.2rem] lg:rounded-[2.5rem] flex items-center justify-center overflow-hidden border border-[#DADADA]/30">
               {/* Logo */}
-              <motion.img 
+              <motion.img
                 src={Logo.src}
-                alt="The Bottle Stories Logo" 
+                alt="The Bottle Stories Logo"
                 className="w-[70%] h-[70%] object-contain"
                 initial={{ opacity: 0, scale: 0.8 }}
                 animate={{ opacity: 1, scale: 1 }}
-                transition={{ 
-                  duration: 0.8, 
+                transition={{
+                  duration: 0.8,
                   delay: 0.6,
                   ease: [0.34, 1.56, 0.64, 1]
                 }}
               />
-              
+
               {/* Decorative sparkles */}
               <motion.div
                 initial={{ opacity: 0, scale: 0 }}

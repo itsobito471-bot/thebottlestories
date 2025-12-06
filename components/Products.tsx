@@ -14,13 +14,16 @@ import { Product } from "@/lib/types"
 import { useCart } from "../app/context/CartContext" // <-- 1. Import Cart Hook
 
 const defaultProducts: Product[] = [
-  { 
-    _id: "default-1", 
-    name: "Elegant Evening", 
-    description: "A sophisticated collection of evening fragrances with luxury packaging", 
-    price: 199, 
-    images: ["https://images.unsplash.com/photo-1541643600914-78b084683601?w=800&q=80"], 
-    tag: ["luxury", "evening"],
+  {
+    _id: "default-1",
+    name: "Elegant Evening",
+    description: "A sophisticated collection of evening fragrances with timeless allure",
+    price: 199,
+    images: ["https://images.unsplash.com/photo-1541643600914-78b084683601?w=800&q=80"],
+    tags: [
+      { _id: "tag-1", name: "luxury" },
+      { _id: "tag-2", name: "evening" }
+    ],
     stock_quantity: 10,
     is_active: true,
     created_at: new Date().toISOString(),
@@ -32,7 +35,7 @@ const defaultProducts: Product[] = [
 export default function Products() {
   const router = useRouter()
   const { addToCart } = useCart(); // <-- 2. Get addToCart function
-  
+
   const ref = useRef(null)
   const isInView = useInView(ref, { once: true, margin: "-100px" })
   const [itemsPerView, setItemsPerView] = useState(3)
@@ -43,10 +46,11 @@ export default function Products() {
 
   useEffect(() => {
     const fetchProducts = async () => {
+      console.log("Fetching preferred products..."); // Debug log
       try {
         setIsLoading(true);
         const apiProducts = await getPreferredProducts();
-        
+
         if (apiProducts && apiProducts.length > 0) {
           setProducts(apiProducts);
         } else {
@@ -54,6 +58,7 @@ export default function Products() {
         }
       } catch (error) {
         console.error("Failed to fetch preferred products:", error);
+        console.log("Falling back to default products");
         setProducts(defaultProducts);
       } finally {
         setIsLoading(false);
@@ -61,7 +66,7 @@ export default function Products() {
     }
 
     fetchProducts();
-  }, []) 
+  }, [])
 
   const [currentIndex, setCurrentIndex] = useState(0)
   // Create duplicated array for infinite scroll effect if needed
@@ -92,7 +97,7 @@ export default function Products() {
 
   // Auto-scroll logic
   useEffect(() => {
-    if (!isCarouselActive || isLoading) return; 
+    if (!isCarouselActive || isLoading) return;
     const timer = setInterval(() => {
       setCurrentIndex((prev) => prev + 1)
     }, 3000)
@@ -125,7 +130,7 @@ export default function Products() {
   const handleAddToCart = (e: React.MouseEvent, product: Product) => {
     e.preventDefault(); // Prevent navigation if inside a Link
     e.stopPropagation(); // Stop event bubbling
-    
+
     addToCart(product); // Add 1 item
 
     const Toast = Swal.mixin({
@@ -150,7 +155,7 @@ export default function Products() {
     <section id="products" ref={ref} className="py-24 px-4 bg-gradient-to-b from-[#F8F8F8] to-[#FFFFFF] relative overflow-hidden">
       <div className="absolute top-0 left-0 w-96 h-96 bg-[#DADADA]/10 rounded-full blur-3xl" />
       <div className="absolute bottom-0 right-0 w-96 h-96 bg-[#DADADA]/10 rounded-full blur-3xl" />
-      
+
       <div className="container mx-auto relative z-10">
         <motion.div
           initial={{ opacity: 0, y: 50 }}
@@ -168,25 +173,25 @@ export default function Products() {
             OUR COLLECTION
           </motion.span>
           <h2 className="text-5xl md:text-6xl font-bold text-[#222222] mb-6">
-            Curated Gift Hampers
+            Premium Inspired Perfumes
           </h2>
           <p className="text-lg md:text-xl text-[#444444] max-w-3xl mx-auto">
-            Discover our handpicked selection of luxury perfume gift hampers, each designed to create unforgettable moments.
+            Discover our handpicked selection of luxury inspired fragrances, each designed to create unforgettable moments.
           </p>
         </motion.div>
 
         <div className="relative">
           {isCarouselActive && (
             <>
-              <button 
-                onClick={goToPrev} 
+              <button
+                onClick={goToPrev}
                 className="absolute top-1/2 -translate-y-1/2 -left-4 z-20 w-12 h-12 bg-white/70 backdrop-blur-sm border border-[#DADADA] rounded-full flex items-center justify-center shadow-lg hover:bg-white transition-all duration-300"
                 aria-label="Previous slide"
               >
                 <ChevronLeft className="w-6 h-6 text-[#222222]" />
               </button>
-              <button 
-                onClick={goToNext} 
+              <button
+                onClick={goToNext}
                 className="absolute top-1/2 -translate-y-1/2 -right-4 z-20 w-12 h-12 bg-white/70 backdrop-blur-sm border border-[#DADADA] rounded-full flex items-center justify-center shadow-lg hover:bg-white transition-all duration-300"
                 aria-label="Next slide"
               >
@@ -194,16 +199,16 @@ export default function Products() {
               </button>
             </>
           )}
-          
+
           <div className="overflow-hidden px-2 py-8">
-            
+
             {isLoading ? (
               <div className="text-center py-20">
-                 <p className="text-lg text-[#444444]">Loading Collection...</p>
+                <p className="text-lg text-[#444444]">Loading Collection...</p>
               </div>
             ) : products.length === 0 ? (
               <div className="text-center py-20">
-                 <h3 className="text-3xl font-bold text-[#222222] mb-4">
+                <h3 className="text-3xl font-bold text-[#222222] mb-4">
                   New Collection Coming Soon!
                 </h3>
                 <p className="text-lg text-[#444444]">
@@ -215,19 +220,19 @@ export default function Products() {
                 animate={isCarouselActive ? { x: `-${(currentIndex / displayProducts.length) * 100}%` } : {}}
                 transition={{ type: "tween", ease: "easeInOut", duration: 0.5 }}
                 className={`flex ${!isCarouselActive ? 'justify-center' : ''}`}
-                style={{ 
-                  width: isCarouselActive 
-                    ? `${displayProducts.length * (100 / itemsPerView)}%` 
-                    : '100%' 
+                style={{
+                  width: isCarouselActive
+                    ? `${displayProducts.length * (100 / itemsPerView)}%`
+                    : '100%'
                 }}
               >
                 {displayProducts.map((product, index) => (
                   <div
                     key={`${product._id}-${index}`} // Unique key for duplicates
                     className="px-3"
-                    style={{ 
-                      width: isCarouselActive 
-                        ? `${100 / displayProducts.length}%` 
+                    style={{
+                      width: isCarouselActive
+                        ? `${100 / displayProducts.length}%`
                         : `${100 / itemsPerView}%`,
                       maxWidth: !isCarouselActive && itemsPerView === 1 ? '100%' : 'none'
                     }}
@@ -242,15 +247,15 @@ export default function Products() {
                       {/* --- 4. Link to Product Detail Page --- */}
                       <Link href={`/product/${product._id}`} className="block h-full">
                         <div className="h-full bg-white rounded-3xl overflow-hidden border border-[#DADADA] shadow-lg hover:shadow-2xl transition-all duration-500 flex flex-col">
-                          
+
                           <div className="relative h-80 overflow-hidden bg-[#F8F8F8] flex-shrink-0">
-                            <img 
-                              src={product.images[0] || '/placeholder.jpg'} 
+                            <img
+                              src={product.images[0] || '/placeholder.jpg'}
                               alt={product.name}
                               className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
                             />
                             <div className="absolute top-6 right-6">
-                              <motion.span 
+                              <motion.span
                                 initial={{ opacity: 0, y: 10 }}
                                 animate={isInView ? { opacity: 1, y: 0 } : {}}
                                 transition={{ duration: 0.5, delay: 0.3 + index * 0.1 }}
@@ -289,10 +294,10 @@ export default function Products() {
                                 <p className="text-xs text-[#444444] mb-1">Starting from</p>
                                 <span className="text-3xl font-bold text-[#222222]">₹{product.price}</span>
                               </div>
-                              
+
                               {/* --- 5. Add to Cart Button --- */}
-                              <Button 
-                                size="icon" 
+                              <Button
+                                size="icon"
                                 onClick={(e) => handleAddToCart(e, product)}
                                 className="w-12 h-12 bg-[#1C1C1C] text-white hover:bg-[#222222] rounded-full shadow-lg group-hover:scale-110 transition-transform"
                               >
@@ -303,8 +308,8 @@ export default function Products() {
                             </div>
                           </div>
                         </div>
-                        
-                        <motion.div 
+
+                        <motion.div
                           animate={{
                             scale: [1, 1.03, 1],
                             opacity: [0, 0.15, 0],
@@ -314,7 +319,7 @@ export default function Products() {
                             repeat: Infinity,
                             delay: 0.5 + index * 0.2
                           }}
-                          className="absolute inset-0 bg-gradient-to-br from-pink-100 to-rose-100 rounded-3xl -z-10 blur-xl pointer-events-none" 
+                          className="absolute inset-0 bg-gradient-to-br from-pink-100 to-rose-100 rounded-3xl -z-10 blur-xl pointer-events-none"
                         />
                       </Link>
                     </motion.div>
@@ -331,11 +336,10 @@ export default function Products() {
                 <button
                   key={index}
                   onClick={() => setCurrentIndex(products.length + index)}
-                  className={`h-2 rounded-full transition-all duration-300 ${
-                    (currentIndex % products.length) === index
-                      ? 'w-8 bg-[#222222]'
-                      : 'w-2 bg-[#DADADA] hover:bg-[#444444]'
-                  }`}
+                  className={`h-2 rounded-full transition-all duration-300 ${(currentIndex % products.length) === index
+                    ? 'w-8 bg-[#222222]'
+                    : 'w-2 bg-[#DADADA] hover:bg-[#444444]'
+                    }`}
                   aria-label={`Go to slide ${index + 1}`}
                 />
               ))}
