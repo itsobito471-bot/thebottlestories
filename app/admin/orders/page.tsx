@@ -9,13 +9,13 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label'; // Added Label
 import { Card, CardContent } from '@/components/ui/card';
-import { 
-  Search, CheckCircle, XCircle, Clock, Truck, 
+import {
+  Search, CheckCircle, XCircle, Clock, Truck,
   MapPin, Package, Loader2, ChevronDown, Calendar, Mail, Phone, ArrowUpRight, User,
-  AlertTriangle, Ban, Filter, StickyNote 
+  AlertTriangle, Ban, Filter, StickyNote
 } from 'lucide-react';
 import { Dialog, DialogContent, DialogTitle, DialogDescription, DialogFooter, DialogHeader } from '@/components/ui/dialog';
-import { 
+import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -85,7 +85,7 @@ const getStatusBadge = (status: string) => {
   };
 
   const Icon = icons[status] || Clock;
-  
+
   return (
     <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold border ring-1 ring-inset ${styles[status] || styles.pending}`}>
       <Icon className="w-3.5 h-3.5" />
@@ -96,11 +96,11 @@ const getStatusBadge = (status: string) => {
 
 export default function AdminOrders() {
   const router = useRouter();
-  
+
   // --- Data State ---
   const [orders, setOrders] = useState<Order[]>([]);
   const [stats, setStats] = useState({ revenue: 0, total: 0, pending: 0 });
-  
+
   // --- UI State ---
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -127,7 +127,7 @@ export default function AdminOrders() {
     actionLabel: string;
     actionClass?: string;
     onConfirm: () => void;
-  }>({ open: false, title: '', description: '', actionLabel: '', onConfirm: () => {} });
+  }>({ open: false, title: '', description: '', actionLabel: '', onConfirm: () => { } });
 
   const [infoDialog, setInfoDialog] = useState<{
     open: boolean;
@@ -151,13 +151,13 @@ export default function AdminOrders() {
 
     try {
       const res = await getAdminOrders(pageNum, 10, debouncedSearch, statusFilter);
-      
+
       if (reset) {
         setOrders(res.orders);
       } else {
         setOrders(prev => [...prev, ...res.orders]);
       }
-      
+
       setStats(res.stats);
       setHasMore(res.pagination.hasMore);
       setPage(pageNum);
@@ -178,27 +178,27 @@ export default function AdminOrders() {
   };
 
   // --- STATUS UPDATE LOGIC ---
-  
+
   // 1. Initiate Action (Guards & Confirmation)
   const initiateStatusUpdate = (orderId: string, status: string) => {
     const currentOrder = orders.find(o => o._id === orderId);
-    
+
     // Block modification if order is already terminal
     if (currentOrder && ['cancelled', 'rejected', 'completed'].includes(currentOrder.status)) {
-       setInfoDialog({
-         open: true,
-         title: "Action Blocked",
-         description: `This order has been marked as ${currentOrder.status.toUpperCase()}. It cannot be modified further.`
-       });
-       return;
+      setInfoDialog({
+        open: true,
+        title: "Action Blocked",
+        description: `This order has been marked as ${currentOrder.status.toUpperCase()}. It cannot be modified further.`
+      });
+      return;
     }
 
     // --- NEW: Handle Shipped Status specifically ---
     if (status === 'shipped') {
-        setShippingOrderId(orderId);
-        setTrackingData({ id: '', url: '' }); // Reset fields
-        setShippingModalOpen(true);
-        return;
+      setShippingOrderId(orderId);
+      setTrackingData({ id: '', url: '' }); // Reset fields
+      setShippingModalOpen(true);
+      return;
     }
 
     // Require confirmation for destructive/terminal actions
@@ -225,27 +225,27 @@ export default function AdminOrders() {
     setShippingModalOpen(false);
 
     try {
-      
+
       const updatedOrder = await updateOrderStatus(orderId, status, trackingInfo);
-      
+
       // 1. Update List State
-      setOrders(prev => prev.map(o => 
-        o._id === orderId 
-          ? { 
-              ...o, 
-              status: updatedOrder.status, 
-              updatedAt: updatedOrder.updatedAt || new Date().toISOString(),
-              trackingId: updatedOrder.trackingId, // Update local tracking info
-              trackingUrl: updatedOrder.trackingUrl
-            } 
+      setOrders(prev => prev.map(o =>
+        o._id === orderId
+          ? {
+            ...o,
+            status: updatedOrder.status,
+            updatedAt: updatedOrder.updatedAt || new Date().toISOString(),
+            trackingId: updatedOrder.trackingId, // Update local tracking info
+            trackingUrl: updatedOrder.trackingUrl
+          }
           : o
       ));
-      
+
       // 2. Update Selected Order Modal
       if (selectedOrder?._id === orderId) {
         setSelectedOrder(prev => prev ? ({
           ...prev, // Keep existing populated items
-          status: updatedOrder.status, 
+          status: updatedOrder.status,
           updatedAt: updatedOrder?.updatedAt || new Date().toISOString(),
           trackingId: updatedOrder.trackingId,
           trackingUrl: updatedOrder.trackingUrl
@@ -254,7 +254,7 @@ export default function AdminOrders() {
 
       // Reload stats if necessary
       if (['completed', 'cancelled', 'rejected'].includes(status)) {
-          loadOrders(1, true);
+        loadOrders(1, true);
       }
     } catch (error) {
       setInfoDialog({
@@ -275,7 +275,7 @@ export default function AdminOrders() {
     <div className="min-h-screen bg-slate-50/50">
       <AdminNav />
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
-        
+
         {/* --- Stats Section --- */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-10">
           <Card className="bg-white border-none shadow-sm hover:shadow-md transition-shadow rounded-2xl overflow-hidden relative group">
@@ -305,7 +305,7 @@ export default function AdminOrders() {
           </Card>
 
           <Card className="bg-slate-900 border-none shadow-lg hover:shadow-xl transition-shadow rounded-2xl overflow-hidden relative group text-white">
-              <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+            <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
               <CheckCircle className="w-24 h-24 text-emerald-400 transform rotate-12" />
             </div>
             <CardContent className="p-6 relative z-10">
@@ -322,8 +322,8 @@ export default function AdminOrders() {
         <div className="flex flex-col md:flex-row gap-4 mb-6 sticky top-20 z-10 bg-slate-50/95 backdrop-blur py-2">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-            <Input 
-              placeholder="Search by Order ID, Name, or Email..." 
+            <Input
+              placeholder="Search by Order ID, Name, or Email..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="pl-10 bg-white shadow-sm border-slate-200 focus:ring-slate-900"
@@ -335,9 +335,8 @@ export default function AdminOrders() {
                 key={status}
                 variant={statusFilter === status ? "default" : "outline"}
                 onClick={() => setStatusFilter(status)}
-                className={`capitalize rounded-full px-4 whitespace-nowrap ${
-                  statusFilter === status ? 'bg-slate-900' : 'bg-white text-slate-600 hover:bg-slate-100 border-slate-200'
-                }`}
+                className={`capitalize rounded-full px-4 whitespace-nowrap ${statusFilter === status ? 'bg-slate-900' : 'bg-white text-slate-600 hover:bg-slate-100 border-slate-200'
+                  }`}
               >
                 {status}
               </Button>
@@ -356,61 +355,61 @@ export default function AdminOrders() {
                 exit={{ opacity: 0, scale: 0.98 }}
                 layout
               >
-                <Card 
+                <Card
                   className="group border-none shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer bg-white overflow-hidden"
                   onClick={() => setSelectedOrder(order)}
                 >
                   <div className="flex flex-col md:flex-row">
                     {/* Left: ID & Date */}
                     <div className="p-5 md:w-48 bg-slate-50/50 border-b md:border-b-0 md:border-r border-slate-100 flex flex-row md:flex-col justify-between md:justify-center items-center md:items-start gap-2">
-                       <div>
-                         <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Order ID</span>
-                         <p className="text-base font-mono font-bold text-slate-900">#{order._id.slice(-6).toUpperCase()}</p>
-                       </div>
-                       <div className="text-right md:text-left">
-                         <p className="text-xs text-slate-500 flex items-center gap-1">
-                            <Calendar className="w-3 h-3" />
-                            {formatDate(order.createdAt || order.created_at, 'MMM dd')}
-                         </p>
-                         <p className="text-[10px] text-slate-400">
-                            {formatDate(order.createdAt || order.created_at, 'h:mm a')}
-                         </p>
-                       </div>
+                      <div>
+                        <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Order ID</span>
+                        <p className="text-base font-mono font-bold text-slate-900">#{order._id.slice(-6).toUpperCase()}</p>
+                      </div>
+                      <div className="text-right md:text-left">
+                        <p className="text-xs text-slate-500 flex items-center gap-1">
+                          <Calendar className="w-3 h-3" />
+                          {formatDate(order.createdAt || order.created_at, 'MMM dd')}
+                        </p>
+                        <p className="text-[10px] text-slate-400">
+                          {formatDate(order.createdAt || order.created_at, 'h:mm a')}
+                        </p>
+                      </div>
                     </div>
 
                     {/* Middle: Details */}
                     <div className="p-5 flex-1 grid grid-cols-1 sm:grid-cols-2 gap-6 items-center">
-                        <div>
-                          <div className="flex items-center gap-3 mb-1">
-                             <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center font-bold text-slate-600">
-                                <User className="w-4 h-4" />
-                             </div>
-                             <div>
-                                <p className="font-semibold text-slate-900 leading-tight">{order.customer_name}</p>
-                                <p className="text-xs text-slate-500">{order.customer_email}</p>
-                             </div>
+                      <div>
+                        <div className="flex items-center gap-3 mb-1">
+                          <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center font-bold text-slate-600">
+                            <User className="w-4 h-4" />
+                          </div>
+                          <div>
+                            <p className="font-semibold text-slate-900 leading-tight">{order.customer_name}</p>
+                            <p className="text-xs text-slate-500">{order.customer_email}</p>
                           </div>
                         </div>
-                        
-                        <div>
-                          <div className="flex items-center gap-2 mb-1">
-                             {getStatusBadge(order.status)}
-                          </div>
-                          <p className="text-xs text-slate-500 mt-1 truncate">
-                            {order.items?.length} items • {order.items?.map((i:any) => i.product?.name).join(', ')}
-                          </p>
+                      </div>
+
+                      <div>
+                        <div className="flex items-center gap-2 mb-1">
+                          {getStatusBadge(order.status)}
                         </div>
+                        <p className="text-xs text-slate-500 mt-1 truncate">
+                          {order.items?.length} items • {order.items?.map((i: any) => i.product?.name).join(', ')}
+                        </p>
+                      </div>
                     </div>
 
                     {/* Right: Total & Action */}
                     <div className="p-5 md:w-48 flex flex-row md:flex-col justify-between items-center md:items-end gap-4 border-t md:border-t-0 md:border-l border-slate-100 bg-slate-50/30">
-                       <div className="text-left md:text-right">
-                          <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Total</p>
-                          <p className="text-lg font-bold text-slate-900">₹{order.total_amount.toLocaleString()}</p>
-                       </div>
-                       <div className="flex items-center text-xs font-medium text-slate-500 group-hover:text-blue-600 transition-colors">
-                          View Details <ArrowUpRight className="w-3 h-3 ml-1" />
-                       </div>
+                      <div className="text-left md:text-right">
+                        <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Total</p>
+                        <p className="text-lg font-bold text-slate-900">₹{order.total_amount.toLocaleString()}</p>
+                      </div>
+                      <div className="flex items-center text-xs font-medium text-slate-500 group-hover:text-blue-600 transition-colors">
+                        View Details <ArrowUpRight className="w-3 h-3 ml-1" />
+                      </div>
                     </div>
                   </div>
                 </Card>
@@ -429,9 +428,9 @@ export default function AdminOrders() {
           {/* Load More */}
           {hasMore && (
             <div className="flex justify-center pt-8 pb-4">
-              <Button 
-                variant="ghost" 
-                onClick={handleLoadMore} 
+              <Button
+                variant="ghost"
+                onClick={handleLoadMore}
                 disabled={loadingMore}
                 className="text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-full px-6"
               >
@@ -452,194 +451,188 @@ export default function AdminOrders() {
 
           {/* Modal Header */}
           <div className="bg-slate-50/80 backdrop-blur p-6 border-b border-slate-100 sticky top-0 z-10 flex justify-between items-start">
-             <div>
-               <DialogTitle className="text-xl font-bold text-slate-900">
-                 Order #{selectedOrder?._id.slice(-6).toUpperCase()}
-               </DialogTitle>
-               <div className="flex items-center gap-2 mt-1 text-sm text-slate-500">
-                  <Calendar className="w-3.5 h-3.5" />
-                  {formatDate(selectedOrder?.createdAt || selectedOrder?.created_at)}
-               </div>
-             </div>
-             {selectedOrder && getStatusBadge(selectedOrder.status)}
+            <div>
+              <DialogTitle className="text-xl font-bold text-slate-900">
+                Order #{selectedOrder?._id.slice(-6).toUpperCase()}
+              </DialogTitle>
+              <div className="flex items-center gap-2 mt-1 text-sm text-slate-500">
+                <Calendar className="w-3.5 h-3.5" />
+                {formatDate(selectedOrder?.createdAt || selectedOrder?.created_at)}
+              </div>
+            </div>
+            {selectedOrder && getStatusBadge(selectedOrder.status)}
           </div>
 
           {selectedOrder && (
             <div className="p-6 space-y-8">
-              
+
               {/* Status Actions */}
               {!isOrderLocked ? (
                 <div className="bg-white border border-slate-100 rounded-xl p-4 shadow-sm">
-                   <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Update Order Status</p>
-                   <div className="flex flex-wrap gap-2">
-                      {['approved', 'crafting', 'packaging', 'shipped', 'delivered', 'completed'].map(status => (
-                        <Button 
-                          key={status}
-                          variant="outline" 
+                  <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Update Order Status</p>
+                  <div className="flex flex-wrap gap-2">
+                    {['approved', 'crafting', 'packaging', 'shipped', 'delivered', 'completed'].map(status => (
+                      <Button
+                        key={status}
+                        variant="outline"
+                        size="sm"
+                        className={`capitalize h-8 text-xs ${selectedOrder.status === status ? 'bg-slate-900 text-white border-slate-900' : 'text-slate-600'}`}
+                        onClick={() => initiateStatusUpdate(selectedOrder._id, status)}
+                        disabled={updating}
+                      >
+                        {status}
+                      </Button>
+                    ))}
+                    <div className="flex-1"></div>
+
+                    {/* Only show Destructive actions if order is PENDING */}
+                    {selectedOrder.status === 'pending' && (
+                      <>
+                        <Button
+                          variant="destructive"
                           size="sm"
-                          className={`capitalize h-8 text-xs ${selectedOrder.status === status ? 'bg-slate-900 text-white border-slate-900' : 'text-slate-600'}`}
-                          onClick={() => initiateStatusUpdate(selectedOrder._id, status)}
+                          className="h-8 text-xs"
+                          onClick={() => initiateStatusUpdate(selectedOrder._id, 'cancelled')}
                           disabled={updating}
                         >
-                          {status}
+                          Cancel Order
                         </Button>
-                      ))}
-                      <div className="flex-1"></div>
-                      
-                      {/* Only show Destructive actions if order is PENDING */}
-                      {selectedOrder.status === 'pending' && (
-                        <>
-                          <Button 
-                            variant="destructive" 
-                            size="sm"
-                            className="h-8 text-xs"
-                            onClick={() => initiateStatusUpdate(selectedOrder._id, 'cancelled')}
-                            disabled={updating}
-                          >
-                            Cancel Order
-                          </Button>
-                          <Button 
-                            variant="destructive" 
-                            size="sm"
-                            className="h-8 text-xs"
-                            onClick={() => initiateStatusUpdate(selectedOrder._id, 'rejected')}
-                            disabled={updating}
-                          >
-                            Reject
-                          </Button>
-                        </>
-                      )}
-                   </div>
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          className="h-8 text-xs"
+                          onClick={() => initiateStatusUpdate(selectedOrder._id, 'rejected')}
+                          disabled={updating}
+                        >
+                          Reject
+                        </Button>
+                      </>
+                    )}
+                  </div>
                 </div>
               ) : (
                 <div className="bg-red-50 border border-red-100 rounded-xl p-4 text-red-800 text-sm font-medium text-center flex items-center justify-center gap-2">
-                   <Ban className="w-4 h-4" /> This order has been {selectedOrder.status}. No further actions are allowed.
+                  <Ban className="w-4 h-4" /> This order has been {selectedOrder.status}. No further actions are allowed.
                 </div>
               )}
 
               {/* Info Grid */}
               <div className="grid md:grid-cols-2 gap-8">
-                 <div className="space-y-6">
+                <div className="space-y-6">
+                  <section>
+                    <h4 className="text-sm font-bold text-slate-900 mb-3 flex items-center gap-2">
+                      <Package className="w-4 h-4 text-slate-400" /> Customer Details
+                    </h4>
+                    <div className="bg-slate-50 rounded-xl p-4 border border-slate-100 text-sm space-y-2">
+                      <p className="font-semibold text-slate-900">{selectedOrder.customer_name}</p>
+                      <div className="flex items-center gap-2 text-slate-600">
+                        <Mail className="w-3.5 h-3.5" /> {selectedOrder.customer_email}
+                      </div>
+                      {selectedOrder.customer_phone && (
+                        <div className="flex items-center gap-2 text-slate-600">
+                          <Phone className="w-3.5 h-3.5" /> {selectedOrder.customer_phone}
+                        </div>
+                      )}
+                    </div>
+                  </section>
+
+                  <section>
+                    <h4 className="text-sm font-bold text-slate-900 mb-3 flex items-center gap-2">
+                      <MapPin className="w-4 h-4 text-slate-400" /> Shipping Address
+                    </h4>
+                    <div className="bg-slate-50 rounded-xl p-4 border border-slate-100 text-sm text-slate-600 leading-relaxed">
+                      {selectedOrder.shipping_address ? (
+                        <>
+                          {selectedOrder.shipping_address.street}<br />
+                          {selectedOrder.shipping_address.city}, {selectedOrder.shipping_address.state} {selectedOrder.shipping_address.zip}
+                        </>
+                      ) : (
+                        <span className="italic text-slate-400">No address details available.</span>
+                      )}
+                    </div>
+                  </section>
+
+                  {/* --- TRACKING INFO (If Shipped) --- */}
+                  {(selectedOrder.trackingId || selectedOrder.trackingUrl) && (
                     <section>
                       <h4 className="text-sm font-bold text-slate-900 mb-3 flex items-center gap-2">
-                        <Package className="w-4 h-4 text-slate-400" /> Customer Details
+                        <Truck className="w-4 h-4 text-slate-400" /> Tracking Information
                       </h4>
-                      <div className="bg-slate-50 rounded-xl p-4 border border-slate-100 text-sm space-y-2">
-                        <p className="font-semibold text-slate-900">{selectedOrder.customer_name}</p>
-                        <div className="flex items-center gap-2 text-slate-600">
-                           <Mail className="w-3.5 h-3.5" /> {selectedOrder.customer_email}
-                        </div>
-                        {selectedOrder.customer_phone && (
-                          <div className="flex items-center gap-2 text-slate-600">
-                             <Phone className="w-3.5 h-3.5" /> {selectedOrder.customer_phone}
-                          </div>
+                      <div className="bg-blue-50 rounded-xl p-4 border border-blue-100 text-sm text-blue-900">
+                        {selectedOrder.trackingId && (
+                          <p><strong>Tracking ID:</strong> {selectedOrder.trackingId}</p>
+                        )}
+                        {selectedOrder.trackingUrl && (
+                          <a href={selectedOrder.trackingUrl} target="_blank" rel="noreferrer" className="text-blue-600 underline mt-1 block">
+                            Track Package
+                          </a>
                         )}
                       </div>
                     </section>
+                  )}
+                </div>
 
-                    <section>
-                      <h4 className="text-sm font-bold text-slate-900 mb-3 flex items-center gap-2">
-                        <MapPin className="w-4 h-4 text-slate-400" /> Shipping Address
-                      </h4>
-                      <div className="bg-slate-50 rounded-xl p-4 border border-slate-100 text-sm text-slate-600 leading-relaxed">
-                         {selectedOrder.shipping_address ? (
-                           <>
-                             {selectedOrder.shipping_address.street}<br />
-                             {selectedOrder.shipping_address.city}, {selectedOrder.shipping_address.state} {selectedOrder.shipping_address.zip}
-                           </>
-                         ) : (
-                           <span className="italic text-slate-400">No address details available.</span>
-                         )}
+                <section>
+                  <h4 className="text-sm font-bold text-slate-900 mb-3">Items ({selectedOrder.items?.length})</h4>
+                  <div className="space-y-3">
+                    {selectedOrder.items?.map((item: any, idx: number) => (
+                      <div key={idx} className="flex flex-col gap-3 p-3 rounded-xl border border-slate-100 bg-white hover:border-slate-200 transition-colors">
+
+                        {/* Product Main Row */}
+                        <div className="flex gap-4">
+                          <div className="w-14 h-14 bg-slate-100 rounded-lg overflow-hidden flex-shrink-0 flex items-center justify-center border border-slate-200">
+                            {item.product?.images?.[0] ? (
+                              <img
+                                src={item.product.images[0]}
+                                className="w-full h-full object-cover"
+                                alt={item.product?.name || "Product Image"}
+                                onError={(e) => {
+                                  const target = e.target as HTMLImageElement;
+                                  target.onerror = null;
+                                  target.src = "https://placehold.co/100x100?text=No+Img";
+                                }}
+                              />
+                            ) : (
+                              <Package className="w-6 h-6 text-slate-300" />
+                            )}
+                          </div>
+
+                          <div className="flex-1 min-w-0">
+                            <div className="flex justify-between items-start mb-1">
+                              <p className="font-medium text-slate-900 text-sm truncate pr-2">{item.product?.name || "Unknown Product"}</p>
+                              <p className="font-semibold text-slate-900 text-sm">₹{(item.price_at_purchase * item.quantity).toLocaleString()}</p>
+                            </div>
+                            <p className="text-xs text-slate-500 mb-2">Qty: {item.quantity} × ₹{item.price_at_purchase}</p>
+
+
+                          </div>
+                        </div>
+
+                        {/* Custom Note Section - UPDATED TO SHOW TEXT */}
+                        {item.custom_message && item.custom_message.trim() !== "" && (
+                          <div className="bg-amber-50/50 border border-amber-100 rounded-lg p-3 flex gap-3 items-start w-full">
+                            <StickyNote className="w-4 h-4 text-amber-500 mt-0.5 shrink-0" />
+                            <div className="flex-1">
+                              <p className="text-[10px] font-bold text-amber-600 uppercase tracking-wide mb-1">
+                                Attached Note
+                              </p>
+                              <p className="text-sm text-slate-700 italic leading-snug">
+                                "{item.custom_message}"
+                              </p>
+                            </div>
+                          </div>
+                        )}
+
                       </div>
-                    </section>
-
-                    {/* --- TRACKING INFO (If Shipped) --- */}
-                    {(selectedOrder.trackingId || selectedOrder.trackingUrl) && (
-                      <section>
-                        <h4 className="text-sm font-bold text-slate-900 mb-3 flex items-center gap-2">
-                          <Truck className="w-4 h-4 text-slate-400" /> Tracking Information
-                        </h4>
-                        <div className="bg-blue-50 rounded-xl p-4 border border-blue-100 text-sm text-blue-900">
-                           {selectedOrder.trackingId && (
-                             <p><strong>Tracking ID:</strong> {selectedOrder.trackingId}</p>
-                           )}
-                           {selectedOrder.trackingUrl && (
-                             <a href={selectedOrder.trackingUrl} target="_blank" rel="noreferrer" className="text-blue-600 underline mt-1 block">
-                               Track Package
-                             </a>
-                           )}
-                        </div>
-                      </section>
-                    )}
-                 </div>
-
-                 <section>
-                    <h4 className="text-sm font-bold text-slate-900 mb-3">Items ({selectedOrder.items?.length})</h4>
-                    <div className="space-y-3">
-                      {selectedOrder.items?.map((item: any, idx: number) => (
-                        <div key={idx} className="flex flex-col gap-3 p-3 rounded-xl border border-slate-100 bg-white hover:border-slate-200 transition-colors">
-                           
-                           {/* Product Main Row */}
-                           <div className="flex gap-4">
-                               <div className="w-14 h-14 bg-slate-100 rounded-lg overflow-hidden flex-shrink-0 flex items-center justify-center border border-slate-200">
-                                 {item.product?.images?.[0] ? (
-                                   <img 
-                                     src={item.product.images[0]} 
-                                     className="w-full h-full object-cover" 
-                                     alt={item.product?.name || "Product Image"}
-                                     onError={(e) => {
-                                       const target = e.target as HTMLImageElement;
-                                       target.onerror = null;
-                                       target.src = "https://placehold.co/100x100?text=No+Img";
-                                     }}
-                                   />
-                                 ) : (
-                                   <Package className="w-6 h-6 text-slate-300" />
-                                 )}
-                               </div>
-
-                               <div className="flex-1 min-w-0">
-                                 <div className="flex justify-between items-start mb-1">
-                                    <p className="font-medium text-slate-900 text-sm truncate pr-2">{item.product?.name || "Unknown Product"}</p>
-                                    <p className="font-semibold text-slate-900 text-sm">₹{(item.price_at_purchase * item.quantity).toLocaleString()}</p>
-                                 </div>
-                                 <p className="text-xs text-slate-500 mb-2">Qty: {item.quantity} × ₹{item.price_at_purchase}</p>
-                                 
-                                 <div className="flex flex-wrap gap-1.5">
-                                   {item.selected_fragrances?.map((f: any, i: number) => (
-                                     <span key={i} className="inline-flex text-[10px] bg-slate-100 px-1.5 py-0.5 rounded text-slate-600">
-                                       {f.name}
-                                     </span>
-                                   ))}
-                                 </div>
-                               </div>
-                           </div>
-
-                           {/* Custom Note Section - UPDATED TO SHOW TEXT */}
-                           {item.custom_message && item.custom_message.trim() !== "" && (
-                             <div className="bg-amber-50/50 border border-amber-100 rounded-lg p-3 flex gap-3 items-start w-full">
-                               <StickyNote className="w-4 h-4 text-amber-500 mt-0.5 shrink-0" />
-                               <div className="flex-1">
-                                 <p className="text-[10px] font-bold text-amber-600 uppercase tracking-wide mb-1">
-                                   Attached Note
-                                 </p>
-                                 <p className="text-sm text-slate-700 italic leading-snug">
-                                   "{item.custom_message}"
-                                 </p>
-                               </div>
-                             </div>
-                           )}
-
-                        </div>
-                      ))}
-                    </div>
-                 </section>
+                    ))}
+                  </div>
+                </section>
               </div>
 
               {/* Summary */}
               <div className="bg-slate-50 rounded-xl p-5 border border-slate-100 flex justify-between items-center">
-                  <span className="font-medium text-slate-600">Total Amount</span>
-                  <span className="text-2xl font-bold text-slate-900">₹{selectedOrder.total_amount.toLocaleString()}</span>
+                <span className="font-medium text-slate-600">Total Amount</span>
+                <span className="text-2xl font-bold text-slate-900">₹{selectedOrder.total_amount.toLocaleString()}</span>
               </div>
 
             </div>
@@ -657,27 +650,27 @@ export default function AdminOrders() {
           <div className="space-y-4 py-4">
             <div className="space-y-2">
               <Label>Tracking ID</Label>
-              <Input 
-                value={trackingData.id} 
-                onChange={(e) => setTrackingData(prev => ({...prev, id: e.target.value}))}
+              <Input
+                value={trackingData.id}
+                onChange={(e) => setTrackingData(prev => ({ ...prev, id: e.target.value }))}
                 placeholder="e.g. AWB123456789"
               />
             </div>
             <div className="space-y-2">
               <Label>Tracking URL</Label>
-              <Input 
-                value={trackingData.url} 
-                onChange={(e) => setTrackingData(prev => ({...prev, url: e.target.value}))}
+              <Input
+                value={trackingData.url}
+                onChange={(e) => setTrackingData(prev => ({ ...prev, url: e.target.value }))}
                 placeholder="https://track.courier.com/..."
               />
             </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShippingModalOpen(false)}>Cancel</Button>
-            <Button 
-              onClick={() => shippingOrderId && executeStatusUpdate(shippingOrderId, 'shipped', { 
-                trackingId: trackingData.id, 
-                trackingUrl: trackingData.url 
+            <Button
+              onClick={() => shippingOrderId && executeStatusUpdate(shippingOrderId, 'shipped', {
+                trackingId: trackingData.id,
+                trackingUrl: trackingData.url
               })}
               disabled={updating}
               className="bg-blue-600 hover:bg-blue-700 text-white"
@@ -690,13 +683,13 @@ export default function AdminOrders() {
       </Dialog>
 
       {/* --- ALERT DIALOGS --- */}
-      
+
       {/* 1. Info Dialog */}
-      <AlertDialog open={infoDialog.open} onOpenChange={(open) => !open && setInfoDialog(prev => ({...prev, open: false}))}>
+      <AlertDialog open={infoDialog.open} onOpenChange={(open) => !open && setInfoDialog(prev => ({ ...prev, open: false }))}>
         <AlertDialogContent className="z-[100]">
           <AlertDialogHeader>
             <div className="w-12 h-12 rounded-full bg-amber-100 flex items-center justify-center mb-2">
-                <AlertTriangle className="w-6 h-6 text-amber-600" />
+              <AlertTriangle className="w-6 h-6 text-amber-600" />
             </div>
             <AlertDialogTitle>{infoDialog.title}</AlertDialogTitle>
             <AlertDialogDescription>{infoDialog.description}</AlertDialogDescription>
@@ -708,7 +701,7 @@ export default function AdminOrders() {
       </AlertDialog>
 
       {/* 2. Confirmation Dialog */}
-      <AlertDialog open={confirmDialog.open} onOpenChange={(open) => !open && setConfirmDialog(prev => ({...prev, open: false}))}>
+      <AlertDialog open={confirmDialog.open} onOpenChange={(open) => !open && setConfirmDialog(prev => ({ ...prev, open: false }))}>
         <AlertDialogContent className="z-[100]">
           <AlertDialogHeader>
             <AlertDialogTitle>{confirmDialog.title}</AlertDialogTitle>
@@ -716,7 +709,7 @@ export default function AdminOrders() {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction 
+            <AlertDialogAction
               onClick={confirmDialog.onConfirm}
               className={confirmDialog.actionClass}
             >

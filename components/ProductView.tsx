@@ -2,8 +2,8 @@
 
 import { motion, useScroll, useTransform, useInView } from "framer-motion";
 import { useRef, useState, useEffect } from "react";
-import { 
-  Star, ShoppingBag, Package, Truck, Shield, 
+import {
+  Star, ShoppingBag, Package, Truck, Shield,
   Check, ArrowLeft, PenLine, AlertCircle, CheckCircle2, User as UserIcon
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -30,7 +30,7 @@ interface ProductViewProps {
 export default function ProductView({ product }: ProductViewProps) {
   const router = useRouter();
   const { addToCart, addToDirectCart } = useCart();
-  
+
   // -- Auth Check (Simple logic based on localStorage token existence) --
   // Ideally use a real AuthContext here
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -38,20 +38,20 @@ export default function ProductView({ product }: ProductViewProps) {
   useEffect(() => {
     // Check if token exists in localStorage to determine auth status
     if (typeof window !== 'undefined') {
-        const token = localStorage.getItem('token');
-        setIsAuthenticated(!!token);
+      const token = localStorage.getItem('token');
+      setIsAuthenticated(!!token);
     }
   }, []);
-  
+
   const ref = useRef(null);
   const isInView = useInView(ref, { once: true, margin: "-100px" });
-  
+
   // --- State ---
   const [selectedImage, setSelectedImage] = useState(0);
   const [quantity, setQuantity] = useState(1);
-  const [selectedFragrances, setSelectedFragrances] = useState<string[]>([]); 
+
   const [customMessage, setCustomMessage] = useState("");
-  
+
   // --- Rating Logic State ---
   const [userRating, setUserRating] = useState(0); // The actual rating saved in DB
   const [hoverRating, setHoverRating] = useState(0); // Visual hover state
@@ -61,16 +61,16 @@ export default function ProductView({ product }: ProductViewProps) {
   // --- Check User Rating on Mount ---
   useEffect(() => {
     if (isAuthenticated && product._id) {
-        checkUserRating(product._id)
-            .then((res) => {
-                if (res.hasRated) {
-                    setHasRated(true);
-                    setUserRating(res.rating);
-                }
-            })
-            .catch(() => {
-                // Fail silently or handle error
-            });
+      checkUserRating(product._id)
+        .then((res) => {
+          if (res.hasRated) {
+            setHasRated(true);
+            setUserRating(res.rating);
+          }
+        })
+        .catch(() => {
+          // Fail silently or handle error
+        });
     }
   }, [isAuthenticated, product._id]);
 
@@ -109,99 +109,61 @@ export default function ProductView({ product }: ProductViewProps) {
 
   // --- Handlers ---
 
-  const toggleFragrance = (fragranceId: string) => {
-    if (selectedFragrances.includes(fragranceId)) {
-      setSelectedFragrances((prev) => prev.filter((f) => f !== fragranceId));
-    } else {
-      setSelectedFragrances((prev) => [...prev, fragranceId]);
-    }
-  };
+
 
   const handleAddToCart = () => {
-    const hasFragrances = product.available_fragrances && product.available_fragrances.length > 0;
-    if (hasFragrances && selectedFragrances.length === 0) {
-        showAlert('warning', 'Select a Scent', 'Please select at least one fragrance to proceed.');
-        return;
-    }
-
-    if (hasFragrances) {
-        selectedFragrances.forEach((fragId) => {
-            addToCart(product, quantity, { fragrances: [fragId], message: customMessage });
-        });
-    } else {
-        addToCart(product, quantity, { fragrances: [], message: customMessage });
-    }
-    
-    const totalItemsAdded = hasFragrances ? (selectedFragrances.length * quantity) : quantity;
-    showAlert('success', 'Added to Cart', hasFragrances ? `Successfully added ${totalItemsAdded} items.` : `${product.name} has been added to your cart.`);
-    setSelectedFragrances([]);
+    addToCart(product, quantity, { message: customMessage });
+    showAlert('success', 'Added to Cart', `${product.name} has been added to your cart.`);
   };
 
   const handleBuyNow = () => {
-    const hasFragrances = product.available_fragrances && product.available_fragrances.length > 0;
-    if (hasFragrances && selectedFragrances.length === 0) {
-        showAlert('warning', 'Select a Scent', 'Please select at least one fragrance.');
-        return;
-    }
-
     const cartFn = addToDirectCart || addToCart;
-    
-    if (hasFragrances) {
-        selectedFragrances.forEach((fragId) => {
-            cartFn(product, quantity, { fragrances: [fragId], message: customMessage });
-        });
-    } else {
-        cartFn(product, quantity, { fragrances: [], message: customMessage });
-    }
-
+    cartFn(product, quantity, { message: customMessage });
     router.push('/cart?buy_now=true');
   };
 
   // --- Handle Rating Submission ---
   const handleRateProduct = async (ratingValue: number) => {
     if (!isAuthenticated) {
-        showAlert('warning', 'Login Required', 'Please log in to rate this product.');
-        return;
+      showAlert('warning', 'Login Required', 'Please log in to rate this product.');
+      return;
     }
 
     setIsRatingSubmitting(true);
     try {
-        await submitProductRating(product._id, ratingValue);
-        setUserRating(ratingValue);
-        setHasRated(true);
-        showAlert('success', 'Thank You!', 'Your rating has been submitted successfully.');
-        
-        // Optional: You could trigger a re-fetch of the product here to update the average stars immediately
-        // but typically the UI update of userRating is enough feedback.
+      await submitProductRating(product._id, ratingValue);
+      setUserRating(ratingValue);
+      setHasRated(true);
+      showAlert('success', 'Thank You!', 'Your rating has been submitted successfully.');
+
+      // Optional: You could trigger a re-fetch of the product here to update the average stars immediately
+      // but typically the UI update of userRating is enough feedback.
     } catch (error: any) {
-        const msg = error.message || 'Failed to submit rating';
-        showAlert('error', 'Error', msg);
+      const msg = error.message || 'Failed to submit rating';
+      showAlert('error', 'Error', msg);
     } finally {
-        setIsRatingSubmitting(false);
+      setIsRatingSubmitting(false);
     }
   };
 
   // Render variables
-  const totalItemsToAdd = (product.available_fragrances?.length && selectedFragrances.length > 0)
-    ? selectedFragrances.length * quantity
-    : quantity;
 
-  const tagName = product?.tags || (product.tags && product.tags.length > 0 
-    ? (typeof product.tags[0] === 'object' ? (product.tags[0] as any).name : product.tags[0]) 
-    : null);
+
+  const tagName = product.tags && product.tags.length > 0
+    ? (typeof product.tags[0] === 'object' ? (product.tags[0] as any).name : product.tags[0])
+    : null;
 
   return (
     <section ref={ref} className="pt-28 sm:pt-32 lg:pt-36 pb-16 sm:pb-20 lg:pb-24 px-4 sm:px-6 lg:px-8 bg-gradient-to-b from-white via-[#F8F8F8] to-white relative overflow-hidden">
-      
+
       {/* Alert Dialog */}
       <AlertDialog open={alertState.isOpen} onOpenChange={(isOpen) => !isOpen && closeAlert()}>
         <AlertDialogContent className="rounded-2xl border border-slate-100 shadow-2xl">
           <AlertDialogHeader className="flex flex-col items-center text-center">
-            <div className={`w-12 h-12 rounded-full flex items-center justify-center mb-4 ${
-              alertState.type === 'success' ? 'bg-green-50 text-green-600' : 
-              alertState.type === 'error' ? 'bg-red-50 text-red-600' : 
-              'bg-amber-50 text-amber-600'
-            }`}>
+            <div className={`w-12 h-12 rounded-full flex items-center justify-center mb-4 ${alertState.type === 'success' ? 'bg-green-50 text-green-600' :
+              alertState.type === 'error' ? 'bg-red-50 text-red-600' :
+                'bg-amber-50 text-amber-600'
+              }`}>
               {alertState.type === 'success' ? <CheckCircle2 className="w-6 h-6" /> : <AlertCircle className="w-6 h-6" />}
             </div>
             <AlertDialogTitle className="text-xl font-bold text-slate-900">{alertState.title}</AlertDialogTitle>
@@ -216,7 +178,7 @@ export default function ProductView({ product }: ProductViewProps) {
       {/* Bg Effects */}
       <motion.div style={{ y, opacity }} className="absolute top-20 right-0 w-[600px] h-[600px] bg-gradient-to-br from-pink-100/30 to-transparent rounded-full blur-3xl pointer-events-none" />
       <motion.div style={{ y: useTransform(scrollYProgress, [0, 1], [-100, 100]) }} className="absolute bottom-20 left-0 w-[500px] h-[500px] bg-gradient-to-tl from-rose-100/30 to-transparent rounded-full blur-3xl pointer-events-none" />
-      
+
       <div className="container mx-auto max-w-7xl relative z-10">
         <motion.div initial={{ opacity: 0, x: -30 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.5 }} className="mb-6 sm:mb-8">
           <Link href="/products">
@@ -227,15 +189,15 @@ export default function ProductView({ product }: ProductViewProps) {
         </motion.div>
 
         <div className="grid lg:grid-cols-2 gap-8 sm:gap-12 lg:gap-16 items-start">
-          
+
           {/* Images */}
           <motion.div initial={{ opacity: 0, x: -50 }} animate={isInView ? { opacity: 1, x: 0 } : {}} transition={{ duration: 0.8 }} className="lg:sticky lg:top-24">
             <div className="relative mb-4 sm:mb-6">
               <motion.div whileHover={{ scale: 1.02 }} className="relative aspect-square rounded-2xl sm:rounded-3xl overflow-hidden bg-white border border-[#DADADA] shadow-2xl">
                 {product.images && product.images.length > 0 ? (
-                    <img src={product.images[selectedImage]} alt={product.name} className="w-full h-full object-cover" />
+                  <img src={product.images[selectedImage]} alt={product.name} className="w-full h-full object-cover" />
                 ) : (
-                    <div className="w-full h-full bg-gray-100 flex items-center justify-center text-gray-400">No Image</div>
+                  <div className="w-full h-full bg-gray-100 flex items-center justify-center text-gray-400">No Image</div>
                 )}
                 {tagName && <div className="absolute top-6 right-6 bg-[#222222] text-white px-4 py-2 rounded-full text-sm font-bold shadow-lg">{tagName}</div>}
               </motion.div>
@@ -251,113 +213,83 @@ export default function ProductView({ product }: ProductViewProps) {
 
           {/* Info */}
           <motion.div initial={{ opacity: 0, x: 50 }} animate={isInView ? { opacity: 1, x: 0 } : {}} transition={{ duration: 0.8, delay: 0.2 }} className="space-y-6 sm:space-y-8">
-            
+
             {/* Title & Price */}
             <div>
-                <motion.div className="flex items-center gap-2 text-sm text-[#444444] mb-2">
-                    <span>Home</span>/<span>Products</span>/<span className="text-[#222222] font-semibold">{product.name}</span>
-                </motion.div>
-                <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-[#222222] leading-tight mb-4">
-                    {product.name}
-                </h1>
-                
-                {/* --- Display Rating (Top) --- */}
-                <div className="flex items-center gap-4 mb-4">
-                  <div className="flex items-center gap-2 bg-yellow-50 px-3 py-1.5 rounded-full border border-yellow-100">
-                    <div className="flex gap-0.5">
-                      {[...Array(5)].map((_, i) => (
-                        // This shows the aggregate rating from the DB
-                        <Star key={i} className={`w-4 h-4 ${i < Math.round(product.rating || 0) ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300'}`} />
-                      ))}
-                    </div>
-                    <span className="font-bold text-[#222222]">{product.rating ? product.rating.toFixed(1) : "0.0"}</span>
-                  </div>
-                  <span className="text-[#444444] text-sm font-medium">
-                    {product.reviews || 0} customer reviews
-                  </span>
-                </div>
+              <motion.div className="flex items-center gap-2 text-sm text-[#444444] mb-2">
+                <span>Home</span>/<span>Products</span>/<span className="text-[#222222] font-semibold">{product.name}</span>
+              </motion.div>
+              <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-[#222222] leading-tight mb-4">
+                {product.name}
+              </h1>
 
-                <div className="flex flex-wrap items-center gap-3 sm:gap-4">
-                    <span className="text-4xl sm:text-5xl font-bold text-[#222222]">₹{product.price.toLocaleString()}</span>
-                    {product.originalPrice && product.originalPrice > product.price && (
-                        <>
-                        <span className="text-xl sm:text-2xl text-[#444444] line-through">₹{product.originalPrice.toLocaleString()}</span>
-                        <span className="px-3 sm:px-4 py-1.5 sm:py-2 bg-pink-50 text-[#222222] rounded-full text-xs sm:text-sm font-bold">
-                            Save {Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)}%
-                        </span>
-                        </>
-                    )}
+              {/* --- Display Rating (Top) --- */}
+              <div className="flex items-center gap-4 mb-4">
+                <div className="flex items-center gap-2 bg-yellow-50 px-3 py-1.5 rounded-full border border-yellow-100">
+                  <div className="flex gap-0.5">
+                    {[...Array(5)].map((_, i) => (
+                      // This shows the aggregate rating from the DB
+                      <Star key={i} className={`w-4 h-4 ${i < Math.round(product.rating || 0) ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300'}`} />
+                    ))}
+                  </div>
+                  <span className="font-bold text-[#222222]">{product.rating ? product.rating.toFixed(1) : "0.0"}</span>
                 </div>
+                <span className="text-[#444444] text-sm font-medium">
+                  {product.reviews || 0} customer reviews
+                </span>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-3 sm:gap-4">
+                <span className="text-4xl sm:text-5xl font-bold text-[#222222]">₹{product.price.toLocaleString()}</span>
+                {product.originalPrice && product.originalPrice > product.price && (
+                  <>
+                    <span className="text-xl sm:text-2xl text-[#444444] line-through">₹{product.originalPrice.toLocaleString()}</span>
+                    <span className="px-3 sm:px-4 py-1.5 sm:py-2 bg-pink-50 text-[#222222] rounded-full text-xs sm:text-sm font-bold">
+                      Save {Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)}%
+                    </span>
+                  </>
+                )}
+              </div>
             </div>
 
             <p className="text-lg text-[#444444] leading-relaxed">{product.description}</p>
-            
+
             {/* Fragrance Selector ... (Existing Code) */}
-            {product.available_fragrances && product.available_fragrances.length > 0 && (
-                <div className="space-y-3">
-                    <h3 className="font-semibold text-[#222222]">Select Fragrance:</h3>
-                    <div className="flex flex-wrap gap-2">
-                        {product.available_fragrances.map((fragrance: any) => {
-                            const fragranceId = typeof fragrance === 'object' ? fragrance._id : fragrance;
-                            const fragranceName = typeof fragrance === 'object' ? fragrance.name : 'Unknown Scent';
-                            const inStock = typeof fragrance === 'object' ? fragrance.in_stock : true;
-                            const isSelected = selectedFragrances.includes(fragranceId);
-                            
-                            return (
-                                <button
-                                    key={fragranceId}
-                                    onClick={() => inStock && toggleFragrance(fragranceId)}
-                                    disabled={!inStock}
-                                    className={`px-4 py-2 rounded-full border transition-all duration-200 text-sm font-medium flex items-center gap-2
-                                        ${!inStock ? 'opacity-50 cursor-not-allowed bg-gray-100 border-gray-200 text-gray-400' : 
-                                          isSelected 
-                                            ? 'bg-[#222222] text-white border-[#222222] shadow-md transform scale-105' 
-                                            : 'bg-white text-[#444444] border-[#DADADA] hover:border-[#222222]'
-                                        }`}
-                                >
-                                    {fragranceName}
-                                    {!inStock && <span className="text-[10px] text-red-500">(Out of Stock)</span>}
-                                    {isSelected && <Check className="w-3 h-3 ml-1" />}
-                                </button>
-                            );
-                        })}
-                    </div>
-                </div>
-            )}
+
 
             {/* Custom Message ... (Existing Code) */}
             {(product.allow_custom_message || product.allow_custom_message === undefined) && (
               <div className="space-y-3">
-                  <h3 className="font-semibold text-[#222222] flex items-center gap-2">
-                      <PenLine className="w-4 h-4" /> 
-                      Custom Message <span className="text-xs font-normal text-gray-500">(Optional)</span>
-                  </h3>
-                  <Textarea 
-                      placeholder="Write your heartfelt message here..."
-                      value={customMessage}
-                      onChange={(e) => setCustomMessage(e.target.value)}
-                      className="bg-white border-[#DADADA] focus:ring-black focus:border-black rounded-xl min-h-[80px]"
-                      maxLength={200}
-                  />
-                  <p className="text-xs text-gray-500 text-right">{customMessage.length}/200</p>
+                <h3 className="font-semibold text-[#222222] flex items-center gap-2">
+                  <PenLine className="w-4 h-4" />
+                  Custom Message <span className="text-xs font-normal text-gray-500">(Optional)</span>
+                </h3>
+                <Textarea
+                  placeholder="Write your heartfelt message here..."
+                  value={customMessage}
+                  onChange={(e) => setCustomMessage(e.target.value)}
+                  className="bg-white border-[#DADADA] focus:ring-black focus:border-black rounded-xl min-h-[80px]"
+                  maxLength={200}
+                />
+                <p className="text-xs text-gray-500 text-right">{customMessage.length}/200</p>
               </div>
             )}
 
             {/* Features ... (Existing Code) */}
             {product.features && product.features.length > 0 && (
-                <div className="bg-gradient-to-br from-pink-50 to-rose-50 rounded-2xl sm:rounded-3xl p-6 sm:p-8 border border-[#DADADA]">
-                  <h3 className="text-lg sm:text-xl font-bold text-[#222222] mb-4 sm:mb-6">What&apos;s Included:</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
-                    {product.features.map((feature, index) => (
-                      <div key={index} className="flex items-center gap-3">
-                        <div className="w-6 h-6 bg-[#222222] rounded-full flex items-center justify-center flex-shrink-0">
-                          <Check className="w-4 h-4 text-white" />
-                        </div>
-                        <span className="text-[#444444]">{feature}</span>
+              <div className="bg-gradient-to-br from-pink-50 to-rose-50 rounded-2xl sm:rounded-3xl p-6 sm:p-8 border border-[#DADADA]">
+                <h3 className="text-lg sm:text-xl font-bold text-[#222222] mb-4 sm:mb-6">What&apos;s Included:</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
+                  {product.features.map((feature, index) => (
+                    <div key={index} className="flex items-center gap-3">
+                      <div className="w-6 h-6 bg-[#222222] rounded-full flex items-center justify-center flex-shrink-0">
+                        <Check className="w-4 h-4 text-white" />
                       </div>
-                    ))}
-                  </div>
+                      <span className="text-[#444444]">{feature}</span>
+                    </div>
+                  ))}
                 </div>
+              </div>
             )}
 
             <div className="flex flex-wrap gap-4 py-4 border-t border-b border-[#f0f0f0]">
@@ -376,14 +308,14 @@ export default function ProductView({ product }: ProductViewProps) {
             <div className="space-y-4">
               <div className="flex flex-col sm:flex-row gap-4">
                 <div className="flex items-center justify-between sm:justify-start gap-4 px-4 py-3 bg-white border-2 border-[#DADADA] rounded-xl sm:rounded-2xl w-full sm:w-auto">
-                    <button onClick={() => setQuantity(Math.max(1, quantity - 1))} className="w-8 h-8 flex items-center justify-center rounded-lg bg-[#F8F8F8] hover:bg-[#DADADA] font-bold">-</button>
-                    <span className="text-lg font-bold text-[#222222] w-8 text-center">{quantity}</span>
-                    <button onClick={() => setQuantity(quantity + 1)} className="w-8 h-8 flex items-center justify-center rounded-lg bg-[#F8F8F8] hover:bg-[#DADADA] font-bold">+</button>
+                  <button onClick={() => setQuantity(Math.max(1, quantity - 1))} className="w-8 h-8 flex items-center justify-center rounded-lg bg-[#F8F8F8] hover:bg-[#DADADA] font-bold">-</button>
+                  <span className="text-lg font-bold text-[#222222] w-8 text-center">{quantity}</span>
+                  <button onClick={() => setQuantity(quantity + 1)} className="w-8 h-8 flex items-center justify-center rounded-lg bg-[#F8F8F8] hover:bg-[#DADADA] font-bold">+</button>
                 </div>
 
                 <Button onClick={handleAddToCart} size="lg" className="flex-1 bg-[#1C1C1C] text-white hover:bg-[#222222] rounded-xl sm:rounded-2xl py-7 text-base sm:text-lg shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-[1.02]">
-                    <ShoppingBag className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
-                    {totalItemsToAdd > 1 ? `Add ${totalItemsToAdd} Items` : 'Add to Cart'}
+                  <ShoppingBag className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
+                  {quantity > 1 ? `Add ${quantity} Items` : 'Add to Cart'}
                 </Button>
               </div>
 
@@ -394,52 +326,51 @@ export default function ProductView({ product }: ProductViewProps) {
 
             {/* --- CUSTOMER RATING UI --- */}
             <div className="mt-8 pt-8 border-t border-slate-200">
-                <h3 className="text-lg font-bold text-[#222222] mb-3">Rate this Product</h3>
-                
-                {!isAuthenticated ? (
-                    <div className="bg-slate-50 rounded-xl p-4 border border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-3">
-                        <div className="flex items-center gap-3">
-                            <UserIcon className="w-5 h-5 text-slate-400" />
-                            <p className="text-sm text-slate-600">Login to share your opinion.</p>
-                        </div>
-                        <Link href="/login">
-                            <Button variant="outline" size="sm" className="rounded-full px-6">Login</Button>
-                        </Link>
-                    </div>
-                ) : hasRated ? (
-                    <div className="bg-green-50 rounded-xl p-4 border border-green-100 flex items-center gap-3">
-                        <CheckCircle2 className="w-6 h-6 text-green-600" />
-                        <div>
-                            <p className="text-sm font-bold text-green-800">Thanks for rating!</p>
-                            <p className="text-xs text-green-700">You rated this product {userRating} stars.</p>
-                        </div>
-                    </div>
-                ) : (
-                    <div className="bg-white rounded-xl p-6 border border-slate-200 shadow-sm text-center">
-                        <p className="text-slate-600 mb-3 text-sm font-medium">How would you rate your experience?</p>
-                        <div className="flex justify-center gap-2 mb-4">
-                            {[1, 2, 3, 4, 5].map((star) => (
-                                <button
-                                    key={star}
-                                    onMouseEnter={() => setHoverRating(star)}
-                                    onMouseLeave={() => setHoverRating(0)}
-                                    onClick={() => handleRateProduct(star)}
-                                    disabled={isRatingSubmitting}
-                                    className="transition-transform hover:scale-110 active:scale-95 focus:outline-none"
-                                >
-                                    <Star 
-                                        className={`w-8 h-8 transition-colors duration-200 ${
-                                            star <= (hoverRating || userRating) 
-                                            ? 'fill-yellow-400 text-yellow-400' 
-                                            : 'text-gray-200'
-                                        }`} 
-                                    />
-                                </button>
-                            ))}
-                        </div>
-                        <p className="text-xs text-slate-400">Click a star to submit</p>
-                    </div>
-                )}
+              <h3 className="text-lg font-bold text-[#222222] mb-3">Rate this Product</h3>
+
+              {!isAuthenticated ? (
+                <div className="bg-slate-50 rounded-xl p-4 border border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-3">
+                  <div className="flex items-center gap-3">
+                    <UserIcon className="w-5 h-5 text-slate-400" />
+                    <p className="text-sm text-slate-600">Login to share your opinion.</p>
+                  </div>
+                  <Link href="/login">
+                    <Button variant="outline" size="sm" className="rounded-full px-6">Login</Button>
+                  </Link>
+                </div>
+              ) : hasRated ? (
+                <div className="bg-green-50 rounded-xl p-4 border border-green-100 flex items-center gap-3">
+                  <CheckCircle2 className="w-6 h-6 text-green-600" />
+                  <div>
+                    <p className="text-sm font-bold text-green-800">Thanks for rating!</p>
+                    <p className="text-xs text-green-700">You rated this product {userRating} stars.</p>
+                  </div>
+                </div>
+              ) : (
+                <div className="bg-white rounded-xl p-6 border border-slate-200 shadow-sm text-center">
+                  <p className="text-slate-600 mb-3 text-sm font-medium">How would you rate your experience?</p>
+                  <div className="flex justify-center gap-2 mb-4">
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <button
+                        key={star}
+                        onMouseEnter={() => setHoverRating(star)}
+                        onMouseLeave={() => setHoverRating(0)}
+                        onClick={() => handleRateProduct(star)}
+                        disabled={isRatingSubmitting}
+                        className="transition-transform hover:scale-110 active:scale-95 focus:outline-none"
+                      >
+                        <Star
+                          className={`w-8 h-8 transition-colors duration-200 ${star <= (hoverRating || userRating)
+                            ? 'fill-yellow-400 text-yellow-400'
+                            : 'text-gray-200'
+                            }`}
+                        />
+                      </button>
+                    ))}
+                  </div>
+                  <p className="text-xs text-slate-400">Click a star to submit</p>
+                </div>
+              )}
             </div>
 
           </motion.div>
