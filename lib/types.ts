@@ -10,7 +10,7 @@ export interface Tag {
   _id: string;
   name: string;
   description?: string;
-  
+
 }
 
 
@@ -31,6 +31,8 @@ export interface Fragrance {
     base: string[];
   };
   in_stock: boolean;
+  image?: string; // New field
+  description?: string;
 }
 
 export interface BottleConfig {
@@ -48,15 +50,15 @@ export interface Product {
   reviews?: number;
   images: string[];
   features?: string[];
-  
+
   // --- NEW FIELD ---
-  bottleConfig?: BottleConfig[]; 
+  bottleConfig?: BottleConfig[];
   // ----------------
-  
-  tags?: Tag[]; 
-  available_fragrances?: (string | Fragrance)[]; 
+
+  tags?: Tag[];
+  available_fragrances?: (string | Fragrance)[];
   allow_custom_message?: boolean;
-  
+
   stock_quantity: number;
   is_active: boolean;
   created_at: string;
@@ -85,18 +87,18 @@ export interface Order {
     zip: string;
   };
   // Fallback for old schema compatibility
-  customer_address?: string; 
+  customer_address?: string;
 
   trackingId?: string;
   trackingUrl?: string;
-  
+
   total_amount: number;
   status: 'pending' | 'approved' | 'rejected' | 'completed';
-  
+
   // Support both naming conventions to prevent errors
-  createdAt: string; 
+  createdAt: string;
   created_at?: string;
-  
+
   items: OrderItem[]; // Use the new OrderItem interface
   updated_at?: string;
 }

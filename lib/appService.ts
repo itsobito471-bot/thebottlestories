@@ -2,17 +2,17 @@
 
 import { CartItem } from '@/app/context/CartContext';
 import { api } from './apiService';
-import { 
-  DashboardStats, 
-  Product, 
-  Order, 
-  LoginResponse, 
-  AdminLoginResponse, 
-  Fragrance, 
-  Tag, 
-  PaginatedResponse, 
-  PaginatedProductResponse, 
-  OrdersResponse, 
+import {
+  DashboardStats,
+  Product,
+  Order,
+  LoginResponse,
+  AdminLoginResponse,
+  Fragrance,
+  Tag,
+  PaginatedResponse,
+  PaginatedProductResponse,
+  OrdersResponse,
   StoreSettings,
   EnquiryData,
   RatingResponse,
@@ -68,8 +68,8 @@ export const getAdminOrders = (page = 1, limit = 10, search = '', status = 'all'
  * Updates an order's status.
  */
 export const updateOrderStatus = (
-  orderId: string, 
-  status: string, 
+  orderId: string,
+  status: string,
   trackingData?: { trackingId: string; trackingUrl: string }
 ) => {
   // 1. Create a flat payload object
@@ -146,7 +146,7 @@ interface FilterResponse {
  */
 export const filterProducts = (params: FilterParams) => {
   const queryParams = new URLSearchParams();
-  
+
   if (params.search) queryParams.append('search', params.search);
   // We will now pass the Tag ID here
   if (params.tag) queryParams.append('tag', params.tag);
@@ -197,7 +197,8 @@ export const deleteTag = (id: string) => {
   return api.delete(`/admin/tags/${id}`);
 };
 
-export const createFragrance = (data: { name: string; description: string; in_stock: boolean }) => {
+// Updated to support image
+export const createFragrance = (data: { name: string; description?: string; in_stock: boolean; image?: string; notes?: any }) => {
   return api.post<Fragrance>('/admin/fragrances', data);
 };
 
@@ -207,6 +208,10 @@ export const deleteFragrance = (id: string) => {
 
 export const updateFragranceStock = (id: string, in_stock: boolean) => {
   return api.put<Fragrance>(`/admin/fragrances/${id}`, { in_stock });
+};
+
+export const getFragranceById = (id: string) => {
+  return api.get<Fragrance>(`/fragrances/${id}`);
 };
 
 
@@ -227,7 +232,7 @@ export const getUserOrders = (page = 1, limit = 10, status = 'all') => {
   const params = new URLSearchParams();
   params.append('page', page.toString());
   params.append('limit', limit.toString());
-  
+
   if (status && status !== 'all') {
     params.append('status', status);
   }
@@ -369,12 +374,12 @@ export interface User {
   dob?: string;
   profilePicture?: string;
   createdAt: string;
-  
+
   // The aggregated field from the backend
-  addressDetails: Address[]; 
-  
+  addressDetails: Address[];
+
   // Optional birthday field
-  daysUntilBirthday?: number; 
+  daysUntilBirthday?: number;
 }
 
 export interface PaginatedUserResponse {

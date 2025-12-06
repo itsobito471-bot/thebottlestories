@@ -2,12 +2,12 @@
 
 import { useState, useEffect } from 'react';
 import { Product, Tag, Fragrance, BottleConfig } from '@/lib/types'; // Added BottleConfig
-import { 
-  createAdminProduct, 
-  updateAdminProduct, 
+import {
+  createAdminProduct,
+  updateAdminProduct,
   uploadAdminImages,
-  getTags,       
-  getFragrances  
+  getTags,
+  getFragrances
 } from '@/lib/appService';
 
 import { Button } from '@/components/ui/button';
@@ -16,14 +16,14 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { 
-  AlertDialog, 
-  AlertDialogAction, 
-  AlertDialogContent, 
-  AlertDialogDescription, 
-  AlertDialogFooter, 
-  AlertDialogHeader, 
-  AlertDialogTitle 
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle
 } from '@/components/ui/alert-dialog';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
@@ -44,22 +44,22 @@ export default function ProductForm({ product, open, onClose, onSuccess }: Produ
     description: '',
     price: 0,
     originalPrice: 0,
-    features: '', 
+    features: '',
     stock_quantity: 0,
     is_active: true,
     allow_custom_message: false,
     // --- NEW: Bottle Config State ---
-    bottleConfig: [] as BottleConfig[], 
+    bottleConfig: [] as BottleConfig[],
   });
 
   // --- Selection State ---
   const [selectedTag, setSelectedTag] = useState<string>("");
-  const [selectedFragrances, setSelectedFragrances] = useState<string[]>([]);
-  
+  const [selectedFragrance, setSelectedFragrance] = useState<string | null>(null);
+
   // --- Data Source State ---
   const [availableTags, setAvailableTags] = useState<Tag[]>([]);
   const [availableFragrances, setAvailableFragrances] = useState<Fragrance[]>([]);
-  
+
   // Pagination State
   const [tagsPage, setTagsPage] = useState(1);
   const [tagsHasMore, setTagsHasMore] = useState(false);
@@ -68,7 +68,7 @@ export default function ProductForm({ product, open, onClose, onSuccess }: Produ
 
   // --- Image State ---
   const [currentImageUrls, setCurrentImageUrls] = useState<string[]>([]);
-  const [pendingFiles, setPendingFiles] = useState<File[]>([]); 
+  const [pendingFiles, setPendingFiles] = useState<File[]>([]);
 
   // --- UI State ---
   const [uploading, setUploading] = useState(false);
@@ -155,22 +155,23 @@ export default function ProductForm({ product, open, onClose, onSuccess }: Produ
           is_active: product.is_active ?? true,
           allow_custom_message: product.allow_custom_message ?? false,
           // --- Populate Config ---
-          bottleConfig: product.bottleConfig || [], 
+          bottleConfig: product.bottleConfig || [],
         });
         setCurrentImageUrls(product.images || []);
 
         if (product.tags && product.tags.length > 0) {
-          const firstTag: any = product.tags[0]; 
+          const firstTag: any = product.tags[0];
           const tagId = (typeof firstTag === 'object' && firstTag !== null) ? firstTag._id : firstTag;
-          setSelectedTag(tagId); 
+          setSelectedTag(tagId);
         } else {
           setSelectedTag("");
         }
 
         const existingFragrances = product.available_fragrances?.map((frag: any) => {
-           return (typeof frag === 'object' && frag !== null) ? frag._id : frag;
+          return (typeof frag === 'object' && frag !== null) ? frag._id : frag;
         }) || [];
-        setSelectedFragrances(existingFragrances);
+        // Enforce single selection from existing
+        setSelectedFragrance(existingFragrances.length > 0 ? existingFragrances[0] : null);
 
       } else {
         // Reset form
@@ -183,13 +184,13 @@ export default function ProductForm({ product, open, onClose, onSuccess }: Produ
           stock_quantity: 0,
           is_active: true,
           allow_custom_message: false,
-          bottleConfig: [], 
+          bottleConfig: [],
         });
         setCurrentImageUrls([]);
         setSelectedTag("");
-        setSelectedFragrances([]);
+        setSelectedFragrance(null);
       }
-      setPendingFiles([]); 
+      setPendingFiles([]);
       setError('');
     }
   }, [product, open]);
@@ -198,7 +199,7 @@ export default function ProductForm({ product, open, onClose, onSuccess }: Produ
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
       setPendingFiles(prev => [...prev, ...Array.from(e.target.files!)]);
-      e.target.value = ""; 
+      e.target.value = "";
     }
   };
   const removePendingFile = (index: number) => {
@@ -210,10 +211,8 @@ export default function ProductForm({ product, open, onClose, onSuccess }: Produ
   const handleSelectTag = (tagId: string) => {
     if (selectedTag === tagId) setSelectedTag(""); else setSelectedTag(tagId);
   };
-  const toggleFragrance = (fragranceId: string) => {
-    setSelectedFragrances(prev => 
-      prev.includes(fragranceId) ? prev.filter(id => id !== fragranceId) : [...prev, fragranceId]
-    );
+  const selectFragrance = (fragranceId: string) => {
+    setSelectedFragrance(prev => prev === fragranceId ? null : fragranceId);
   };
 
   // --- NEW: Bottle Configuration Handlers ---
@@ -275,8 +274,8 @@ export default function ProductForm({ product, open, onClose, onSuccess }: Produ
         stock_quantity: Number(formData.stock_quantity),
         features: formData.features.split('\n').filter(f => f.trim() !== ''),
         images: finalImageUrls,
-        tags: (selectedTag ? [selectedTag] : []) as unknown as Tag[], 
-        available_fragrances: selectedFragrances,
+        tags: (selectedTag ? [selectedTag] : []) as unknown as Tag[],
+        available_fragrances: selectedFragrance ? [selectedFragrance] : [],
         // bottleConfig is already in formData
       };
 
@@ -285,7 +284,7 @@ export default function ProductForm({ product, open, onClose, onSuccess }: Produ
       } else {
         await createAdminProduct(productData);
       }
-      
+
       setAlertState({
         isOpen: true,
         title: 'Success!',
@@ -319,7 +318,7 @@ export default function ProductForm({ product, open, onClose, onSuccess }: Produ
           </DialogHeader>
 
           <form onSubmit={handleSubmit} className="space-y-6">
-            
+
             {/* 1. Basic Info */}
             <div className="grid grid-cols-1 gap-4">
               <div className="space-y-2">
@@ -361,9 +360,9 @@ export default function ProductForm({ product, open, onClose, onSuccess }: Produ
               </div>
 
               {formData.bottleConfig.length === 0 ? (
-                 <div className="text-sm text-slate-400 italic text-center py-2 border border-dashed rounded bg-white/50">
-                    No bottle sizes configured yet. Click "Add Size" to start.
-                 </div>
+                <div className="text-sm text-slate-400 italic text-center py-2 border border-dashed rounded bg-white/50">
+                  No bottle sizes configured yet. Click "Add Size" to start.
+                </div>
               ) : (
                 <div className="space-y-2">
                   <div className="grid grid-cols-10 gap-2 text-xs font-medium text-slate-500 uppercase px-1">
@@ -374,33 +373,33 @@ export default function ProductForm({ product, open, onClose, onSuccess }: Produ
                   {formData.bottleConfig.map((config, index) => (
                     <div key={index} className="grid grid-cols-10 gap-2 items-center">
                       <div className="col-span-3">
-                         <Input 
-                           type="number" 
-                           min="1"
-                           value={config.quantity} 
-                           onChange={(e) => handleBottleChange(index, 'quantity', parseInt(e.target.value) || 1)}
-                           className="bg-white h-9"
-                         />
+                        <Input
+                          type="number"
+                          min="1"
+                          value={config.quantity}
+                          onChange={(e) => handleBottleChange(index, 'quantity', parseInt(e.target.value) || 1)}
+                          className="bg-white h-9"
+                        />
                       </div>
                       <div className="col-span-6">
-                         <Input 
-                           type="text" 
-                           placeholder="e.g. 100ml"
-                           value={config.size} 
-                           onChange={(e) => handleBottleChange(index, 'size', e.target.value)}
-                           className="bg-white h-9"
-                         />
+                        <Input
+                          type="text"
+                          placeholder="e.g. 100ml"
+                          value={config.size}
+                          onChange={(e) => handleBottleChange(index, 'size', e.target.value)}
+                          className="bg-white h-9"
+                        />
                       </div>
                       <div className="col-span-1 text-right">
-                         <Button 
-                           type="button" 
-                           variant="ghost" 
-                           size="icon" 
-                           className="h-9 w-9 text-slate-400 hover:text-red-500 hover:bg-red-50"
-                           onClick={() => removeBottleSlot(index)}
-                         >
-                           <Trash2 className="w-4 h-4" />
-                         </Button>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="h-9 w-9 text-slate-400 hover:text-red-500 hover:bg-red-50"
+                          onClick={() => removeBottleSlot(index)}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
                       </div>
                     </div>
                   ))}
@@ -432,9 +431,8 @@ export default function ProductForm({ product, open, onClose, onSuccess }: Produ
                         <Badge
                           key={tag._id}
                           variant={isSelected ? "default" : "outline"}
-                          className={`cursor-pointer px-3 py-1 text-sm transition-colors ${
-                            isSelected ? 'bg-slate-900 text-white' : 'bg-white hover:bg-slate-100'
-                          }`}
+                          className={`cursor-pointer px-3 py-1 text-sm transition-colors ${isSelected ? 'bg-slate-900 text-white' : 'bg-white hover:bg-slate-100'
+                            }`}
                           onClick={() => handleSelectTag(tag._id)}
                         >
                           {tag.name}
@@ -453,11 +451,11 @@ export default function ProductForm({ product, open, onClose, onSuccess }: Produ
               )}
             </div>
 
-            {/* 5. Fragrances */}
+            {/* 5. Fragrances - SINGLE SELECT */}
             <div className="space-y-3 border p-4 rounded-lg bg-slate-50">
               <div className="flex justify-between items-center">
-                <Label className="text-base font-semibold">Available Fragrances</Label>
-                <span className="text-xs text-slate-500">Select all that apply</span>
+                <Label className="text-base font-semibold">Fragrance Profile</Label>
+                <span className="text-xs text-slate-500">Select one</span>
               </div>
               {loadingData ? (
                 <p className="text-sm text-slate-500">Loading fragrances...</p>
@@ -465,12 +463,18 @@ export default function ProductForm({ product, open, onClose, onSuccess }: Produ
                 <div className="flex flex-col gap-2">
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-60 overflow-y-auto pr-2">
                     {availableFragrances.map((frag) => {
-                      const isSelected = selectedFragrances.includes(frag._id);
+                      const isSelected = selectedFragrance === frag._id;
                       return (
-                        <div key={frag._id} className={`flex items-center justify-between p-2 rounded border transition-all ${isSelected ? 'border-slate-800 bg-white shadow-sm' : 'border-slate-200 bg-transparent'}`}>
-                          <div className="flex items-center gap-2">
-                            <Checkbox id={`frag-${frag._id}`} checked={isSelected} onCheckedChange={() => toggleFragrance(frag._id)} />
-                            <Label htmlFor={`frag-${frag._id}`} className="cursor-pointer font-normal text-sm">{frag.name}</Label>
+                        <div
+                          key={frag._id}
+                          className={`flex items-center justify-between p-2 rounded border transition-all cursor-pointer ${isSelected ? 'border-slate-800 bg-white shadow-sm ring-1 ring-slate-800' : 'border-slate-200 bg-transparent hover:bg-slate-100'}`}
+                          onClick={() => selectFragrance(frag._id)}
+                        >
+                          <div className="flex items-center gap-2 pointer-events-none">
+                            <div className={`w-4 h-4 rounded-full border flex items-center justify-center ${isSelected ? 'border-slate-900' : 'border-slate-300'}`}>
+                              {isSelected && <div className="w-2 h-2 rounded-full bg-slate-900" />}
+                            </div>
+                            <Label className="cursor-pointer font-normal text-sm">{frag.name}</Label>
                           </div>
                           <div className="flex items-center gap-1" title={frag.in_stock ? "In Stock" : "Out of Stock"}>
                             <span className={`w-2 h-2 rounded-full ${frag.in_stock ? 'bg-green-500' : 'bg-red-500'}`} />
@@ -508,14 +512,14 @@ export default function ProductForm({ product, open, onClose, onSuccess }: Produ
             <div className="space-y-2">
               <Label>Images</Label>
               <div className="flex items-center gap-4">
-                <Input 
-                  id="image" 
-                  type="file" 
-                  accept="image/*" 
-                  multiple 
-                  onChange={handleFileSelect} 
-                  disabled={uploading} 
-                  className="flex-1" 
+                <Input
+                  id="image"
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  onChange={handleFileSelect}
+                  disabled={uploading}
+                  className="flex-1"
                 />
                 <span className="text-sm text-slate-500">
                   {pendingFiles.length} file(s) selected
@@ -580,7 +584,7 @@ export default function ProductForm({ product, open, onClose, onSuccess }: Produ
       }}>
         <AlertDialogContent className="max-w-md text-center">
           <AlertDialogHeader className="flex flex-col items-center gap-2">
-             {alertState.type === 'success' ? (
+            {alertState.type === 'success' ? (
               <div className="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center mb-2">
                 <CheckCircle2 className="w-6 h-6 text-green-600" />
               </div>
@@ -597,8 +601,8 @@ export default function ProductForm({ product, open, onClose, onSuccess }: Produ
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="sm:justify-center">
-            <AlertDialogAction 
-              onClick={handleAlertClose} 
+            <AlertDialogAction
+              onClick={handleAlertClose}
               className={`w-full sm:w-auto ${alertState.type === 'error' ? 'bg-red-600 hover:bg-red-700' : 'bg-slate-900'}`}
             >
               {alertState.type === 'success' ? 'Continue' : 'Close'}
