@@ -186,7 +186,7 @@ export const getTags = (page = 1, limit = 10) => {
 };
 
 export const getFragrances = (page = 1, limit = 10) => {
-  return api.get<PaginatedResponse<Fragrance>>(`/admin/fragrances?page=${page}&limit=${limit}`);
+  return api.get<PaginatedResponse<Fragrance>>(`/admin/fragrances?page=${page}&limit=${limit}`, { cache: 'no-store' });
 };
 
 export const createTag = (data: { name: string }) => {
@@ -216,7 +216,7 @@ export const updateFragrance = (id: string, data: Partial<Fragrance>) => {
 };
 
 export const getFragranceById = (id: string) => {
-  return api.get<Fragrance>(`/fragrances/${id}`);
+  return api.get<Fragrance>(`/fragrances/${id}`, { cache: 'no-store' });
 };
 
 

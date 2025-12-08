@@ -23,10 +23,10 @@ export default function Footer() {
       { name: "Press", href: "#" }
     ],
     products: [
-      { name: "All Products", href: "/products" },
-      { name: "Gift Hampers", href: "/products?category=hampers" },
-      { name: "Corporate Gifts", href: "#" },
-      { name: "Custom Orders", href: "#" }
+      { name: "All Perfumes", href: "/products" },
+      { name: "Signature Scents", href: "/products" },
+      { name: "Best Sellers", href: "/products?sort=rating" },
+      { name: "New Arrivals", href: "/products?sort=new" }
     ],
     support: [
       { name: "Contact Us", href: "#contact" },
@@ -67,7 +67,7 @@ export default function Footer() {
 
       <div className="container mx-auto px-4 py-16 relative z-10">
         <div className="grid md:grid-cols-2 lg:grid-cols-6 gap-12 mb-12">
-          
+
           {/* Brand & Contact */}
           <div className="lg:col-span-2">
             <motion.div
@@ -78,9 +78,9 @@ export default function Footer() {
             >
               <h3 className="text-3xl font-bold mb-4">The Bottle Stories</h3>
               <p className="text-[#DADADA] mb-6 leading-relaxed">
-                Crafting unforgettable moments with luxury perfume gift hampers. Every bottle tells a story, every fragrance creates a memory.
+                Discover the art of affordable luxury with our premium inspired perfumes. Meticulously crafted scents that tell your unique story.
               </p>
-              
+
               {/* Dynamic Email */}
               {settings?.contact_email && (
                 <div className="flex items-center gap-2 mb-6">

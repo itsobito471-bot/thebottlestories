@@ -22,7 +22,7 @@ function handleUnauthorized() {
     // 1. Clear Auth Data
     localStorage.removeItem('token');
     localStorage.removeItem('user');
-    
+
     // 2. Clear Cart Data
     localStorage.removeItem('thebottlestories_cart');
 
@@ -33,7 +33,7 @@ function handleUnauthorized() {
     if (currentPath.startsWith('/admin')) {
       // Redirect to Admin Login page
       // CHANGE THIS if your admin login route is different (e.g. just '/admin')
-      window.location.href = '/admin/login'; 
+      window.location.href = '/admin/login';
     } else {
       // Redirect to User Login page
       window.location.href = '/login';
@@ -56,13 +56,13 @@ async function apiRequest<T>(
   };
 
   const config: RequestInit = {
+    // Default cache strategy (can be overridden by options)
+    next: { revalidate: 10 },
     ...options,
     headers: {
       ...defaultHeaders,
       ...options.headers,
     },
-    // Cache GET requests for 10 seconds to fix the stale data issue
-    next: { revalidate: 10 },
   };
 
   if (!isAuthRequest) {
@@ -126,7 +126,7 @@ async function apiFormRequest<T>(
   // --------------------------
 
   const data = await response.json();
-  
+
   if (!response.ok) {
     throw new Error(data.msg || data.message || `API Error: ${response.status}`);
   }
@@ -135,8 +135,8 @@ async function apiFormRequest<T>(
 
 // --- Public API Functions ---
 
-function get<T>(endpoint: string) {
-  return apiRequest<T>(endpoint, { method: 'GET' });
+function get<T>(endpoint: string, options?: RequestInit) {
+  return apiRequest<T>(endpoint, { method: 'GET', ...options });
 }
 
 function post<T>(endpoint: string, data: any, isAuthRequest: boolean = false) {
@@ -150,7 +150,7 @@ function post<T>(endpoint: string, data: any, isAuthRequest: boolean = false) {
   );
 }
 
-function put<T>(endpoint:string, data: any) {
+function put<T>(endpoint: string, data: any) {
   return apiRequest<T>(endpoint, {
     method: 'PUT',
     body: JSON.stringify(data),
