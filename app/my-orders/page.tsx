@@ -1,5 +1,6 @@
 'use client';
 
+import { generateInvoicePDF } from '@/lib/invoiceGenerator';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { getUserOrders } from '@/lib/appService';
@@ -10,7 +11,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import {
   ShoppingBag, Calendar, MapPin, Package,
-  Loader2, RotateCcw, CheckCircle, Clock, XCircle, Truck, StickyNote
+  Loader2, RotateCcw, CheckCircle, Clock, XCircle, Truck, StickyNote, Download
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { motion } from 'framer-motion';
@@ -212,7 +213,15 @@ export default function MyOrdersPage() {
                       ))}
                     </div>
 
-                    <div className="mt-6 pt-6 border-t border-slate-100 flex justify-end">
+                    <div className="mt-6 pt-6 border-t border-slate-100 flex flex-col sm:flex-row gap-3 justify-end">
+                      <Button
+                        variant="outline"
+                        onClick={() => generateInvoicePDF(order)}
+                        className="w-full sm:w-auto border-slate-200 text-slate-600 hover:text-slate-900 hover:border-slate-900 rounded-full"
+                      >
+                        <Download className="w-4 h-4 mr-2" />
+                        Download Invoice
+                      </Button>
                       <Button
                         onClick={() => handleOrderAgain(order)}
                         className="w-full sm:w-auto bg-white border-2 border-[#1C1C1C] text-[#1C1C1C] hover:bg-[#1C1C1C] hover:text-white transition-all rounded-full"
