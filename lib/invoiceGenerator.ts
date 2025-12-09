@@ -7,89 +7,137 @@ import { format } from 'date-fns';
 export const generateInvoicePDF = (order: Order) => {
     const doc = new jsPDF();
 
-    // Colors
-    const primaryColor = '#1C1C1C';
-    const secondaryColor = '#666666';
-    const accentColor = '#D4AF37'; // Gold
+    // Theme Colors (from globals.css)
+    const colors = {
+        background: '#F8F8F8', // --off-white
+        card: '#FFFFFF',
+        textPrimary: '#1C1C1C', // --smoky-black / --primary
+        textSecondary: '#666666',
+        border: '#DADADA', // --mist-grey
+        accent: '#D4AF37', // Gold 
+        tableHeader: '#1C1C1C',
+        tableRowEven: '#FAFAFA'
+    };
 
-    // --- Header ---
+    const margin = 15;
+    const pageWidth = doc.internal.pageSize.width;
+    const pageHeight = doc.internal.pageSize.height;
+    const contentWidth = pageWidth - (margin * 2);
 
-    // Logo / Brand Name
-    doc.setFontSize(24);
-    doc.setTextColor(primaryColor);
+    // Helper for rounded rectangles (bg)
+    const roundedBox = (x: number, y: number, w: number, h: number, color: string) => {
+        doc.setFillColor(color);
+        doc.roundedRect(x, y, w, h, 3, 3, 'F');
+    };
+
+    // --- Background ---
+    // Make the whole page slightly off-white like the app body? 
+    // Or keep white for printing. Let's stick to white for printability 
+    // but add a container border.
+
+    // Main Container Border
+    doc.setDrawColor(colors.border);
+    doc.setLineWidth(0.1);
+    doc.roundedRect(margin, margin, contentWidth, pageHeight - (margin * 2), 5, 5, 'S');
+
+    // --- Header Section ---
+    const headerHeight = 40;
+    // Light background for header
+    roundedBox(margin + 2, margin + 2, contentWidth - 4, headerHeight, colors.background);
+
+    // Logo / Brand
+    doc.setTextColor(colors.textPrimary);
+    doc.setFontSize(22);
     doc.setFont('helvetica', 'bold');
-    doc.text('THE BOTTLE STORIES', 20, 20);
+    doc.text('THE BOTTLE STORIES', margin + 8, margin + 15);
 
-    // Company Details
+    doc.setFontSize(9);
+    doc.setTextColor(colors.textSecondary);
+    doc.setFont('helvetica', 'normal');
+    doc.text('Premium Inspired Perfumes', margin + 8, margin + 20);
+    doc.text('www.thebottlestories.com', margin + 8, margin + 24);
+
+    // INVOICE Label
+    doc.setFontSize(28);
+    doc.setTextColor(colors.accent);
+    doc.setFont('helvetica', 'bold');
+    doc.text('INVOICE', pageWidth - margin - 10, margin + 25, { align: 'right' });
+
+
+    // --- Details Grid ---
+    const yDetails = margin + headerHeight + 10;
+    const col1X = margin + 5;
+    const col2X = pageWidth / 2 + 10; // Moved right slightly for better separation
+
+    // Left Column: Order Details
+    const labelX = col1X;
+    const valueX = col1X + 30; // Fixed width for labels
+
     doc.setFontSize(10);
-    doc.setTextColor(secondaryColor);
+    doc.setTextColor(colors.textSecondary);
+
+    // Row 1
+    doc.text('Invoice No:', labelX, yDetails);
+    doc.setTextColor(colors.textPrimary);
+    doc.setFont('helvetica', 'bold');
+    doc.text(`#${order._id.slice(-6).toUpperCase()}`, valueX, yDetails);
+
+    // Row 2
     doc.setFont('helvetica', 'normal');
-    doc.text('Premium Inspired Perfumes', 20, 26);
-    doc.text('www.thebottlestories.com', 20, 31);
-    // doc.text('support@thebottlestories.com', 20, 36); // Add if you have it
-
-    // INVOICE text
-    doc.setFontSize(30);
-    doc.setTextColor(accentColor); // Gold Invoice
+    doc.setTextColor(colors.textSecondary);
+    doc.text('Date:', labelX, yDetails + 6);
+    doc.setTextColor(colors.textPrimary);
     doc.setFont('helvetica', 'bold');
-    doc.text('INVOICE', 190, 25, { align: 'right' }); // Align right for better balance
+    doc.text(format(new Date(order.createdAt || order.created_at || new Date()), 'MMM dd, yyyy'), valueX, yDetails + 6);
 
-    // Divider
-    doc.setDrawColor(212, 175, 55); // Gold line
-    doc.setLineWidth(0.5);
-    doc.line(20, 40, 190, 40);
-
-    // --- Invoice Info & Customer Info ---
-
-    const yStart = 55;
-
-    // Invoice Details
-    doc.setFontSize(10);
-    doc.setTextColor(secondaryColor);
-    doc.text('Invoice Number:', 20, yStart);
-    doc.text('Date:', 20, yStart + 6);
-    doc.text('Status:', 20, yStart + 12);
-
-    doc.setTextColor(primaryColor);
-    doc.setFont('helvetica', 'bold');
-    doc.text(`#${order._id.slice(-6).toUpperCase()}`, 60, yStart);
-    doc.text(format(new Date(order.createdAt || order.created_at || new Date()), 'MMM dd, yyyy'), 60, yStart + 6);
-    doc.text(order.status.toUpperCase(), 60, yStart + 12);
-
-    // Bill To area
-    // Move 'Bill To' slightly left if needed or keep at 120
-    doc.setTextColor(secondaryColor);
+    // Row 3 (Status)
     doc.setFont('helvetica', 'normal');
-    doc.text('Bill To:', 120, yStart);
+    doc.setTextColor(colors.textSecondary);
+    doc.text('Status:', labelX, yDetails + 12);
 
-    doc.setTextColor(primaryColor);
+    const status = order.status.toUpperCase();
+    let statusColor = colors.textPrimary;
+    if (status === 'COMPLETED' || status === 'DELIVERED') statusColor = '#059669';
+    else if (status === 'PENDING') statusColor = '#D97706';
+
+    doc.setTextColor(statusColor);
     doc.setFont('helvetica', 'bold');
-    doc.text(order.customer_name, 120, yStart + 6);
+    doc.text(status, valueX, yDetails + 12);
+
+
+    // Right Column: Bill To
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(colors.textSecondary);
+    doc.text('Bill To:', col2X, yDetails);
+
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(colors.textPrimary);
+    doc.text(order.customer_name, col2X, yDetails + 6);
 
     doc.setFont('helvetica', 'normal');
-    doc.setTextColor(secondaryColor);
+    doc.setTextColor(colors.textSecondary);
+    const emailY = yDetails + 11;
     if (order.customer_email) {
-        doc.text(order.customer_email, 120, yStart + 12);
+        doc.text(order.customer_email, col2X, emailY);
     }
 
-    // Address
-    let addressY = yStart + 18;
+    let addressY = emailY + 5;
     if (order.shipping_address) {
         const addr = order.shipping_address;
-        // Ensure we handle missing fields gracefully
         const addressText = [addr.street, addr.city, addr.state, addr.zip].filter(Boolean).join(', ');
-        const addressLines = doc.splitTextToSize(addressText, 70);
-        doc.text(addressLines, 120, addressY);
+        const addressLines = doc.splitTextToSize(addressText, (contentWidth / 2) - 15); // Slightly narrower to avoid edge
+        doc.text(addressLines, col2X, addressY);
+        addressY += (addressLines.length * 4);
     } else if (order.customer_address) {
-        const addressLines = doc.splitTextToSize(order.customer_address, 70);
-        doc.text(addressLines, 120, addressY);
+        const addressLines = doc.splitTextToSize(order.customer_address, (contentWidth / 2) - 15);
+        doc.text(addressLines, col2X, addressY);
+        addressY += (addressLines.length * 4);
     }
 
+    const tableStartY = Math.max(yDetails + 30, addressY + 10);
 
-    // --- Order Items Table ---
-    // Ensure addressY accounts for multi-line address
-    // We can just add a safe buffer or calculate it more precisely but +25 is usually safe
 
+    // --- Items Table ---
     const tableRawData = order.items.map(item => [
         item.product?.name || 'Item Unavailable',
         item.quantity.toString(),
@@ -98,55 +146,49 @@ export const generateInvoicePDF = (order: Order) => {
     ]);
 
     autoTable(doc, {
-        startY: addressY + 25,
+        startY: tableStartY,
+        margin: { left: margin, right: margin }, // Align with outer container margin
         head: [['Item', 'Quantity', 'Price', 'Total']],
         body: tableRawData,
-        theme: 'plain', // Clean modern look
+        theme: 'plain',
         headStyles: {
-            fillColor: '#1C1C1C',
+            fillColor: colors.tableHeader,
             textColor: '#FFFFFF',
             fontStyle: 'bold',
-            fontSize: 10,
+            fontSize: 9,
             halign: 'left',
-            cellPadding: 10 // More breathing room
+            valign: 'middle',
+            cellPadding: 8
         },
         styles: {
-            fontSize: 10,
-            cellPadding: 10,
-            textColor: '#222222',
-            lineColor: '#EEEEEE',
-            lineWidth: 0.1,
-            valign: 'middle'
+            fontSize: 9,
+            cellPadding: 8,
+            textColor: colors.textPrimary,
+            valign: 'middle', // Align text vertically center
+            lineWidth: 0,
         },
         columnStyles: {
-            0: { cellWidth: 'auto' },
+            0: { cellWidth: 'auto', halign: 'left' },
             1: { cellWidth: 30, halign: 'center' },
-            2: { cellWidth: 40, halign: 'right' },
-            3: { cellWidth: 40, halign: 'right' }
+            2: { cellWidth: 35, halign: 'right' },
+            3: { cellWidth: 35, halign: 'right' }
         },
-        didDrawCell: (data: any) => {
-            // Add bottom border to every row for a clean look
-            // Draw only once per row (e.g., first column)
-            if (data.section === 'body' && data.column.index === 0) {
-                const doc = data.doc;
-                const pageSize = doc.internal.pageSize;
-                const pageWidth = pageSize.width ? pageSize.width : pageSize.getWidth();
-
-                // Use settings.margin.left if available, else default to 14
-                const marginLeft = data.settings.margin.left || 14;
-                // Alternatively, use cell.x for start
-                const startX = data.cell.x;
-
-                // Calculate endX. Table width might not be directly available in all versions.
-                // We can use pageWidth - margin.right
-                const marginRight = data.settings.margin.right || 14;
-                const endX = pageWidth - marginRight;
-
-                doc.setDrawColor(238, 238, 238);
+        didParseCell: (data) => {
+            // Apply header specific alignment safely
+            if (data.section === 'head') {
+                if (data.column.index === 1) data.cell.styles.halign = 'center';
+                if (data.column.index === 2) data.cell.styles.halign = 'right';
+                if (data.column.index === 3) data.cell.styles.halign = 'right';
+            }
+        },
+        didDrawCell: (data) => {
+            if (data.section === 'body') {
+                doc.setDrawColor(colors.border);
+                doc.setLineWidth(0.1);
                 doc.line(
-                    marginLeft,
+                    data.cell.x,
                     data.cell.y + data.cell.height,
-                    endX,
+                    data.cell.x + data.cell.width,
                     data.cell.y + data.cell.height
                 );
             }
@@ -154,39 +196,58 @@ export const generateInvoicePDF = (order: Order) => {
     });
 
     // --- Footer / Totals ---
+    // Calculate precise layout for the card
+    const finalY = (doc as any).lastAutoTable.finalY + 10;
+    const summaryBoxWidth = 90;
+    const summaryBoxX = pageWidth - margin - summaryBoxWidth;
+    const boxPadding = 6;
+    const summaryBoxHeight = 44; // Fixed height for consistency
 
-    const finalY = (doc as any).lastAutoTable.finalY + 15;
+    // Background for summary
+    roundedBox(summaryBoxX, finalY, summaryBoxWidth, summaryBoxHeight, '#FAFAFA');
 
-    // Totals Area
-    doc.setFontSize(10);
-    doc.setTextColor(secondaryColor);
-    doc.text('Subtotal:', 140, finalY);
-    doc.text('Shipping:', 140, finalY + 7);
+    const labelX_Summary = summaryBoxX + boxPadding + 4; // Slight indentation
+    const valueX_Summary = pageWidth - margin - boxPadding - 4;
 
-    doc.setFontSize(14); // Larger total
-    doc.setTextColor(primaryColor);
-    doc.setFont('helvetica', 'bold');
-    doc.text('Total:', 140, finalY + 18);
+    const startTextY = finalY + 12; // Start text a bit lower inside the box
+    const lineHeight = 7;
 
-    doc.setFontSize(10);
+    doc.setFontSize(9);
+    doc.setTextColor(colors.textSecondary);
+
+    // Subtotal
+    doc.text('Subtotal:', labelX_Summary, startTextY);
     doc.setFont('helvetica', 'normal');
-    doc.setTextColor(primaryColor);
-    doc.text(`Rs. ${order.total_amount.toLocaleString()}`, 190, finalY, { align: 'right' });
-    doc.text('Free', 190, finalY + 7, { align: 'right' });
+    doc.setTextColor(colors.textPrimary);
+    doc.text(`Rs. ${order.total_amount.toLocaleString()}`, valueX_Summary, startTextY, { align: 'right' });
 
-    doc.setFontSize(14);
+    // Shipping
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(colors.textSecondary);
+    doc.text('Shipping:', labelX_Summary, startTextY + lineHeight);
+    doc.setTextColor(colors.textPrimary);
+    doc.text('Free', valueX_Summary, startTextY + lineHeight, { align: 'right' });
+
+    // Divider
+    doc.setDrawColor(colors.border);
+    doc.line(summaryBoxX + boxPadding, startTextY + lineHeight + 6, pageWidth - margin - boxPadding, startTextY + lineHeight + 6);
+
+    // Total
+    const totalY = startTextY + lineHeight + 18; // Give enough space after line
+    doc.setFontSize(12);
     doc.setFont('helvetica', 'bold');
-    doc.setTextColor(accentColor); // Gold Total
-    doc.text(`Rs. ${order.total_amount.toLocaleString()}`, 190, finalY + 18, { align: 'right' });
+    doc.setTextColor(colors.textPrimary);
+    doc.text('Total:', labelX_Summary, totalY);
 
-    // Decorate bottom
-    const pageHeight = doc.internal.pageSize.height;
+    doc.setTextColor(colors.accent);
+    doc.text(`Rs. ${order.total_amount.toLocaleString()}`, valueX_Summary, totalY, { align: 'right' });
 
-    // Thank you message
-    doc.setFontSize(10);
-    doc.setTextColor(secondaryColor);
+    // Footer Message
+    const footerY = pageHeight - margin - 10;
+    doc.setFontSize(8);
+    doc.setTextColor(colors.textSecondary);
     doc.setFont('helvetica', 'italic');
-    doc.text('Thank you for choosing The Bottle Stories.', 105, finalY + 30, { align: 'center' });
+    doc.text('Thank you for shopping with The Bottle Stories.', pageWidth / 2, footerY, { align: 'center' });
 
     // Save
     doc.save(`invoice_${order._id}.pdf`);
