@@ -10,23 +10,25 @@ import {
   SheetTitle,
   SheetTrigger,
 } from '@/components/ui/sheet';
-import { 
-  LogOut, 
-  Package, 
-  ShoppingCart, 
-  LayoutDashboard, 
-  Menu, 
-  Tag, 
+import {
+  LogOut,
+  Package,
+  ShoppingCart,
+  LayoutDashboard,
+  Menu,
+  Tag,
   Wind,
   Settings,
   FileQuestion,
-  Star // Added for Testimonials
+  Star, // Added for Testimonials
+  // BarChart2 - Removed for Dashboard integration
 } from 'lucide-react';
 import Link from 'next/link';
 
 // --- Navigation Items Configuration ---
 const navItems = [
   { href: '/admin/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  // { href: '/admin/analytics', label: 'Analytics', icon: BarChart2 }, // RE-INTEGRATED INTO DASHBOARD
   { href: '/admin/products', label: 'Products', icon: Package },
   { href: '/admin/orders', label: 'Orders', icon: ShoppingCart },
   { href: '/admin/tags', label: 'Tags', icon: Tag },
@@ -100,7 +102,7 @@ export default function AdminNav() {
         <div className={`glass-nav rounded-2xl max-w-[1400px] mx-auto transition-all duration-300 ${scrolled ? 'py-1 shadow-lg' : 'py-1'}`}>
           <div className="px-4 sm:px-6">
             <div className="flex justify-between h-16 items-center gap-4">
-              
+
               {/* --- 1. Logo Section --- */}
               <Link href="/admin/dashboard" className="flex items-center group cursor-pointer flex-shrink-0">
                 <div className="w-10 h-10 bg-slate-900 rounded-xl flex items-center justify-center shadow-lg group-hover:shadow-slate-900/20 transition-all duration-300 group-hover:scale-105">
@@ -124,11 +126,10 @@ export default function AdminNav() {
                     <Link
                       key={item.href}
                       href={item.href}
-                      className={`glass-button inline-flex items-center px-4 py-2 rounded-xl text-sm font-semibold whitespace-nowrap ${
-                        isActive
-                          ? 'glass-button-active text-slate-900 shadow-inner'
-                          : 'text-slate-500 hover:text-slate-900'
-                      }`}
+                      className={`glass-button inline-flex items-center px-4 py-2 rounded-xl text-sm font-semibold whitespace-nowrap ${isActive
+                        ? 'glass-button-active text-slate-900 shadow-inner'
+                        : 'text-slate-500 hover:text-slate-900'
+                        }`}
                     >
                       <Icon className={`w-4 h-4 mr-2.5 ${isActive ? 'text-slate-900' : 'text-slate-400 group-hover:text-slate-600'}`} />
                       {item.label}
@@ -139,7 +140,7 @@ export default function AdminNav() {
 
               {/* --- 3. Right Actions --- */}
               <div className="flex items-center gap-3 flex-shrink-0">
-                
+
                 {/* Desktop Sign Out */}
                 <div className="hidden xl:flex">
                   <button
@@ -159,7 +160,7 @@ export default function AdminNav() {
                         <Menu className="w-6 h-6 text-slate-700" />
                       </button>
                     </SheetTrigger>
-                    
+
                     {/* Mobile Sheet Content */}
                     <SheetContent side="left" className="w-[85vw] sm:w-[400px] p-0 border-r-0 bg-white/95 backdrop-blur-xl">
                       <div className="flex flex-col h-full">
@@ -176,7 +177,7 @@ export default function AdminNav() {
                             </div>
                           </SheetTitle>
                         </SheetHeader>
-                        
+
                         <div className="flex-1 overflow-y-auto py-6 px-4">
                           <p className="text-xs font-bold text-slate-400 uppercase tracking-wider px-2 mb-4">Menu</p>
                           <nav className="flex flex-col space-y-2">
@@ -188,11 +189,10 @@ export default function AdminNav() {
                                   key={item.href}
                                   href={item.href}
                                   onClick={closeSheet}
-                                  className={`flex items-center px-4 py-3.5 rounded-xl transition-all duration-200 group relative overflow-hidden ${
-                                    isActive
-                                      ? 'bg-slate-900 text-white shadow-lg shadow-slate-900/20'
-                                      : 'hover:bg-slate-50 text-slate-600 hover:text-slate-900 border border-transparent hover:border-slate-200'
-                                  }`}
+                                  className={`flex items-center px-4 py-3.5 rounded-xl transition-all duration-200 group relative overflow-hidden ${isActive
+                                    ? 'bg-slate-900 text-white shadow-lg shadow-slate-900/20'
+                                    : 'hover:bg-slate-50 text-slate-600 hover:text-slate-900 border border-transparent hover:border-slate-200'
+                                    }`}
                                 >
                                   <Icon className={`w-5 h-5 mr-3 transition-colors ${isActive ? 'text-white' : 'text-slate-400 group-hover:text-slate-600'}`} />
                                   <span className="font-medium text-sm flex-1">{item.label}</span>

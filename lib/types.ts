@@ -216,3 +216,20 @@ export interface Testimonial {
   isApproved: boolean; // Added this to fix the error
   createdAt?: string;  // Optional: Added this since your fallback data uses it
 }
+
+export interface AnalyticsData {
+  salesData: {
+    _id: string; // Date "YYYY-MM-DD"
+    totalSales: number;
+    orderCount: number
+  }[];
+  topProducts: {
+    name: string;
+    quantity: number;
+    revenue: number
+  }[];
+  statusDistribution: {
+    _id: string;
+    count: number
+  }[];
+}

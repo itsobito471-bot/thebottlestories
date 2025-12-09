@@ -4,7 +4,7 @@ import { motion, useScroll, useTransform, useInView, AnimatePresence } from "fra
 import { useRef, useState, useEffect } from "react"
 import { Star, Quote, ChevronLeft, ChevronRight, Sparkles, X, Upload, Send } from "lucide-react"
 import { getApprovedTestimonials, submitTestimonial } from "@/lib/appService"
-import { Button } from "@/components/ui/button" 
+import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
@@ -37,11 +37,11 @@ const fallbackTestimonials: Testimonial[] = [
 export default function Testimonials() {
   const ref = useRef(null)
   const isInView = useInView(ref, { once: true, margin: "-100px" })
-  
+
   // -- Data State --
   const [dbTestimonials, setDbTestimonials] = useState<Testimonial[]>([])
   const [loading, setLoading] = useState(true)
-  
+
   // -- Carousel State --
   const [currentIndex, setCurrentIndex] = useState(0)
   const [itemsPerView, setItemsPerView] = useState(3)
@@ -77,11 +77,11 @@ export default function Testimonials() {
     const fetchData = async () => {
       try {
         // Fetch only 10 to keep it light
-        const data = await getApprovedTestimonials(10); 
+        const data = await getApprovedTestimonials(10);
         if (data && data.length > 0) {
           setDbTestimonials(data);
         } else {
-          setDbTestimonials(fallbackTestimonials); 
+          setDbTestimonials(fallbackTestimonials);
         }
       } catch (error) {
         console.error("Failed to fetch testimonials", error);
@@ -95,9 +95,9 @@ export default function Testimonials() {
 
   // --- DISPLAY LOGIC ---
   const shouldCarousel = dbTestimonials.length > itemsPerView;
-  
-  const displayItems = shouldCarousel 
-    ? [...dbTestimonials, ...dbTestimonials, ...dbTestimonials] 
+
+  const displayItems = shouldCarousel
+    ? [...dbTestimonials, ...dbTestimonials, ...dbTestimonials]
     : dbTestimonials;
 
   // --- RESIZE HANDLER ---
@@ -117,7 +117,7 @@ export default function Testimonials() {
   // --- AUTO SCROLL ---
   useEffect(() => {
     if (!shouldCarousel) return;
-    
+
     const timer = setInterval(() => {
       setCurrentIndex((prev) => prev + 1)
     }, 4000)
@@ -127,8 +127,8 @@ export default function Testimonials() {
   // --- INFINITE LOOP RESET ---
   useEffect(() => {
     if (!shouldCarousel) return;
-    const realLength = displayItems.length / 3; 
-    
+    const realLength = displayItems.length / 3;
+
     if (currentIndex >= realLength * 2) {
       setIsTransitioning(true)
       setTimeout(() => {
@@ -165,7 +165,7 @@ export default function Testimonials() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setFormLoading(true);
-    
+
     const payload = new FormData();
     payload.append('name', formData.name);
     payload.append('role', formData.role);
@@ -193,7 +193,7 @@ export default function Testimonials() {
 
   return (
     <section id="testimonials" ref={ref} className="py-32 px-4 bg-gradient-to-b from-white via-gray-50 to-white relative overflow-hidden">
-      
+
       {/* --- BACKGROUND EFFECTS --- */}
       {!isMobile && (
         <>
@@ -205,7 +205,7 @@ export default function Testimonials() {
       )}
 
       <div className="container mx-auto relative z-10">
-        
+
         {/* --- HEADER --- */}
         <motion.div
           initial={{ opacity: 0, y: 50 }}
@@ -216,16 +216,16 @@ export default function Testimonials() {
           <div className="inline-flex items-center gap-2 text-sm font-semibold text-gray-700 mb-6 px-6 py-3 bg-white rounded-full border border-gray-300 shadow-lg">
             <Star className="w-4 h-4 fill-gray-700" /> TESTIMONIALS
           </div>
-          
+
           <h2 className="text-5xl md:text-7xl font-bold text-gray-900 mb-8 leading-tight">
             What Our Customers <span className="block">Say</span>
           </h2>
-          
+
           <p className="text-lg md:text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed mb-8">
-            Don't just take our word for it—hear from those who've experienced the magic of our perfume gift hampers.
+            Don't just take our word for it—hear from those who've experienced the magic of our perfume inspired perfumes.
           </p>
 
-          <Button 
+          <Button
             onClick={() => setIsModalOpen(true)}
             className="bg-gray-900 text-white hover:bg-gray-800 rounded-full px-8 py-6 text-lg shadow-xl transition-all hover:scale-105"
           >
@@ -235,14 +235,14 @@ export default function Testimonials() {
 
         {/* --- CONTENT AREA --- */}
         <div className="relative">
-          
+
           {/* Navigation Buttons */}
           {shouldCarousel && (
             <>
               <button onClick={goToPrev} className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-4 z-20 bg-white/90 hover:bg-white p-4 rounded-full shadow-xl border border-gray-300 transition-all hover:scale-110">
                 <ChevronLeft className="w-6 h-6 text-gray-900" />
               </button>
-              
+
               <button onClick={goToNext} className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-4 z-20 bg-white/90 hover:bg-white p-4 rounded-full shadow-xl border border-gray-300 transition-all hover:scale-110">
                 <ChevronRight className="w-6 h-6 text-gray-900" />
               </button>
@@ -254,34 +254,34 @@ export default function Testimonials() {
               animate={shouldCarousel ? { x: `-${(currentIndex / displayItems.length) * 100}%` } : { x: 0 }}
               transition={{ type: "tween", ease: "easeOut", duration: isTransitioning ? 0 : 0.5 }}
               className={`flex ${!shouldCarousel ? 'justify-center flex-wrap' : ''}`}
-              style={{ 
-                width: shouldCarousel ? `${displayItems.length * (100 / itemsPerView)}%` : '100%' 
+              style={{
+                width: shouldCarousel ? `${displayItems.length * (100 / itemsPerView)}%` : '100%'
               }}
             >
               {displayItems.map((testimonial, index) => (
-                <div 
-                  key={`${testimonial._id}-${index}`} 
-                  className="px-3 mb-6" 
-                  style={{ 
-                    width: shouldCarousel ? `${100 / displayItems.length}%` : isMobile ? '100%' : `${100 / itemsPerView}%` 
+                <div
+                  key={`${testimonial._id}-${index}`}
+                  className="px-3 mb-6"
+                  style={{
+                    width: shouldCarousel ? `${100 / displayItems.length}%` : isMobile ? '100%' : `${100 / itemsPerView}%`
                   }}
                 >
                   <div className="group relative h-full">
                     <div className="h-full bg-white rounded-3xl overflow-hidden border border-gray-300 shadow-xl hover:shadow-2xl transition-all duration-500">
                       <div className="relative h-80 overflow-hidden bg-gray-100">
                         {testimonial.image ? (
-                          <img 
-                            src={testimonial.image} 
+                          <img
+                            src={testimonial.image}
                             alt={testimonial.name}
                             className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
                           />
                         ) : (
                           <div className="w-full h-full flex items-center justify-center bg-gray-200">
-                             <span className="text-4xl font-bold text-gray-400">{testimonial.name.charAt(0)}</span>
+                            <span className="text-4xl font-bold text-gray-400">{testimonial.name.charAt(0)}</span>
                           </div>
                         )}
                         <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent opacity-80" />
-                        
+
                         {/* Rating Stars - UPDATED TO GOLDEN */}
                         <div className="absolute top-6 left-6 flex gap-1">
                           {[...Array(5)].map((_, i) => (
@@ -313,11 +313,11 @@ export default function Testimonials() {
       {/* --- SUBMISSION MODAL --- */}
       <AnimatePresence>
         {isModalOpen && (
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
             className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
           >
-            <motion.div 
+            <motion.div
               initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }}
               className="bg-white rounded-3xl w-full max-w-lg overflow-hidden shadow-2xl relative"
             >
@@ -329,7 +329,7 @@ export default function Testimonials() {
                       <X className="w-5 h-5" />
                     </button>
                   </div>
-                  
+
                   <form onSubmit={handleSubmit} className="p-6 space-y-4">
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-2">

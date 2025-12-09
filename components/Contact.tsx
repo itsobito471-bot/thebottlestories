@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Mail, Phone, MapPin, Send, Loader2, CheckCircle2 } from "lucide-react"
 // Import API services
-import { getGeneralStoreSettings, submitEnquiry} from "@/lib/appService"
+import { getGeneralStoreSettings, submitEnquiry } from "@/lib/appService"
 import { StoreSettings } from "@/lib/types"
 
 export default function Contact() {
@@ -18,7 +18,7 @@ export default function Contact() {
   // --- State ---
   const [settings, setSettings] = useState<StoreSettings | null>(null);
   const [loadingSettings, setLoadingSettings] = useState(true);
-  
+
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
@@ -35,7 +35,7 @@ export default function Contact() {
       try {
         const data = await getGeneralStoreSettings();
         // @ts-ignore - Handle potential response wrapper
-        setSettings(data.result || data); 
+        setSettings(data.result || data);
       } catch (error) {
         console.error("Failed to load contact info");
       } finally {
@@ -85,8 +85,8 @@ export default function Contact() {
     {
       icon: MapPin,
       title: "Address",
-      content: settings?.address 
-        ? `${settings.address.street}, ${settings.address.city}, ${settings.address.state} ${settings.address.zip}` 
+      content: settings?.address
+        ? `${settings.address.street}, ${settings.address.city}, ${settings.address.state} ${settings.address.zip}`
         : "Loading location...",
       link: "#"
     }
@@ -121,12 +121,12 @@ export default function Contact() {
             Let's Start a Conversation
           </h2>
           <p className="text-lg md:text-xl text-[#444444] max-w-3xl mx-auto">
-            Have questions about our gift hampers? We'd love to hear from you.
+            Have questions about our inspired perfumes? We'd love to hear from you.
           </p>
         </motion.div>
 
         <div className="grid lg:grid-cols-2 gap-12 max-w-6xl mx-auto">
-          
+
           {/* Left Side: Contact Info (Dynamic) */}
           <motion.div
             initial={{ opacity: 0, x: -50 }}
@@ -155,9 +155,9 @@ export default function Contact() {
                       <div>
                         <p className="font-semibold text-[#222222] mb-1">{info.title}</p>
                         {loadingSettings ? (
-                           <div className="h-4 w-32 bg-slate-200 animate-pulse rounded"></div>
+                          <div className="h-4 w-32 bg-slate-200 animate-pulse rounded"></div>
                         ) : (
-                           <p className="text-[#444444]">{info.content}</p>
+                          <p className="text-[#444444]">{info.content}</p>
                         )}
                       </div>
                     </motion.a>
@@ -184,7 +184,7 @@ export default function Contact() {
           >
             <div className="bg-[#F2F2F2] rounded-3xl p-8 border-2 border-[#DADADA] shadow-lg h-full">
               <h3 className="text-2xl font-bold text-[#222222] mb-6">Send us a Message</h3>
-              
+
               {success ? (
                 <div className="h-[400px] flex flex-col items-center justify-center text-center space-y-4">
                   <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center">

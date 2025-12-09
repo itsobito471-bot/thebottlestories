@@ -17,7 +17,8 @@ import {
   EnquiryData,
   RatingResponse,
   UserRatingStatus,
-  Testimonial
+  Testimonial,
+  AnalyticsData
 } from './types';
 
 
@@ -401,4 +402,10 @@ export const getAdminUsers = (page = 1, limit = 10, search = '', filterBirthday 
   return api.get<PaginatedUserResponse>(
     `/admin/users?page=${page}&limit=${limit}&search=${search}&filterBirthday=${filterBirthday}`
   );
+};
+
+// --- Analytics ---
+
+export const getAnalytics = (range = '30d') => {
+  return api.get<AnalyticsData>(`/analytics?range=${range}`);
 };
